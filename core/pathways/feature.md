@@ -38,4 +38,4 @@ Propose two or three approaches with their trade-offs. Put the recommended one f
 
 ## Steps
 
-Cut one Step per independently testable behaviour. Split Steps along file boundaries, so no two Steps edit the same file.
+Cut one Step per independently testable behaviour. Split Steps along file boundaries where you can. Steps that must share a file are built one after another; follow `${CLAUDE_PLUGIN_ROOT}/core/items.md` for shared files and export files.
