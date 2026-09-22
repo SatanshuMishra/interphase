@@ -6,7 +6,7 @@ Date: {{date}}.
 
 ## 1. Request
 
-{{the request in the user's own words, and the purpose in one or two plain sentences}}
+{{the user's request, word for word}}
 
 ## 2. Source artefacts
 
@@ -74,7 +74,7 @@ Date: {{date}}.
 
 ## 18. Open questions
 
-{{questions still unanswered, each with who can answer it and what it blocks}}
+{{at most three open questions, each with why it is safe to leave open, or None}}
 
 ## 19. Work breakdown
 
