@@ -1,0 +1,16 @@
+{
+  "name": "interphase",
+  "owner": {
+    "name": "Satanshu Mishra"
+  },
+  "metadata": {
+    "description": "The interphase plugin: rough requests in, clear specs out."
+  },
+  "plugins": [
+    {
+      "name": "interphase",
+      "source": "./",
+      "description": "Turn a rough request into a clear, testable spec before anything is built."
+    }
+  ]
+}

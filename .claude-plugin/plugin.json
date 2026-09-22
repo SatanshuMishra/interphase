@@ -1,0 +1,13 @@
+{
+  "name": "interphase",
+  "version": "0.1.0",
+  "description": "Turns a rough request into a clear spec. Asks questions, challenges assumptions and pushes back on scope until intent is unambiguous. Features get researched, bugs get reproduced, prototypes get explored. Never implements.",
+  "author": {
+    "name": "Satanshu Mishra",
+    "url": "https://github.com/SatanshuMishra"
+  },
+  "homepage": "https://github.com/SatanshuMishra/interphase",
+  "repository": "https://github.com/SatanshuMishra/interphase",
+  "license": "Apache-2.0",
+  "keywords": ["spec", "requirements", "interview", "bug-reproduction", "prototype"]
+}
