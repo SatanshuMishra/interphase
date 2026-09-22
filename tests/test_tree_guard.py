@@ -79,6 +79,15 @@ class TreeGuardTest(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertTrue(any(line.startswith("error: ") for line in output.splitlines()), output)
 
+    def test_tree_guard_snapshot_creates_the_output_folder(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = repo / "docs" / "specs" / "guard.json"
+            code, output = run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            self.assertEqual(code, 0, output)
+            self.assertTrue(snapshot.is_file())
+
     def test_tree_guard_snapshot_records_every_field(self):
         guard = load_script("tree_guard")
         with tempfile.TemporaryDirectory() as root:

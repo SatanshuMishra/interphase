@@ -165,6 +165,7 @@ def command_snapshot(args):
     repo = repository_root(args.repo)
     state = capture(repo)
     try:
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as handle:
             json.dump(state, handle, indent=2, sort_keys=True)
             handle.write("\n")

@@ -125,6 +125,25 @@ class ProbeTest(unittest.TestCase):
             finally:
                 self.remove_probe(probe, repo, path)
 
+    def test_probe_with_uncommitted_skips_a_nested_repository(self):
+        probe = load_probe()
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            nested = repo / "nested"
+            nested.mkdir()
+            git(nested, "init", "-q")
+            (nested / "inner.txt").write_text("inner\n", encoding="utf-8")
+            before = tree_state(repo)
+            code, output = run_main(probe, ["create", "--repo", str(repo), "--with-uncommitted"])
+            self.assertEqual(code, 0, output)
+            path = created_path(output)
+            try:
+                self.assertIn("warning: skipped untracked nested repository nested/", output)
+                self.assertFalse((path / "nested").exists())
+                self.assertEqual(tree_state(repo), before)
+            finally:
+                self.remove_probe(probe, repo, path)
+
     def test_probe_without_uncommitted_starts_from_head(self):
         probe = load_probe()
         with tempfile.TemporaryDirectory() as root:

@@ -104,6 +104,10 @@ def apply_diff(worktree, diff):
         raise ProbeError(f"git apply failed: {failure(result)}")
 
 
+def is_nested_repository(name):
+    return name.endswith("/")
+
+
 def copy_untracked(repo, worktree, names):
     for name in names:
         source = os.path.join(repo, name)
@@ -114,7 +118,9 @@ def copy_untracked(repo, worktree, names):
 
 def carry_uncommitted(repo, worktree):
     apply_diff(worktree, diff_against_head(repo))
-    copy_untracked(repo, worktree, untracked_files(repo))
+    names = untracked_files(repo)
+    copy_untracked(repo, worktree, tuple(name for name in names if not is_nested_repository(name)))
+    return tuple(name for name in names if is_nested_repository(name))
 
 
 def discard_probe(repo, worktree):
@@ -133,11 +139,12 @@ def command_create(args):
         shutil.rmtree(worktree, ignore_errors=True)
         raise ProbeError(f"git worktree add failed: {failure(result)}")
     try:
-        if args.with_uncommitted:
-            carry_uncommitted(repo, worktree)
+        skipped = carry_uncommitted(repo, worktree) if args.with_uncommitted else ()
     except (ProbeError, OSError) as error:
         discard_probe(repo, worktree)
         raise ProbeError(str(error))
+    for name in skipped:
+        print(f"warning: skipped untracked nested repository {name}")
     print(worktree)
     return 0
 
