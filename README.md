@@ -107,7 +107,7 @@ If the directory is not a git repository, interphase skips this check and the gu
 Check a spec against its template:
 
 ```
-python3 scripts/check_spec.py --template core/templates/spec-feature.md docs/specs/<slug>.md
+python3 /path/to/interphase/scripts/check_spec.py --template /path/to/interphase/core/templates/spec-feature.md docs/specs/<slug>.md
 ```
 
 Use `spec-bug.md` or `spec-prototype.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders and vague words.
@@ -115,12 +115,12 @@ Use `spec-bug.md` or `spec-prototype.md` as the template for the other pathways.
 Check an items file:
 
 ```
-python3 scripts/check_items.py docs/specs/<slug>.items.json
+python3 /path/to/interphase/scripts/check_items.py docs/specs/<slug>.items.json
 ```
 
 This checker validates every field above. It also confirms that the spec's SHA-256 matches the one recorded in `source`.
 
-Run both commands from the plugin's folder, or give the full path to each script. Each prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
+Run both commands from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in; a marketplace install puts it under `~/.claude/plugins/cache/interphase/interphase/<version>/`. Each prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
 
 ## Requirements
 
