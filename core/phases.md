@@ -17,11 +17,13 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 1: Intake
 
+- Run every command in these phases from the repository root, the folder `git rev-parse --show-toplevel` prints.
 - Record the request word for word. It becomes section 1 of the spec.
 - Choose a slug in lowercase kebab-case, at most 40 characters, drawn from the request. State it.
 - Use `docs/specs/` at the repository root as the spec folder.
 - Check the folder is ignored: `git check-ignore -q docs/specs/<slug>.md`.
 - If it is not ignored, ask the user with AskUserQuestion whether to add `docs/specs/` to `.gitignore` (shared with everyone) or to `.git/info/exclude` (this machine only). Do exactly what they choose.
+- Create the `docs/specs/` folder if it does not exist.
 - Then take the guard snapshot: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" snapshot --repo . --out docs/specs/<slug>.guard.json`.
 - Create `docs/specs/<slug>.decisions.md` with the heading `# Decisions for <title>` and one sentence: `Questions the user settled. These are binding.`
 - If the directory is not a git repository, skip the ignore check and the guard. Say so.
