@@ -27,6 +27,16 @@ SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(\d+(?:\.\d+)*)\.?[ \t]+(.*?)[ \t]*$")
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
 USAGE = "usage: python3 check_items.py ITEMS"
+SCRIPT_EXTENSIONS = (".js", ".jsx", ".mjs", ".ts", ".tsx")
+EXPORT_FILES = (
+    ("__init__.py", (".py",)),
+    ("index.js", SCRIPT_EXTENSIONS),
+    ("index.jsx", SCRIPT_EXTENSIONS),
+    ("index.mjs", SCRIPT_EXTENSIONS),
+    ("index.ts", SCRIPT_EXTENSIONS),
+    ("index.tsx", SCRIPT_EXTENSIONS),
+    ("mod.rs", (".rs",)),
+)
 
 
 def error(message):
@@ -324,6 +334,73 @@ def check_contracts(steps, graph):
     )
 
 
+def linked(graph, first, second):
+    return second in reachable(graph, first) or first in reachable(graph, second)
+
+
+def check_shared_files(steps, graph):
+    named = tuple(step for _, step in named_steps(steps))
+    return tuple(
+        warning(
+            "steps %r and %r share file %r with no order between them; order them with after"
+            % (first["name"], second["name"], path)
+        )
+        for position, first in enumerate(named)
+        for second in named[position + 1 :]
+        if not linked(graph, first["name"], second["name"])
+        for path in sorted(step_files(first) & step_files(second))
+    )
+
+
+def export_extensions(path):
+    name = path.rpartition("/")[2]
+    return next((extensions for export, extensions in EXPORT_FILES if export == name), ())
+
+
+def folder_modules(folder, extensions, export, files):
+    prefix = folder + "/"
+    return tuple(
+        path
+        for path in sorted(files)
+        if path.startswith(prefix)
+        and "/" not in path[len(prefix) :]
+        and path != export
+        and path.endswith(extensions)
+    )
+
+
+def check_export_file(position, step, export, named, graph):
+    folder = export.rpartition("/")[0]
+    extensions = export_extensions(export)
+    if not folder or not extensions:
+        return ()
+    before = reachable(graph, step["name"])
+    return tuple(
+        warning(
+            "step %r writes export file %r but does not come after step %r, which writes %r in the same folder"
+            % (step["name"], export, other["name"], modules[0])
+        )
+        for other_position, other in enumerate(named)
+        if other_position != position and other["name"] not in before
+        for modules in (folder_modules(folder, extensions, export, step_files(other)),)
+        if modules
+    )
+
+
+def check_export_files(steps, graph):
+    named = tuple(step for _, step in named_steps(steps))
+    return tuple(
+        finding
+        for position, step in enumerate(named)
+        for export in sorted(step_files(step))
+        for finding in check_export_file(position, step, export, named, graph)
+    )
+
+
+def check_hazards(steps, graph):
+    return check_shared_files(steps, graph) + check_export_files(steps, graph)
+
+
 def parse_headings(text):
     in_fence = False
     headings = []
@@ -378,23 +455,86 @@ def check_spec_refs(steps, headings):
     )
 
 
-def claims(number, claimed):
-    return any(item == number or item.startswith(number + ".") for item in claimed)
+def criteria_start(headings):
+    return next(
+        (
+            position
+            for position, (level, _, title) in enumerate(headings)
+            if level == 2 and title.strip().lower() == "acceptance criteria"
+        ),
+        None,
+    )
 
 
-def check_unclaimed(steps, headings):
+def section_body(headings, start):
+    end = next(
+        (position for position in range(start + 1, len(headings)) if headings[position][0] <= 2),
+        len(headings),
+    )
+    return headings[start + 1 : end]
+
+
+def acceptance_criteria(headings):
+    start = criteria_start(headings)
+    if start is None:
+        return (None, ())
+    section = headings[start][1]
+    criteria = tuple(
+        (number, title)
+        for level, number, title in section_body(headings, start)
+        if level >= 3 and number.startswith(section + ".")
+    )
+    return (section, criteria)
+
+
+def leaf_criteria(criteria):
+    numbers = tuple(number for number, _ in criteria)
+    return tuple(
+        (number, title)
+        for number, title in criteria
+        if not any(other.startswith(number + ".") for other in numbers)
+    )
+
+
+def claimed_numbers(step, headings, section):
+    return frozenset(
+        number for ref in spec_refs(step) for number in ref_numbers(ref, headings) if number != section
+    )
+
+
+def covers(number, criterion):
+    return criterion == number or criterion.startswith(number + ".")
+
+
+def claims_criterion(numbers, criteria):
+    return any(
+        covers(number, criterion) or number.startswith(criterion + ".")
+        for number in numbers
+        for criterion, _ in criteria
+    )
+
+
+def check_criteria(steps, headings):
+    section, criteria = acceptance_criteria(headings)
+    if not criteria:
+        return (warning("spec has no numbered acceptance criteria to trace"),)
     claimed = frozenset(
         number
         for step in steps
         if isinstance(step, dict)
-        for ref in spec_refs(step)
-        for number in ref_numbers(ref, headings)
+        for number in claimed_numbers(step, headings, section)
     )
-    return tuple(
-        warning("section %s. %s is unclaimed by any step's spec_ref" % (number, title))
-        for level, number, title in headings
-        if level == 2 and not claims(number, claimed)
+    unclaimed = tuple(
+        error("acceptance criterion %s %s is claimed by no step's spec_ref" % (number, title))
+        for number, title in leaf_criteria(criteria)
+        if not any(covers(item, number) for item in claimed)
     )
+    idle = tuple(
+        warning("%s claims no acceptance criterion" % label(index, step))
+        for index, step in named_steps(steps)
+        if not claims_criterion(claimed_numbers(step, headings, section), criteria)
+    )
+    return unclaimed + idle
 
 
 def check_spec(steps):
@@ -412,7 +552,7 @@ def check_spec(steps):
         else ()
     )
     headings = parse_headings(data.decode("utf-8", errors="replace"))
-    return mismatch + check_spec_refs(steps, headings) + check_unclaimed(steps, headings)
+    return mismatch + check_spec_refs(steps, headings) + check_criteria(steps, headings)
 
 
 def check_steps(steps):
@@ -425,6 +565,7 @@ def check_steps(steps):
         + check_cycles(graph)
         + check_sources(steps)
         + check_contracts(steps, graph)
+        + check_hazards(steps, graph)
         + check_spec(steps)
     )
 
