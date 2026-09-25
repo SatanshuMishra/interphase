@@ -24,8 +24,7 @@ TEMPLATE_HEADINGS = (
     "## 10. Acceptance criteria",
     "## 11. Assumptions",
     "## 12. Open questions",
-    "## 13. Work breakdown",
-    "## 14. Prevention",
+    "## 13. Prevention",
 )
 
 
@@ -67,6 +66,27 @@ class PathwayBugTest(unittest.TestCase):
         self.assertIn("THEN the system", joined)
         self.assertIn("THE SYSTEM SHALL <", joined)
         self.assertIn("THE SYSTEM SHALL CONTINUE TO", joined)
+
+    def test_bug_template_numbers_each_acceptance_criterion(self):
+        lines = read("core/templates/spec-bug.md").splitlines()
+        body = dict(sections(lines))["## 10. Acceptance criteria"]
+        self.assertTrue(any(line.startswith("### 10.1 ") for line in body))
+        self.assertTrue(any(line.startswith("### 10.2 ") for line in body))
+
+    def test_bug_playbook_designs_steps_during_the_interview(self):
+        lines = read("core/pathways/bug.md").splitlines()
+
+        def section_lines(heading):
+            start = lines.index(heading) + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            return lines[start:end]
+
+        steps_text = "\n".join(section_lines("## Steps"))
+        self.assertIn("Design the Steps during the interview", steps_text)
+        acceptance_text = "\n".join(section_lines("## Acceptance"))
+        self.assertIn("### 10.1", acceptance_text)
 
 
 if __name__ == "__main__":

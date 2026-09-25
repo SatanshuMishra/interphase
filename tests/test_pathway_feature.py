@@ -27,8 +27,7 @@ TEMPLATE_HEADINGS = (
     "## 10. Approach and alternatives",
     "## 11. Assumptions",
     "## 12. Open questions",
-    "## 13. Work breakdown",
-    "## 14. Verification",
+    "## 13. Verification",
 )
 
 NUMBERED = re.compile(r"^## \d+\. ")
@@ -60,6 +59,20 @@ class PathwayFeatureTest(unittest.TestCase):
         for heading in TEMPLATE_HEADINGS:
             body = "\n".join(sections[heading])
             self.assertIn("{{", body, heading)
+
+    def test_feature_template_numbers_each_acceptance_criterion(self):
+        lines = tuple(TEMPLATE.read_text(encoding="utf-8").splitlines())
+        sections = sections_by_heading(lines)
+        body = sections["## 7. Acceptance criteria"]
+        self.assertTrue(any(line.startswith("### 7.1 ") for line in body))
+
+    def test_feature_playbook_designs_steps_during_the_interview(self):
+        lines = tuple(PLAYBOOK.read_text(encoding="utf-8").splitlines())
+        sections = sections_by_heading(lines)
+        steps_body = "\n".join(sections["## Steps"])
+        self.assertIn("Design the Steps during the interview", steps_body)
+        acceptance_body = "\n".join(sections["## Acceptance"])
+        self.assertIn("### 7.1", acceptance_body)
 
 
 if __name__ == "__main__":
