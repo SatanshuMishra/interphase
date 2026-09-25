@@ -7,15 +7,15 @@ HEADINGS = (
     "## Phase 3: Ground",
     "## Phase 4: Interrogate",
     "## Phase 5: Challenge",
-    "## Phase 6: Read back",
-    "## Phase 7: Write the spec",
-    "## Phase 8: Review",
-    "## Phase 9: Split into Steps",
+    "## Phase 6: Design the Steps",
+    "## Phase 7: Read back",
+    "## Phase 8: Write the spec and the Steps",
+    "## Phase 9: Review",
     "## Phase 10: Hand off",
 )
 
 RULES = (
-    "Never create, edit or delete a tracked file in the user's working tree, except adding the spec folder to .gitignore when the user chooses that in phase 1.",
+    "Never create, edit or delete a file in the user's working tree, except interphase's own output files in the spec folder.",
     "Never commit, push, stash, reset, check out or rebase in the user's repository.",
     "Never implement: the spec states the cause, the boundary and the acceptance test, never the patch.",
     "Look up facts yourself; ask the user only for decisions.",
@@ -25,6 +25,7 @@ RULES = (
     "Silence, \"just do it\", and your own judgement that the spec is fine are not approval.",
     "Only the main conversation talks to the user; agents never ask the user anything.",
     "Never name, detect or invoke any tool that might consume the spec.",
+    "After the user approves the spec and the Steps, change neither without asking for approval again.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -64,6 +65,38 @@ class CorePhasesTest(unittest.TestCase):
         for relative in STEP_FILES:
             content = (repo_root() / relative).read_text(encoding="utf-8")
             self.assertNotIn("mitosis", content.lower(), relative)
+
+    def test_phases_never_mention_ignoring_the_spec_folder(self):
+        text = read_phases().lower()
+        for phrase in ("gitignore", "info/exclude", "check-ignore", "ignored"):
+            self.assertNotIn(phrase, text)
+
+    def test_phases_design_steps_before_the_read_back(self):
+        lines = read_phases().splitlines()
+
+        def body(heading):
+            start = lines.index(heading) + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            return "\n".join(lines[start:end])
+
+        self.assertIn(
+            "every acceptance criterion has a Step whose test proves it",
+            body("## Phase 6: Design the Steps"),
+        )
+        self.assertIn("How the work is cut", body("## Phase 7: Read back"))
+        self.assertIn(
+            "Never derive the Steps by reading them back out of the spec.",
+            body("## Phase 8: Write the spec and the Steps"),
+        )
+
+    def test_phases_pass_the_owned_prefix_to_the_guard(self):
+        text = read_phases()
+        self.assertIn(
+            'snapshot --repo . --owned "docs/specs/<slug>." --out docs/specs/<slug>.guard.json',
+            text,
+        )
 
 
 if __name__ == "__main__":

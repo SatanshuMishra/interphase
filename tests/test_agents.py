@@ -12,7 +12,7 @@ EXPECTED = {
     },
     "agents/spec-reviewer.md": {
         "name": "spec-reviewer",
-        "description": "Use when a written interphase spec needs a fresh-eyes review before the user is asked to approve it.",
+        "description": "Use when a written interphase spec and its Steps need a fresh-eyes review before the user is asked to approve them.",
         "tools": "Read, Grep, Glob",
         "model": "inherit",
     },
@@ -69,6 +69,18 @@ class AgentsTest(unittest.TestCase):
                 self.assertEqual(actual, expected)
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in ("Status:", "Approved", "Issues found"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, body)
+
+    def test_spec_reviewer_checks_the_steps(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for marker in (
+            "Review the spec and the items file",
+            "- Trace:",
+            "- Task drift:",
+            "- Task independence:",
+            "- Build order:",
+        ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
 
