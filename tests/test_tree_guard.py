@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ISOLATING_VARIABLES = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR")
 
@@ -97,12 +98,122 @@ class TreeGuardTest(unittest.TestCase):
             data = json.loads(snapshot.read_text(encoding="utf-8"))
             self.assertEqual(
                 set(data),
-                {"head", "branch", "status", "diff_sha256", "stash", "worktrees"},
+                {"head", "branch", "status", "diff_sha256", "stash", "worktrees", "owned"},
             )
             self.assertEqual(data["head"], git(repo, "rev-parse", "HEAD").strip())
             self.assertTrue(data["branch"].startswith("refs/heads/"))
             self.assertEqual(data["status"], [])
             self.assertEqual(len(data["diff_sha256"]), 64)
+            self.assertEqual(data["owned"], [])
+
+    def test_tree_guard_ignores_new_files_under_an_owned_prefix(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = repo / "docs" / "specs" / "demo.guard.json"
+            code, output = run_main(
+                guard,
+                ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+            )
+            self.assertEqual(code, 0, output)
+            (repo / "docs" / "specs" / "demo.md").write_text("spec\n", encoding="utf-8")
+            (repo / "docs" / "specs" / "demo.decisions.md").write_text("decisions\n", encoding="utf-8")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+            self.assertNotIn("error:", output)
+
+    def test_tree_guard_ignores_edits_to_a_tracked_owned_file(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            spec = repo / "docs" / "specs" / "demo.md"
+            spec.parent.mkdir(parents=True)
+            spec.write_text("spec\n", encoding="utf-8")
+            git(repo, "add", "docs/specs/demo.md")
+            git(
+                repo,
+                "-c", "user.name=t",
+                "-c", "user.email=t@example.com",
+                "-c", "commit.gpgsign=false",
+                "commit", "-q", "--no-verify", "-m", "docs: add demo spec",
+            )
+            snapshot = pathlib.Path(root) / "guard.json"
+            code, output = run_main(
+                guard,
+                ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+            )
+            self.assertEqual(code, 0, output)
+            spec.write_text("revised spec\n", encoding="utf-8")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+
+    def test_tree_guard_still_reports_a_change_outside_the_owned_prefix(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = pathlib.Path(root) / "guard.json"
+            code, output = run_main(
+                guard,
+                ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+            )
+            self.assertEqual(code, 0, output)
+            other = repo / "docs" / "specs" / "other.md"
+            other.parent.mkdir(parents=True)
+            other.write_text("other\n", encoding="utf-8")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 1, output)
+            self.assertIn("docs/specs/other.md", output)
+
+    def test_tree_guard_snapshot_records_the_owned_prefixes(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = pathlib.Path(root) / "guard.json"
+            code, output = run_main(
+                guard,
+                ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+            )
+            self.assertEqual(code, 0, output)
+            data = json.loads(snapshot.read_text(encoding="utf-8"))
+            self.assertEqual(data["owned"], ["docs/specs/demo."])
+
+    def test_tree_guard_ignores_owned_edits_when_pathspecs_are_literal(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            spec = repo / "docs" / "specs" / "demo.md"
+            spec.parent.mkdir(parents=True)
+            spec.write_text("spec\n", encoding="utf-8")
+            git(repo, "add", "docs/specs/demo.md")
+            git(
+                repo,
+                "-c", "user.name=t",
+                "-c", "user.email=t@example.com",
+                "-c", "commit.gpgsign=false",
+                "commit", "-q", "--no-verify", "-m", "docs: add demo spec",
+            )
+            snapshot = pathlib.Path(root) / "guard.json"
+            with mock.patch.dict(os.environ, {"GIT_LITERAL_PATHSPECS": "1", "GIT_NOGLOB_PATHSPECS": "1"}):
+                code, output = run_main(
+                    guard,
+                    ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+                )
+                self.assertEqual(code, 0, output)
+                spec.write_text("revised spec\n", encoding="utf-8")
+                code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+
+    def test_tree_guard_exits_2_on_a_malformed_owned_field(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = pathlib.Path(root) / "guard.json"
+            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            data = json.loads(snapshot.read_text(encoding="utf-8"))
+            snapshot.write_text(json.dumps(dict(data, owned="seed.txt")), encoding="utf-8")
+            (repo / "seed.txt").write_text("edited\n", encoding="utf-8")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 2, output)
 
     def test_tree_guard_reports_a_new_untracked_file(self):
         guard = load_script("tree_guard")
