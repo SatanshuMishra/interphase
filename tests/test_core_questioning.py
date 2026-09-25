@@ -53,6 +53,20 @@ class QuestioningTest(unittest.TestCase):
         self.assertEqual(first_column(body), ("Intent", "Structure", "Cosmetic"))
         self.assertIn("AskUserQuestion", text)
 
+    def test_questioning_sorts_the_shape_of_the_work_as_intent(self):
+        lines = read_questioning().splitlines()
+        body = section_body(lines, "## Sort every unknown")
+        intent_line = next(line for line in body if line.strip().startswith("| Intent |"))
+        self.assertIn("what ships together", intent_line)
+        structure_line = next(line for line in body if line.strip().startswith("| Structure |"))
+        self.assertIn("which files and tests each Step needs", structure_line)
+
+    def test_questioning_stops_after_the_phase_7_read_back(self):
+        text = read_questioning()
+        self.assertIn("Stop asking when all four hold:", text)
+        self.assertIn("2. Every acceptance criterion has a Step whose test proves it.", text)
+        self.assertIn("4. The user confirmed the read-back in phase 7.", text)
+
 
 if __name__ == "__main__":
     unittest.main()
