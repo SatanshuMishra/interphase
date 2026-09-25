@@ -15,6 +15,12 @@ ISOLATING_VARIABLES = (
     "GIT_COMMON_DIR",
     "GIT_NAMESPACE",
 )
+PATHSPEC_VARIABLES = (
+    "GIT_LITERAL_PATHSPECS",
+    "GIT_GLOB_PATHSPECS",
+    "GIT_NOGLOB_PATHSPECS",
+    "GIT_ICASE_PATHSPECS",
+)
 DIFF_CONFIG = (
     "-c", "diff.noprefix=false",
     "-c", "diff.mnemonicPrefix=false",
@@ -28,7 +34,8 @@ class UsageError(Exception):
 
 
 def git_environment():
-    return {key: value for key, value in os.environ.items() if key not in ISOLATING_VARIABLES}
+    stripped = ISOLATING_VARIABLES + PATHSPEC_VARIABLES
+    return {key: value for key, value in os.environ.items() if key not in stripped}
 
 
 def run_git(repo, args, input_bytes=None):
@@ -81,11 +88,19 @@ def join_renames(tokens, index, collected):
     return collected
 
 
-def read_status(repo):
+def is_owned(path, owned):
+    return any(path.startswith(prefix) for prefix in owned)
+
+
+def entry_is_owned(entry, owned):
+    return all(is_owned(path, owned) for path in entry[3:].split("\0"))
+
+
+def read_status(repo, owned):
     result = run_git(repo, ["status", "--porcelain=v1", "-z", "--untracked-files=all"])
     if result.returncode != 0:
         raise UsageError(f"git status failed: {decode(result.stderr).strip()}")
-    return sorted(status_entries(result.stdout))
+    return sorted(entry for entry in status_entries(result.stdout) if not entry_is_owned(entry, owned))
 
 
 def empty_tree(repo):
@@ -93,9 +108,18 @@ def empty_tree(repo):
     return decode(result.stdout).strip()
 
 
-def read_diff_digest(repo, head):
+def owned_pathspec(owned):
+    if not owned:
+        return ()
+    return ("--", ".", *(f":(exclude){prefix}*" for prefix in owned))
+
+
+def read_diff_digest(repo, head, owned):
     base = head if head is not None else empty_tree(repo)
-    result = run_git(repo, ["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--binary", base])
+    result = run_git(
+        repo,
+        ["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--binary", base, *owned_pathspec(owned)],
+    )
     if result.returncode != 0:
         raise UsageError(f"git diff failed: {decode(result.stderr).strip()}")
     return hashlib.sha256(result.stdout).hexdigest()
@@ -112,13 +136,13 @@ def read_worktrees(repo):
     return sorted(line[len("worktree "):] for line in lines if line.startswith("worktree "))
 
 
-def capture(repo):
+def capture(repo, owned):
     head = read_head(repo)
     return {
         "head": head,
         "branch": read_branch(repo),
-        "status": read_status(repo),
-        "diff_sha256": read_diff_digest(repo, head),
+        "status": read_status(repo, owned),
+        "diff_sha256": read_diff_digest(repo, head, owned),
         "stash": read_stash(repo),
         "worktrees": read_worktrees(repo),
     }
@@ -132,7 +156,13 @@ def load_snapshot(path):
         raise UsageError(f"unreadable snapshot: {path}: {error}")
     if not isinstance(data, dict) or any(field not in data for field in FIELDS):
         raise UsageError(f"unreadable snapshot: {path}: missing fields")
+    if not is_prefix_list(data.get("owned", [])):
+        raise UsageError(f"unreadable snapshot: {path}: owned is not a list of strings")
     return data
+
+
+def is_prefix_list(value):
+    return isinstance(value, list) and all(isinstance(prefix, str) for prefix in value)
 
 
 def worktree_findings(before, after):
@@ -163,7 +193,8 @@ def compare(snapshot, current):
 
 def command_snapshot(args):
     repo = repository_root(args.repo)
-    state = capture(repo)
+    owned = tuple(args.owned)
+    state = dict(capture(repo, owned), owned=list(owned))
     try:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -177,7 +208,7 @@ def command_snapshot(args):
 def command_verify(args):
     repo = repository_root(args.repo)
     snapshot = load_snapshot(args.snapshot)
-    findings = compare(snapshot, capture(repo))
+    findings = compare(snapshot, capture(repo, tuple(snapshot.get("owned", []))))
     for finding in findings:
         print(f"error: {finding}")
     return 1 if findings else 0
@@ -189,6 +220,7 @@ def build_parser():
     commands.required = True
     snapshot = commands.add_parser("snapshot")
     snapshot.add_argument("--repo", required=True)
+    snapshot.add_argument("--owned", action="append", default=[])
     snapshot.add_argument("--out", required=True)
     snapshot.set_defaults(handler=command_snapshot)
     verify = commands.add_parser("verify")
