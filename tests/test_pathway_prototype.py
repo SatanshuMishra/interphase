@@ -34,7 +34,6 @@ TEMPLATE_HEADINGS = (
     "## 16. Acceptance criteria",
     "## 17. Assumptions",
     "## 18. Open questions",
-    "## 19. Work breakdown",
 )
 
 
@@ -72,6 +71,18 @@ class PrototypePathwayTest(unittest.TestCase):
         for path in (PLAYBOOK, TEMPLATE):
             content = path.read_text(encoding="utf-8")
             self.assertNotIn("mitosis", content.lower(), str(path))
+
+    def test_prototype_template_numbers_each_acceptance_criterion(self):
+        lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
+        body = section_body(lines, "## 16. Acceptance criteria")
+        self.assertTrue(any(line.startswith("### 16.1 ") for line in body))
+
+    def test_prototype_playbook_designs_steps_during_the_interview(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        steps_body = "\n".join(section_body(lines, "## Steps"))
+        self.assertIn("Design the Steps during the interview", steps_body)
+        acceptance_body = "\n".join(section_body(lines, "## Acceptance"))
+        self.assertIn("### 16.1", acceptance_body)
 
 
 if __name__ == "__main__":

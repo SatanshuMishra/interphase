@@ -66,7 +66,11 @@ Date: {{date}}.
 
 ## 16. Acceptance criteria
 
-{{one check per screen state, plus a screenshot of each built screen compared with the mockup}}
+### 16.1 {{short name of the first check}}
+
+{{one check for one screen state, or a screenshot of one built screen compared with the mockup}}
+
+{{one more numbered heading, 16.2, 16.3 and so on, for each further check}}
 
 ## 17. Assumptions
 
@@ -75,7 +79,3 @@ Date: {{date}}.
 ## 18. Open questions
 
 {{at most three open questions, each with why it is safe to leave open, or None}}
-
-## 19. Work breakdown
-
-{{the Steps, one per screen or per data flow, with a contract Step for each shared interface between screen and server}}
