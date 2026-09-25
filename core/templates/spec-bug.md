@@ -62,9 +62,13 @@ Date: {{date}}.
 
 ## 10. Acceptance criteria
 
+### 10.1 {{short name of the reproduction test}}
+
 {{The test that fails before the fix and passes after, named by file and test.}}
 
-{{Checks that the unchanged behaviour still works.}}
+### 10.2 {{short name of the first unchanged behaviour}}
+
+{{A check that the unchanged behaviour still works. Add 10.3 and so on for each further check.}}
 
 ## 11. Assumptions
 
@@ -74,10 +78,6 @@ Date: {{date}}.
 
 {{At most three open questions, each with why it is safe to leave open.}}
 
-## 13. Work breakdown
-
-{{The Steps. The fix Step carries the full draft test text and the path where it belongs.}}
-
-## 14. Prevention
+## 13. Prevention
 
 {{What would have caught this earlier, such as a test, a check or a monitor.}}
