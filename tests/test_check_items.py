@@ -7,7 +7,11 @@ import pathlib
 import tempfile
 import unittest
 
-SPEC_TEXT = "# Demo spec\n\n## 1. Interface\n\nThe shared interface.\n\n## 2. Client\n\nThe client.\n"
+SPEC_TEXT = (
+    "# Demo spec\n\n## 1. Interface\n\nThe shared interface.\n\n## 2. Client\n\nThe client.\n\n"
+    "## 3. Acceptance criteria\n\n### 3.1 Interface exists\n\nThe interface can be imported.\n\n"
+    "### 3.2 Client calls it\n\nThe client calls the interface.\n"
+)
 
 
 class CheckItemsTest(unittest.TestCase):
@@ -29,7 +33,7 @@ class CheckItemsTest(unittest.TestCase):
                 "acceptance": [{"file": "tests/test_interface.py", "test": "test_interface_exists"}],
                 "contract_group": "api",
                 "type": "contract",
-                "spec_ref": ["1"],
+                "spec_ref": ["1", "3.1"],
             },
             {
                 "name": "client",
@@ -39,7 +43,7 @@ class CheckItemsTest(unittest.TestCase):
                 "acceptance": [{"file": "tests/test_client.py", "test": "test_client_calls_the_interface"}],
                 "contract_group": "api",
                 "after": ["interface"],
-                "spec_ref": ["2"],
+                "spec_ref": ["2", "3.2"],
             },
         ]
 
@@ -138,18 +142,87 @@ class CheckItemsTest(unittest.TestCase):
     def test_check_items_accepts_a_spec_ref_of_a_dotted_subsection(self):
         spec_text = SPEC_TEXT + "\n### 2.1 Retries\n\nThe client retries.\n"
         code, errors, warnings = self.run_check(
-            lambda steps: [steps[0], dict(steps[1], spec_ref=["2.1"])], spec_text
+            lambda steps: [steps[0], dict(steps[1], spec_ref=["2.1", "3.2"])], spec_text
         )
         self.assertEqual(code, 0)
         self.assertEqual(errors, ())
         self.assertFalse(any("unclaimed" in line for line in warnings), warnings)
 
-    def test_check_items_warns_about_an_unclaimed_section(self):
-        spec_text = SPEC_TEXT + "\n## 3. Extras\n\nNobody builds this.\n"
+    def test_check_items_no_longer_warns_about_unclaimed_sections(self):
+        spec_text = SPEC_TEXT + "\n## 4. Extras\n\nNobody builds this.\n"
         code, errors, warnings = self.run_check(spec_text=spec_text)
         self.assertEqual(code, 0)
         self.assertEqual(errors, ())
-        self.assertTrue(any("unclaimed" in line and "3" in line for line in warnings), warnings)
+        self.assertFalse(any("unclaimed" in line for line in warnings), warnings)
+
+    def test_check_items_reports_an_unclaimed_acceptance_criterion(self):
+        self.assert_error(lambda steps: [steps[0], dict(steps[1], spec_ref=["2"])], "acceptance criterion 3.2")
+
+    def test_check_items_warns_about_a_step_that_claims_no_criterion(self):
+        def change(steps):
+            docs = {
+                "name": "docs",
+                "task": "Write the guide.",
+                "files": ["docs/guide.md"],
+                "source": dict(steps[0]["source"]),
+                "acceptance": [],
+                "spec_ref": ["1"],
+            }
+            return steps + [docs]
+
+        code, _, warnings = self.run_check(change)
+        self.assertEqual(code, 0)
+        self.assertTrue(
+            any("claims no acceptance criterion" in line and "docs" in line for line in warnings), warnings
+        )
+
+    def extra_step(self, steps, **fields):
+        extra = {
+            "name": "extra",
+            "task": "Extend the client.",
+            "files": ["src/client.py", "tests/test_extra.py"],
+            "source": dict(steps[0]["source"]),
+            "acceptance": [{"file": "tests/test_extra.py", "test": "test_extra"}],
+            "spec_ref": ["3.2"],
+        }
+        return steps + [dict(extra, **fields)]
+
+    def test_check_items_warns_about_a_shared_file_without_order(self):
+        code, _, warnings = self.run_check(lambda steps: self.extra_step(steps))
+        self.assertEqual(code, 0)
+        self.assertTrue(any("share file" in line and "src/client.py" in line for line in warnings), warnings)
+
+    def test_check_items_accepts_a_shared_file_with_order(self):
+        _, _, warnings = self.run_check(lambda steps: self.extra_step(steps, after=["client"]))
+        self.assertFalse(any("share file" in line for line in warnings), warnings)
+
+    def test_check_items_warns_about_an_export_file_not_ordered_last(self):
+        def change(steps):
+            return [dict(steps[0], files=steps[0]["files"] + ["src/__init__.py"]), steps[1]]
+
+        code, _, warnings = self.run_check(change)
+        self.assertEqual(code, 0)
+        self.assertTrue(any("export file" in line and "src/__init__.py" in line for line in warnings), warnings)
+
+    def test_check_items_ignores_non_modules_and_subfolders_for_export_files(self):
+        def change(steps):
+            return [
+                dict(steps[0], files=steps[0]["files"] + ["src/__init__.py"]),
+                dict(steps[1], files=["src/sub/deep.py", "src/data.json", "tests/test_client.py"]),
+            ]
+
+        _, _, warnings = self.run_check(change)
+        self.assertFalse(any("export file" in line for line in warnings), warnings)
+
+    def test_check_items_accepts_sub_criteria_claimed_one_by_one(self):
+        spec_text = SPEC_TEXT + (
+            "\n### 3.3 Retries\n\n### 3.3.1 First retry\n\nOne.\n\n### 3.3.2 Second retry\n\nTwo.\n"
+        )
+        code, errors, _ = self.run_check(
+            lambda steps: [steps[0], dict(steps[1], spec_ref=["2", "3.2", "3.3.1", "3.3.2"])], spec_text
+        )
+        self.assertEqual(code, 0)
+        self.assertFalse(any("acceptance criterion" in line for line in errors), errors)
 
     def test_check_items_reports_invalid_json(self):
         code, errors, _ = self.run_check(raw="[{not json")
