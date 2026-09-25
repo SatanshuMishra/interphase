@@ -30,7 +30,6 @@ SECTION_HEADINGS = (
     "## Use",
     "## What it never does",
     "## What it produces",
-    "## Keep specs out of git",
     "## Check the output yourself",
     "## Requirements",
     "## Tests and evals",
@@ -60,6 +59,17 @@ class ReadmeTest(unittest.TestCase):
         self.assertLessEqual(len(naming), 1)
         headings = tuple(line for line in lines if line in SECTION_HEADINGS)
         self.assertEqual(headings, SECTION_HEADINGS)
+
+    def test_readme_never_advises_ignoring_specs(self):
+        text = read_readme().lower()
+        self.assertNotIn("gitignore", text)
+        self.assertNotIn("info/exclude", text)
+        self.assertNotIn("keep specs out of git", text)
+
+    def test_readme_describes_steps_designed_in_the_interview(self):
+        text = read_readme()
+        self.assertIn("interphase designs the Steps with you during the interview", text)
+        self.assertIn("each can be used without the other", text)
 
 
 if __name__ == "__main__":
