@@ -57,7 +57,9 @@ class ReadmeTest(unittest.TestCase):
         lines = read_readme().splitlines()
         naming = tuple(line for line in lines if "mitosis" in line.lower())
         self.assertLessEqual(len(naming), 1)
-        headings = tuple(line for line in lines if line in SECTION_HEADINGS)
+
+    def test_readme_has_exactly_the_expected_sections(self):
+        headings = tuple(line for line in read_readme().splitlines() if line.startswith("## "))
         self.assertEqual(headings, SECTION_HEADINGS)
 
     def test_readme_never_advises_ignoring_specs(self):
