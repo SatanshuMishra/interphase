@@ -71,6 +71,14 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("interphase designs the Steps with you during the interview", text)
         self.assertIn("each can be used without the other", text)
 
+    def test_readme_states_the_tracking_rule_and_cache_removal(self):
+        text = read_readme()
+        self.assertIn(
+            "It never comments on, asks about or offers to change whether you track its output files in git.",
+            text,
+        )
+        self.assertIn("removes the ones its run created", text)
+
 
 if __name__ == "__main__":
     unittest.main()

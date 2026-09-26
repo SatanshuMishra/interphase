@@ -49,12 +49,13 @@ interphase asks its first question in plain text. Later questions come as short 
 
 ## What it never does
 
-- It never creates, edits or deletes a file in your repository other than its own output files in `docs/specs/`.
+- It never creates, edits or deletes a file in your repository other than its own output files in `docs/specs/`. Running your tests can leave caches such as `__pycache__`; interphase removes the ones its run created before it finishes, and never touches caches that were already there.
+- It never comments on, asks about or offers to change whether you track its output files in git.
 - It never commits, pushes, stashes, resets, checks out or rebases.
 - It never implements. The spec states the cause, the boundary and the test. It never contains the patch.
 - It tests bug causes only in throwaway git worktrees. Each worktree is deleted afterwards. The spec keeps the evidence, never the change.
 
-A guard records the state of your repository at the start of a run. At the end it checks that nothing changed, and it tells you exactly what did if something has. It ignores interphase's own output files, whether you track them in git or not. If the directory is not a git repository, interphase skips the guard and tells you so.
+A guard records the state of your repository at the start of a run. At the end it checks that nothing changed, and it tells you exactly what did if something has. It ignores interphase's own output files, whether you track them in git or not. Before it checks, it removes the caches that running your code created during the run. If the directory is not a git repository, interphase skips the guard and tells you so.
 
 ## What it produces
 
