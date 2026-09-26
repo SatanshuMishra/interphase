@@ -15,6 +15,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 9. Only the main conversation talks to the user; agents never ask the user anything.
 10. Never name, detect or invoke any tool that might consume the spec.
 11. After the user approves the spec and the Steps, change neither without asking for approval again.
+12. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
 
 ## Phase 1: Intake
 
@@ -81,7 +82,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Put every default into the Assumptions section.
 - Leave at most three open questions. Say for each why it is safe to leave open.
 - Write `docs/specs/<slug>.items.json` from the Steps designed in phases 4 to 7, following `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
-- Put the spec's absolute path and SHA-256 in every Step's `source`. After any later edit to the spec, rewrite `source.sha256`.
+- Put the spec's absolute path and SHA-256 in every Step's `source`. After any edit to the spec, rewrite `source.sha256`.
 
 ## Phase 9: Review
 
@@ -91,10 +92,11 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Dispatch the `interphase:spec-reviewer` agent with the spec path and the items path. Fix the issues it finds that would cause the wrong thing to be built.
 - Show the user what changed in review.
 - Ask for approval of the written spec and the Steps with AskUserQuestion. Loop until approved.
+- Once the user approves, change neither the spec nor the items file. Save the approval to the decisions file, then go straight to Phase 10 in the same turn. If you find something to change, reopen this phase: edit, rewrite `source.sha256`, rerun both checks and ask for approval again.
 
 ## Phase 10: Hand off
 
-- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json`.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json`. The guard first removes the caches that running the project's code created since the snapshot.
 - If it reports a difference, stop. Tell the user exactly what changed.
 - Delete `docs/specs/<slug>.guard.json` after a clean verify.
 - Report the paths of the spec, the decisions file, the items file and, for bugs, the reproduction file.
