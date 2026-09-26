@@ -20,6 +20,7 @@ Review the spec and the items file at the paths you are given. Check them agains
 - Task drift: a Step's task that contradicts the criteria it claims, or leaves out something the Step needs from the spec.
 - Task independence: a task that sends the builder to the spec or to anything else outside the task.
 - Build order: Steps that share a file with no order between them, or a Step that uses another Step's output without coming after it.
+- Tracking talk: the spec, the items file or the decisions file beside the spec comments on whether git tracks interphase's own output files.
 
 Report only issues that would cause the wrong thing to be built. Skip style and wording preferences.
 

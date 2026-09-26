@@ -26,6 +26,7 @@ RULES = (
     "Only the main conversation talks to the user; agents never ask the user anything.",
     "Never name, detect or invoke any tool that might consume the spec.",
     "After the user approves the spec and the Steps, change neither without asking for approval again.",
+    "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -96,6 +97,48 @@ class CorePhasesTest(unittest.TestCase):
         self.assertIn(
             'snapshot --repo . --owned "docs/specs/<slug>." --out docs/specs/<slug>.guard.json',
             text,
+        )
+
+    def test_phases_go_straight_from_approval_to_hand_off(self):
+        lines = read_phases().splitlines()
+
+        def body(heading):
+            start = lines.index(heading) + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            return "\n".join(lines[start:end])
+
+        review_body = body("## Phase 9: Review")
+        self.assertIn(
+            "Once the user approves, change neither the spec nor the items file.",
+            review_body,
+        )
+        self.assertIn(
+            "then go straight to Phase 10 in the same turn.",
+            review_body,
+        )
+        self.assertIn("reopen this phase", review_body)
+        write_body = body("## Phase 8: Write the spec and the Steps")
+        self.assertIn(
+            "After any edit to the spec, rewrite `source.sha256`.",
+            write_body,
+        )
+        self.assertNotIn("After any later edit", read_phases())
+
+    def test_phases_say_the_guard_removes_new_caches(self):
+        lines = read_phases().splitlines()
+
+        def body(heading):
+            start = lines.index(heading) + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            return "\n".join(lines[start:end])
+
+        self.assertIn(
+            "The guard first removes the caches that running the project's code created since the snapshot.",
+            body("## Phase 10: Hand off"),
         )
 
 
