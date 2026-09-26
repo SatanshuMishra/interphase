@@ -84,6 +84,15 @@ class AgentsTest(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
 
+    def test_spec_reviewer_checks_for_tracking_talk(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for marker in (
+            "- Tracking talk:",
+            "whether git tracks interphase's own output files",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, body)
+
 
 if __name__ == "__main__":
     unittest.main()
