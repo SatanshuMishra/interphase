@@ -38,9 +38,11 @@ Date: {{date}}.
 
 ## 7. Acceptance criteria
 
-{{Given, When, Then for each user story}}
+### 7.1 {{short name of the first criterion}}
 
-{{WHEN <event>, THE SYSTEM SHALL <response> for each rule and error case}}
+{{Given, When, Then for one user story, or WHEN <event>, THE SYSTEM SHALL <response> for one rule or error case}}
+
+{{one more numbered heading, 7.2, 7.3 and so on, for each further criterion}}
 
 ## 8. Edge cases
 
@@ -66,10 +68,6 @@ Date: {{date}}.
 
 {{at most three open questions, each with why it is safe to leave open, or None}}
 
-## 13. Work breakdown
-
-{{Steps, one per independently testable behaviour, with files and acceptance tests}}
-
-## 14. Verification
+## 13. Verification
 
 {{commands and checks that prove the feature works after it is built}}

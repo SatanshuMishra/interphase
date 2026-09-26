@@ -92,6 +92,28 @@ def empty_sections(lines, spec_headings):
     )
 
 
+def criterion_heading(number):
+    return re.compile(r"^#{3,6}[ \t]+" + re.escape(number) + r"\.\d+(\.\d+)*\.?[ \t]+\S")
+
+
+def acceptance_sections(spec_headings):
+    matches = tuple((line_number, NUMBERED.match(heading)) for line_number, heading in spec_headings)
+    return tuple(
+        (line_number, match.group(1))
+        for line_number, match in matches
+        if match.group(2).strip().lower() == "acceptance criteria"
+    )
+
+
+def unnumbered_criteria(lines, spec_headings):
+    boundaries = level_two_lines(lines)
+    return tuple(
+        ("error", line_number, "line {}: acceptance criteria has no numbered criterion heading such as ### {}.1".format(line_number, number))
+        for line_number, number in acceptance_sections(spec_headings)
+        if not any(criterion_heading(number).match(line) for line in section_body(lines, line_number, boundaries))
+    )
+
+
 def vague_words(lines):
     return tuple(
         ("warning", number, "line {}: vague word {}".format(number, match.group(1)))
@@ -131,6 +153,7 @@ def check(template_text, spec_text):
         + placeholders(spec_lines)
         + unfinished_markers(spec_lines)
         + empty_sections(spec_lines, spec_headings)
+        + unnumbered_criteria(spec_lines, spec_headings)
         + vague_words(spec_lines)
         + open_questions(spec_lines)
     )

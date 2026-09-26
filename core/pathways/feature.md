@@ -35,7 +35,8 @@ Propose two or three approaches with their trade-offs. Put the recommended one f
 - Write Given, When, Then for each user story.
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.
+- Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 7.1 <short name>`.
 
 ## Steps
 
-Cut one Step per independently testable behaviour. Split Steps along file boundaries where you can. Steps that must share a file are built one after another; follow `${CLAUDE_PLUGIN_ROOT}/core/items.md` for shared files and export files.
+Design the Steps during the interview, one per independently testable behaviour, following the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Give each Step the acceptance criteria its tests prove. Split Steps along file boundaries where you can.

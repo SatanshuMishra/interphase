@@ -7,6 +7,7 @@ import unittest
 
 TEMPLATE = "# Spec\n\n## 1. Request\n\n{{request}}\n\n## 2. Summary\n\n{{summary}}\n"
 COMPLETE = "# Spec\n\n## 1. Request\n\nAdd a login page.\n\n## 2. Summary\n\nThe page accepts a name and a password.\n"
+CRITERIA_TEMPLATE = "# Spec\n\n## 1. Request\n\n{{request}}\n\n## 2. Acceptance criteria\n\n### 2.1 {{name}}\n\n{{check}}\n"
 
 
 class CheckSpecTest(unittest.TestCase):
@@ -86,6 +87,21 @@ class CheckSpecTest(unittest.TestCase):
         code, lines = self.run_checker(spec)
         self.assertEqual(code, 1)
         self.assertTrue(self.lines_with(lines, "error:", "empty section"))
+
+    def test_check_spec_reports_acceptance_criteria_without_a_numbered_criterion(self):
+        spec = "# Spec\n\n## 1. Request\n\nAdd a login page.\n\n## 2. Acceptance criteria\n\nThe page loads.\n"
+        code, lines = self.run_checker(spec, CRITERIA_TEMPLATE)
+        self.assertEqual(code, 1)
+        self.assertTrue(self.lines_with(lines, "error:", "numbered criterion"))
+
+    def test_check_spec_accepts_numbered_acceptance_criteria(self):
+        spec = (
+            "# Spec\n\n## 1. Request\n\nAdd a login page.\n\n## 2. Acceptance criteria\n\n"
+            "### 2.1 Page loads\n\nThe page loads.\n"
+        )
+        code, lines = self.run_checker(spec, CRITERIA_TEMPLATE)
+        self.assertEqual(code, 0)
+        self.assertEqual([line for line in lines if line.startswith("error:")], [])
 
     def test_warns_about_a_vague_word_without_failing(self):
         spec = COMPLETE.replace("Add a login page.", "Add a Seamless login page.")

@@ -53,8 +53,8 @@ Sort every gap into one of three kinds before writing the spec:
 
 ## Acceptance
 
-Write one check per screen state. Add a screenshot of the built screen compared with the mockup.
+Write one check per screen state. Add a screenshot of the built screen compared with the mockup. Give each check its own numbered heading under the Acceptance criteria section, such as `### 16.1 <short name>`.
 
 ## Steps
 
-Cut one Step per screen or per data flow. Give a shared interface between screen and server its own `contract` Step.
+Design the Steps during the interview, following the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Cut one Step per screen or per data flow. Give a shared interface between screen and server its own `contract` Step.

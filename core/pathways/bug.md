@@ -46,6 +46,7 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
 
 - Write a test that fails before the fix and passes after.
 - Add checks that the unchanged behaviour still works.
+- Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 10.1 <short name>`. Make the draft failing test criterion 10.1.
 - Write the fix boundary as three EARS blocks:
   - Current: "WHEN <condition> THEN the system <wrong behaviour>".
   - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>".
@@ -53,6 +54,9 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
 
 ## Steps
 
+Design the Steps during the interview, following the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+
 - Put the full text of the draft test and the path where it belongs in the fix Step's `task`.
 - Include that test path in the fix Step's `files`.
 - Name that file and test in the fix Step's `acceptance`.
+- Give the fix Step criterion 10.1 in its `spec_ref`.

@@ -4,8 +4,8 @@
 
 | Class | Examples | What to do |
 |---|---|---|
-| Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works | Ask until it is settled. |
-| Structure | where it plugs in, interfaces, where data is stored, which files change | Look it up in the code; ask only when the code is silent. |
+| Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works, and the shape of the work: what ships together, what order matters, what could be thrown away | Ask until it is settled. |
+| Structure | where it plugs in, interfaces, where data is stored, which files change, and which files and tests each Step needs | Look it up in the code; ask only when the code is silent. |
 | Cosmetic | colour, spacing, exact wording, icons | Default to the mockup or the existing style and record the default as an assumption. |
 
 Test every unknown before you ask it. If a different answer would not change a file, a test or an acceptance criterion, do not ask it.
@@ -59,10 +59,11 @@ Imagine two different builders reading the request. Ask about every place they w
 
 ## Know when to stop
 
-Stop asking when all three hold:
+Stop asking when all four hold:
 
 1. Every Must requirement has a way to tell pass from fail.
-2. No open question would change a file, a test or an acceptance criterion. Everything else is written down as an assumption or deferred with a reason.
-3. The user confirmed the read-back in phase 6.
+2. Every acceptance criterion has a Step whose test proves it.
+3. No open question would change a file, a test or an acceptance criterion. Everything else is written down as an assumption or deferred with a reason.
+4. The user confirmed the read-back in phase 7.
 
 There is no fixed question count. When you defer questions, list them in the spec's Open questions section with why each is safe to leave.
