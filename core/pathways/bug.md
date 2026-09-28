@@ -11,7 +11,7 @@ Reproduce the bug before you ask about it.
 - If it does not reproduce, ask for the missing facts from the question bank before going further. Never invent reproduction steps.
 - Find the last known good and first known bad version when history matters. Use `git bisect` only inside a probe worktree.
 - Write one to five ranked hypotheses about the cause. Make each one something a single run could disprove.
-- Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault. The rules for that search, that the fix covers every such place, and when to raise merging them live in core/practices.md; do not restate them in the playbook.
+- Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
 - Write the draft failing test that reproduces the symptom at `docs/specs/<slug>.repro.<ext>`, in the project's own test framework.
 - Run the draft only inside a probe worktree (see Probes): copy it to the path where the test belongs in that worktree, run it there with the project's single-test command, then remove the worktree. Never copy it into the user's own test folders.
 - Record its failing output in the spec's Evidence section.

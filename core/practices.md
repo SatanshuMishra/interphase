@@ -10,7 +10,7 @@ These rules apply to every spec on every pathway.
 4. Follow the project's own written rules and patterns. Keep to the conventions its written rules and existing code follow.
 5. Use what the language, libraries or project already provide. Never rebuild what the standard library, a dependency or the project already does.
 
-The project's own written rules win when they conflict with the other four. Note each conflict as a Project rule followed line in the spec's Reuse and change section.
+The project's own written rules win when they conflict with the other four.
 
 A copy is the same rule written in two places that must always change together. Two pieces of code that look alike but change for different reasons are not a copy.
 
@@ -23,8 +23,6 @@ Before planning any new function, module, component or command, search for code 
 - By the words of the behaviour.
 - By the names of the data it touches.
 - Through the callers of the code it extends.
-
-For broad searches, dispatch the `interphase:scout` agent with one self-contained question.
 
 When the request is a bug, the same search finds every other place with the same fault. The fix covers every such place. Raise merging them as a fork only when they are copies.
 
