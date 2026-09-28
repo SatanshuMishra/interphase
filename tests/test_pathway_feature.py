@@ -28,6 +28,7 @@ TEMPLATE_HEADINGS = (
     "## 11. Assumptions",
     "## 12. Open questions",
     "## 13. Verification",
+    "## 14. Reuse and change",
 )
 
 NUMBERED = re.compile(r"^## \d+\. ")
@@ -73,6 +74,23 @@ class PathwayFeatureTest(unittest.TestCase):
         self.assertIn("Design the Steps during the interview", steps_body)
         acceptance_body = "\n".join(sections["## Acceptance"])
         self.assertIn("### 7.1", acceptance_body)
+
+    def test_feature_pathway_never_asks_for_an_example_to_copy(self):
+        for path in (PLAYBOOK, TEMPLATE):
+            self.assertNotIn("example to copy", path.read_text(encoding="utf-8"), str(path))
+
+    def test_feature_ground_looks_for_code_that_already_does_the_job(self):
+        lines = tuple(PLAYBOOK.read_text(encoding="utf-8").splitlines())
+        ground = "\n".join(sections_by_heading(lines)["## Ground"])
+        self.assertIn("already does all or part of what is asked", ground)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", ground)
+
+    def test_feature_template_records_reuse_and_change(self):
+        lines = tuple(TEMPLATE.read_text(encoding="utf-8").splitlines())
+        body = "\n".join(sections_by_heading(lines)["## 14. Reuse and change"])
+        for label in ("Reused as is", "Kept separate", "Changed"):
+            self.assertIn(label, body)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
 
 
 if __name__ == "__main__":

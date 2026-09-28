@@ -6,7 +6,8 @@ Use this playbook when the request is for something that does not exist yet. Fol
 
 Research before you ask.
 
-- Find the existing code the feature extends or sits beside, the patterns it must follow, and a good existing example to copy.
+- Find the existing code the feature extends or sits beside, and the patterns it must follow.
+- Find code that already does all or part of what is asked, following `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
 - Find how the project tests similar behaviour and the command that runs one test.
 - For libraries or outside services involved, get current documentation through the `interphase:scout` agent.
 
