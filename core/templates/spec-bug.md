@@ -81,3 +81,7 @@ Date: {{date}}.
 ## 13. Prevention
 
 {{What would have caught this earlier, such as a test, a check or a monitor.}}
+
+## 14. Reuse and change
+
+{{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
