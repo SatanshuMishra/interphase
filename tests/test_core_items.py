@@ -79,6 +79,17 @@ class CoreItemsTest(unittest.TestCase):
         output = section(text, "## Output files")
         self.assertIn("Each must be usable without the other.", output)
 
+    def test_items_guide_shares_logic_between_steps(self):
+        text = read_guide()
+        designing = section(text, "## Designing Steps")
+        self.assertIn("Give logic that two Steps need to one Step, and make the others come after it.", designing)
+        self.assertIn("Never keep Steps' files apart by copying logic.", designing)
+        writing = section(text, "## Writing a task")
+        self.assertIn(
+            "Carry into the task every Reuse and change line the Step touches: what to reuse as is and never copy, what to keep separate, and which existing code to change.",
+            writing,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
