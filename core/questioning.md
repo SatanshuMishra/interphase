@@ -4,7 +4,7 @@
 
 | Class | Examples | What to do |
 |---|---|---|
-| Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works, the shape of the work: what ships together, what order matters, what could be thrown away, and whether to share code at a fork | Ask until it is settled. |
+| Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works, whether to share code at a fork, and the shape of the work: what ships together, what order matters, what could be thrown away | Ask until it is settled. |
 | Structure | where it plugs in, interfaces, where data is stored, which files change, which files and tests each Step needs, and which existing code already does the job | Look it up in the code; ask only when the code is silent. |
 | Cosmetic | colour, spacing, exact wording, icons | Default to the mockup or the existing style and record the default as an assumption. |
 

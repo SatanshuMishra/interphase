@@ -99,7 +99,7 @@ class AgentsTest(unittest.TestCase):
             "- Design:",
             "copies logic that already exists",
             "bends existing code to fit a new use",
-            "builds more than the request needs",
+            "builds more than the request or a recorded decision asks for",
             "against the practices file and the decisions file whose paths you are also given",
             "neither the request, a recorded decision nor the practices file asks for",
             "Skip style and wording preferences.",

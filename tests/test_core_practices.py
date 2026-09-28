@@ -53,7 +53,8 @@ class CorePracticesTest(unittest.TestCase):
     def test_practices_defines_a_copy_and_bending(self):
         body = section(read_practices(), "## The five rules")
         self.assertIn("A copy is the same rule written in two places that must always change together.", body)
-        self.assertIn("Bending is adding a mode, flag or branch to existing code that only the new use needs.", body)
+        self.assertIn("Bending is adding a mode, flag or branch inside existing shared logic that only the new use needs.", body)
+        self.assertIn("A mode or option the request itself asks for is not bending, and neither is a difference kept outside the shared part, such as what each use passes in or does with the result.", body)
 
     def test_practices_finds_what_already_exists(self):
         body = section(read_practices(), "## Find what already exists")
@@ -73,11 +74,10 @@ class CorePracticesTest(unittest.TestCase):
         body = section(read_practices(), "## Reuse or ask")
         for sentence in (
             "Reuse existing code without asking when it already does the job unchanged.",
-            "sharing would mean changing existing code for a new use",
-            "keeping apart would mean copying its logic",
+            "Ask the user only at a fork: when sharing would mean changing existing code for a new use, or keeping apart would mean copying its logic.",
+            "Ask one question per fork, in the same rounds as the other questions, with a recommendation and a one-line reason.",
             "Recommend sharing the parts that must always change together and keeping apart the parts that differ.",
             "Never offer bending as an option.",
-            "in the same rounds as the other questions",
         ):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, body)
@@ -90,7 +90,7 @@ class CorePracticesTest(unittest.TestCase):
             "Kept separate",
             "Changed",
             "Write None for an empty list.",
-            "Project rule followed",
+            "When a project rule overrode one of the other four, add one line after the three lists that starts with Project rule followed: and names the rule and the file it is written in.",
             "Never write a proof for each rule.",
         ):
             with self.subTest(sentence=sentence):

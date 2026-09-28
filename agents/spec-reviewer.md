@@ -15,7 +15,7 @@ Review the spec and the items file at the paths you are given, against the pract
 - Scope: more than one independent subsystem.
 - Testability: a requirement with no pass or fail check.
 - Boundary: the spec contains a patch, or instructions to change code that neither the request, a recorded decision nor the practices file asks for.
-- Design: a requirement or Step that copies logic that already exists, bends existing code to fit a new use, builds more than the request needs, or breaks another rule in the practices file. Search the code to check.
+- Design: a requirement or Step that copies logic that already exists, bends existing code to fit a new use, builds more than the request or a recorded decision asks for, or breaks another rule in the practices file. Search the code to check.
 - Visible assumptions: a default that is not listed as an assumption.
 - Trace: an acceptance criterion that no Step's tests prove, or a Step that proves no criterion.
 - Task drift: a Step's task that contradicts the criteria it claims, or leaves out something the Step needs from the spec.
