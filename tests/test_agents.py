@@ -93,6 +93,20 @@ class AgentsTest(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
 
+    def test_spec_reviewer_checks_the_design(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for marker in (
+            "- Design:",
+            "copies logic that already exists",
+            "bends existing code to fit a new use",
+            "builds more than the request needs",
+            "against the practices file and the decisions file whose paths you are also given",
+            "neither the request, a recorded decision nor the practices file asks for",
+            "Skip style and wording preferences.",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, body)
+
 
 if __name__ == "__main__":
     unittest.main()
