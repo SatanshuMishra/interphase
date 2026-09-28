@@ -14,7 +14,7 @@ The project's own written rules win when they conflict with the other four.
 
 A copy is the same rule written in two places that must always change together. Two pieces of code that look alike but change for different reasons are not a copy.
 
-Bending is adding a mode, flag or branch inside existing shared logic that only the new use needs. A mode or option the request itself asks for is not bending, and neither is a difference kept outside the shared part, such as what each use passes in or does with the result.
+Bending is adding a mode, flag or branch inside existing shared logic that only the new use needs. A mode or option the request itself asks for is allowed, but its difference is kept outside the shared part, such as in what each use passes in or does with the result.
 
 ## Find what already exists
 

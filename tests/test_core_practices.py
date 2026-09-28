@@ -54,7 +54,7 @@ class CorePracticesTest(unittest.TestCase):
         body = section(read_practices(), "## The five rules")
         self.assertIn("A copy is the same rule written in two places that must always change together.", body)
         self.assertIn("Bending is adding a mode, flag or branch inside existing shared logic that only the new use needs.", body)
-        self.assertIn("A mode or option the request itself asks for is not bending, and neither is a difference kept outside the shared part, such as what each use passes in or does with the result.", body)
+        self.assertIn("A mode or option the request itself asks for is allowed, but its difference is kept outside the shared part, such as in what each use passes in or does with the result.", body)
 
     def test_practices_finds_what_already_exists(self):
         body = section(read_practices(), "## Find what already exists")
