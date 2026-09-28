@@ -34,6 +34,7 @@ TEMPLATE_HEADINGS = (
     "## 16. Acceptance criteria",
     "## 17. Assumptions",
     "## 18. Open questions",
+    "## 19. Reuse and change",
 )
 
 
@@ -83,6 +84,19 @@ class PrototypePathwayTest(unittest.TestCase):
         self.assertIn("Design the Steps during the interview", steps_body)
         acceptance_body = "\n".join(section_body(lines, "## Acceptance"))
         self.assertIn("### 16.1", acceptance_body)
+
+    def test_prototype_ground_maps_the_prototype_to_existing_code(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        ground = "\n".join(section_body(lines, "## Ground"))
+        self.assertIn("Map every component and data flow in the prototype to existing code that already provides it", ground)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", ground)
+
+    def test_prototype_template_records_reuse_and_change(self):
+        lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
+        body = "\n".join(section_body(lines, "## 19. Reuse and change"))
+        for label in ("Reused as is", "Kept separate", "Changed"):
+            self.assertIn(label, body)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
 
 
 if __name__ == "__main__":

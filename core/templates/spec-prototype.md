@@ -79,3 +79,7 @@ Date: {{date}}.
 ## 18. Open questions
 
 {{at most three open questions, each with why it is safe to leave open, or None}}
+
+## 19. Reuse and change
+
+{{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
