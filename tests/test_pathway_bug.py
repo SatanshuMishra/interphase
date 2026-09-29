@@ -25,6 +25,7 @@ TEMPLATE_HEADINGS = (
     "## 11. Assumptions",
     "## 12. Open questions",
     "## 13. Prevention",
+    "## 14. Reuse and change",
 )
 
 
@@ -34,6 +35,15 @@ def repo_root():
 
 def read(relative):
     return (repo_root() / relative).read_text(encoding="utf-8")
+
+
+def playbook_section(heading):
+    lines = read("core/pathways/bug.md").splitlines()
+    start = lines.index(heading) + 1
+    end = start
+    while end < len(lines) and not lines[end].startswith("## "):
+        end += 1
+    return lines[start:end]
 
 
 def sections(lines):
@@ -74,19 +84,26 @@ class PathwayBugTest(unittest.TestCase):
         self.assertTrue(any(line.startswith("### 10.2 ") for line in body))
 
     def test_bug_playbook_designs_steps_during_the_interview(self):
-        lines = read("core/pathways/bug.md").splitlines()
-
-        def section_lines(heading):
-            start = lines.index(heading) + 1
-            end = start
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
-            return lines[start:end]
-
-        steps_text = "\n".join(section_lines("## Steps"))
+        steps_text = "\n".join(playbook_section("## Steps"))
         self.assertIn("Design the Steps during the interview", steps_text)
-        acceptance_text = "\n".join(section_lines("## Acceptance"))
+        acceptance_text = "\n".join(playbook_section("## Acceptance"))
         self.assertIn("### 10.1", acceptance_text)
+
+    def test_bug_playbook_fixes_every_place_with_the_same_fault(self):
+        ground = "\n".join(playbook_section("## Ground"))
+        self.assertIn(
+            "Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.",
+            ground,
+        )
+        acceptance = "\n".join(playbook_section("## Acceptance"))
+        self.assertIn("Give every place with the same fault its own test that fails before the fix.", acceptance)
+
+    def test_bug_template_records_reuse_and_change(self):
+        lines = read("core/templates/spec-bug.md").splitlines()
+        body = "\n".join(dict(sections(lines))["## 14. Reuse and change"])
+        for label in ("Reused as is", "Kept separate", "Changed"):
+            self.assertIn(label, body)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
 
 
 if __name__ == "__main__":

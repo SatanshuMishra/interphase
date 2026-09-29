@@ -9,6 +9,7 @@ Explore the prototype before asking anything.
 - Accept the prototype as files, a URL or screenshots. Use a connected design tool only when one is present; never require one.
 - Open or run the prototype when it can run, and click through it.
 - Inventory every screen, every state shown, every interaction, every piece of data displayed and every component.
+- Map every component and data flow in the prototype to existing code that already provides it, following `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
 - The rule: the spec wins over the mockup. The mockup illustrates the idea; it is not the contract.
 
 ## Gap analysis

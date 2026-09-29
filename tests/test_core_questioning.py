@@ -67,6 +67,14 @@ class QuestioningTest(unittest.TestCase):
         self.assertIn("2. Every acceptance criterion has a Step whose test proves it.", text)
         self.assertIn("4. The user confirmed the read-back in phase 7.", text)
 
+    def test_questioning_sorts_forks_as_intent_and_reuse_as_structure(self):
+        lines = read_questioning().splitlines()
+        body = section_body(lines, "## Sort every unknown")
+        intent_line = next(line for line in body if line.strip().startswith("| Intent |"))
+        self.assertIn("whether to share code at a fork", intent_line)
+        structure_line = next(line for line in body if line.strip().startswith("| Structure |"))
+        self.assertIn("which existing code already does the job", structure_line)
+
 
 if __name__ == "__main__":
     unittest.main()

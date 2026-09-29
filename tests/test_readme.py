@@ -81,6 +81,15 @@ class ReadmeTest(unittest.TestCase):
         )
         self.assertIn("removes the ones its run created", text)
 
+    def test_readme_states_the_programming_guarantee(self):
+        text = read_readme()
+        self.assertIn(
+            "It never plans a copy of logic that already exists, and never bends existing code to fit a new use.",
+            text,
+        )
+        self.assertIn("Reuse and change", text)
+        self.assertIn("core/practices.md", text)
+
 
 if __name__ == "__main__":
     unittest.main()

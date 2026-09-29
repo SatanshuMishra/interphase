@@ -46,6 +46,8 @@ Use no other fields. The only value `type` may take is `contract`.
 - Give every Step the acceptance criteria its tests prove, and every acceptance criterion at least one Step.
 - Ask the user about the shape of the work: what ships together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
 - Keep the Steps' `files` apart wherever you can. Steps that share a file cannot be built at the same time. When two Steps must share a file, order them with `after`.
+- Give logic that two Steps need to one Step, and make the others come after it.
+- Never keep Steps' files apart by copying logic.
 - Give a Step `after` naming every Step whose output it uses. Importing another Step's module does not order the two Steps by itself.
 - Give a package's export file, such as `__init__.py`, `index.ts` or `mod.rs`, to a Step that comes after every Step whose modules it exports.
 - Give two halves of one interface a shared `contract_group`. To let them be built at the same time, add a Step with `type: contract` that only defines the interface, and make the other halves come after it.
@@ -58,7 +60,7 @@ Use no other fields. The only value `type` may take is `contract`.
 
 ## Writing a task
 
-Name the files, the behaviour, each acceptance test by file and name with what it asserts, and the acceptance criteria the Step proves. Restate in the task everything the Step needs from the spec. For a bug, carry the full text of the draft test and the path where it belongs. Never write "see above". Never send the builder to the spec or to anything else outside the task.
+Name the files, the behaviour, each acceptance test by file and name with what it asserts, and the acceptance criteria the Step proves. Restate in the task everything the Step needs from the spec. For a bug, carry the full text of the draft test and the path where it belongs. Never write "see above". Never send the builder to the spec or to anything else outside the task. Carry into the task every Reuse and change line the Step touches: what to reuse as is and never copy, what to keep separate, and which existing code to change.
 
 ## Checking the result
 

@@ -16,6 +16,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 10. Never name, detect or invoke any tool that might consume the spec.
 11. After the user approves the spec and the Steps, change neither without asking for approval again.
 12. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
+13. Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
 
 ## Phase 1: Intake
 
@@ -39,6 +40,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 ## Phase 3: Ground
 
 - Read before asking. Learn the project's layout, language, test framework, the command that runs one test, its conventions, and the code the request touches.
+- Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find what already exists and the project's own written rules.
 - Learn what the Steps will need: the files each behaviour touches, where its tests live, the package export files beside them, and any interface two parts will share.
 - Follow the `## Ground` section of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` for the pathway-specific investigation: feature research, bug reproduction, prototype exploration.
 - For broad searches or outside documentation, dispatch the `interphase:scout` agent with one self-contained question. Use its cited answer.
@@ -89,7 +91,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md" docs/specs/<slug>.md`.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`.
 - Fix every error. Read every warning and fix the ones that are real.
-- Dispatch the `interphase:spec-reviewer` agent with the spec path and the items path. Fix the issues it finds that would cause the wrong thing to be built.
+- Dispatch the `interphase:spec-reviewer` agent with the spec path, the items path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`. Fix the issues it finds that would cause the wrong thing to be built.
 - Show the user what changed in review.
 - Ask for approval of the written spec and the Steps with AskUserQuestion. Loop until approved.
 - Once the user approves, change neither the spec nor the items file. Save the approval to the decisions file, then go straight to Phase 10 in the same turn. If you find something to change, reopen this phase: edit, rewrite `source.sha256`, rerun both checks and ask for approval again.

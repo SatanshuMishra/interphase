@@ -12,6 +12,8 @@ Each request follows one of three pathways:
 - **Bug**: existing behaviour is wrong. interphase reproduces the problem, ranks the likely causes and writes a draft failing test.
 - **Prototype**: a mockup or design export to ship as a working product. interphase explores the mockup and finds what it fakes or leaves out.
 
+Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and ends each spec with a short Reuse and change section: what it reuses as is, what it keeps separate, and what existing code it changes.
+
 Every run ends with a spec package in your repository. It holds the spec, the decisions you made, and a list of Steps. A Step is one piece of build work with its own files and its own test. interphase designs the Steps with you during the interview; it never cuts them out of the finished spec. The spec and the Steps are separate deliverables, and each can be used without the other.
 
 ## Install
@@ -53,6 +55,7 @@ interphase asks its first question in plain text. Later questions come as short 
 - It never comments on, asks about or offers to change whether you track its output files in git.
 - It never commits, pushes, stashes, resets, checks out or rebases.
 - It never implements. The spec states the cause, the boundary and the test. It never contains the patch.
+- It never plans a copy of logic that already exists, and never bends existing code to fit a new use.
 - It tests bug causes only in throwaway git worktrees. Each worktree is deleted afterwards. The spec keeps the evidence, never the change.
 
 A guard records the state of your repository at the start of a run. At the end it checks that nothing changed, and it tells you exactly what did if something has. It ignores interphase's own output files, whether you track them in git or not. Before it checks, it removes the caches that running your code created during the run. If the directory is not a git repository, interphase skips the guard and tells you so.

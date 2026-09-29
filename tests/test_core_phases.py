@@ -27,6 +27,7 @@ RULES = (
     "Never name, detect or invoke any tool that might consume the spec.",
     "After the user approves the spec and the Steps, change neither without asking for approval again.",
     "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
+    "Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -38,6 +39,15 @@ def repo_root():
 
 def read_phases():
     return (repo_root() / "core" / "phases.md").read_text(encoding="utf-8")
+
+
+def phase_body(heading):
+    lines = read_phases().splitlines()
+    start = lines.index(heading) + 1
+    end = start
+    while end < len(lines) and not lines[end].startswith("## "):
+        end += 1
+    return "\n".join(lines[start:end])
 
 
 class CorePhasesTest(unittest.TestCase):
@@ -73,23 +83,14 @@ class CorePhasesTest(unittest.TestCase):
             self.assertNotIn(phrase, text)
 
     def test_phases_design_steps_before_the_read_back(self):
-        lines = read_phases().splitlines()
-
-        def body(heading):
-            start = lines.index(heading) + 1
-            end = start
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
-            return "\n".join(lines[start:end])
-
         self.assertIn(
             "every acceptance criterion has a Step whose test proves it",
-            body("## Phase 6: Design the Steps"),
+            phase_body("## Phase 6: Design the Steps"),
         )
-        self.assertIn("How the work is cut", body("## Phase 7: Read back"))
+        self.assertIn("How the work is cut", phase_body("## Phase 7: Read back"))
         self.assertIn(
             "Never derive the Steps by reading them back out of the spec.",
-            body("## Phase 8: Write the spec and the Steps"),
+            phase_body("## Phase 8: Write the spec and the Steps"),
         )
 
     def test_phases_pass_the_owned_prefix_to_the_guard(self):
@@ -100,16 +101,7 @@ class CorePhasesTest(unittest.TestCase):
         )
 
     def test_phases_go_straight_from_approval_to_hand_off(self):
-        lines = read_phases().splitlines()
-
-        def body(heading):
-            start = lines.index(heading) + 1
-            end = start
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
-            return "\n".join(lines[start:end])
-
-        review_body = body("## Phase 9: Review")
+        review_body = phase_body("## Phase 9: Review")
         self.assertIn(
             "Once the user approves, change neither the spec nor the items file.",
             review_body,
@@ -119,7 +111,7 @@ class CorePhasesTest(unittest.TestCase):
             review_body,
         )
         self.assertIn("reopen this phase", review_body)
-        write_body = body("## Phase 8: Write the spec and the Steps")
+        write_body = phase_body("## Phase 8: Write the spec and the Steps")
         self.assertIn(
             "After any edit to the spec, rewrite `source.sha256`.",
             write_body,
@@ -127,19 +119,19 @@ class CorePhasesTest(unittest.TestCase):
         self.assertNotIn("After any later edit", read_phases())
 
     def test_phases_say_the_guard_removes_new_caches(self):
-        lines = read_phases().splitlines()
-
-        def body(heading):
-            start = lines.index(heading) + 1
-            end = start
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
-            return "\n".join(lines[start:end])
-
         self.assertIn(
             "The guard first removes the caches that running the project's code created since the snapshot.",
-            body("## Phase 10: Hand off"),
+            phase_body("## Phase 10: Hand off"),
         )
+
+    def test_phases_apply_the_practices(self):
+        self.assertIn(
+            "Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find what already exists and the project's own written rules.",
+            phase_body("## Phase 3: Ground"),
+        )
+        review_body = phase_body("## Phase 9: Review")
+        self.assertIn("the decisions path", review_body)
+        self.assertIn("the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`", review_body)
 
 
 if __name__ == "__main__":
