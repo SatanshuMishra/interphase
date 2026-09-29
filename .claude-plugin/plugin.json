@@ -1,6 +1,6 @@
 {
   "name": "interphase",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Turns a rough request into a clear spec. Asks questions, challenges assumptions and pushes back on scope until intent is unambiguous. Features get researched, bugs get reproduced, prototypes get explored. Never implements.",
   "author": {
     "name": "Satanshu Mishra",
