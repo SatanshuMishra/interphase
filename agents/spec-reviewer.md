@@ -14,6 +14,7 @@ Review the spec and the items file at the paths you are given, against the pract
 - Clarity: a requirement two builders would read differently.
 - Scope: more than one independent subsystem.
 - Testability: a requirement with no pass or fail check.
+- Proof environment: an acceptance criterion whose tests run only where passing does not prove it for the user, such as a check the user sees on their phone proved only by a test on a machine that renders differently, and that is not marked unproven.
 - Boundary: the spec contains a patch, or instructions to change code that neither the request, a recorded decision nor the practices file asks for.
 - Design: a requirement or Step that copies logic that already exists, bends existing code to fit a new use, builds more than the request or a recorded decision asks for, or breaks another rule in the practices file. Search the code to check.
 - Visible assumptions: a default that is not listed as an assumption.
