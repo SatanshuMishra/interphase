@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/resume_context.py\"", "timeout": 10}
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/resume_context.py\"", "timeout": 10}
+        ]
+      }
+    ]
+  }
+}
