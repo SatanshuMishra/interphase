@@ -27,7 +27,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Use `docs/specs/` at the repository root as the spec folder. Create it if it does not exist.
 - Take the guard snapshot: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" snapshot --repo . --owned "docs/specs/<slug>." --out docs/specs/<slug>.guard.json`.
 - Create `docs/specs/<slug>.decisions.md` with the heading `# Decisions for <title>` and one sentence: `Questions the user settled. These are binding.`
-- Create `docs/specs/<slug>.record.json` holding `{"environments": [], "facts": [], "criteria": [], "steps": []}`. Its format is in the section "Interview record" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Create `docs/specs/<slug>.record.json` holding `{"environments": [], "facts": [], "criteria": [], "steps": [], "status": "in-progress"}`. Its format is in the section "Interview record" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - If the directory is not a git repository, skip the guard. Say so.
 
 ## Phase 2: Classify
@@ -106,6 +106,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json`. The guard first removes the caches that running the project's code created since the snapshot.
 - If it reports a difference, stop. Tell the user exactly what changed.
 - Delete `docs/specs/<slug>.guard.json` after a clean verify.
+- Set the record's `status` to `handed-off`.
 - Report the paths of the spec, the decisions file, the record, the items file and, for bugs, the reproduction file.
 - List every criterion marked unproven first, with its reason, as the top risks.
 - Report the counts of Steps, unproven criteria, assumptions and open questions.
