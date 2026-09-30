@@ -134,6 +134,19 @@ class CorePhasesTest(unittest.TestCase):
         self.assertIn("the decisions path", review_body)
         self.assertIn("the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`", review_body)
 
+    def test_phases_mark_the_run_in_the_record(self):
+        self.assertIn(
+            '"status": "in-progress"', phase_body("## Phase 1: Intake")
+        )
+        lines = phase_body("## Phase 10: Hand off").splitlines()
+        guard = lines.index(
+            "- Delete `docs/specs/<slug>.guard.json` after a clean verify."
+        )
+        self.assertEqual(
+            lines[guard + 1],
+            "- Set the record's `status` to `handed-off`.",
+        )
+
     def test_phases_keep_the_interview_in_the_record(self):
         self.assertIn(
             "Create `docs/specs/<slug>.record.json`",

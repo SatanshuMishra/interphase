@@ -8,7 +8,8 @@ import sys
 USAGE = "usage: python3 check_record.py [--complete] RECORD"
 COMPLETE = "--complete"
 RECORD_KEYS = ("environments", "facts", "criteria", "steps")
-MISSING_PARTS = ("environments", "criteria", "steps")
+STATUSES = ("in-progress", "handed-off")
+MISSING_PARTS =("environments", "criteria", "steps")
 ENVIRONMENT_KEYS = ("name", "what", "builder_runs")
 LOCATION = ("path", "line", "quote")
 CITATIONS = (LOCATION, ("url",), ("command", "output"))
@@ -108,14 +109,24 @@ def text_fields(who, item, keys):
 
 
 def check_shape(record):
-    unknown = tuple(error("record has unknown key %r" % key) for key in sorted(record) if key not in RECORD_KEYS)
+    unknown = tuple(
+        error("record has unknown key %r" % key) for key in sorted(record) if key not in RECORD_KEYS + ("status",)
+    )
     absent = tuple(error("record lacks key %r" % key) for key in RECORD_KEYS if key not in record)
     not_lists = tuple(
         error("record key %r is not a list" % key)
         for key in RECORD_KEYS
         if key in record and not isinstance(record[key], list)
     )
-    return unknown + absent + not_lists
+    return unknown + absent + not_lists + check_status(record)
+
+
+def check_status(record):
+    if "status" not in record:
+        return (error("record lacks key 'status'"),)
+    if record["status"] in STATUSES and isinstance(record["status"], str):
+        return ()
+    return (error("record status %r is not %s" % (record["status"], " or ".join(repr(value) for value in STATUSES))),)
 
 
 def check_missing_parts(record, complete):

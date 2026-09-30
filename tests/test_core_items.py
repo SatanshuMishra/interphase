@@ -109,6 +109,15 @@ class CoreItemsTest(unittest.TestCase):
         ):
             self.assertIn(needle, record, needle)
 
+    def test_items_guide_documents_the_run_status(self):
+        record = section(read_guide(), "## Interview record")
+        self.assertIn("and a `status`:", record)
+        self.assertIn("`status` is `in-progress` from phase 1 and `handed-off` once phase 10 finishes.", record)
+        self.assertIn(
+            "A record without `status` predates the field: the hook treats it as finished, and `check_record.py` reports it.",
+            record,
+        )
+
     def test_items_guide_allows_empty_acceptance_only_when_unproven(self):
         items = section(read_guide(), "## Items format")
         self.assertIn("only when every criterion the Step claims is marked unproven", items)
