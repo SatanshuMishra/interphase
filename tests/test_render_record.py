@@ -38,6 +38,7 @@ BLOCK_7_1 = (
 
 def record():
     return {
+        "status": "in-progress",
         "environments": [
             {"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True},
             {"name": "phone", "what": "Galaxy Note10+, Android 12, Impeller renderer", "builder_runs": False},
