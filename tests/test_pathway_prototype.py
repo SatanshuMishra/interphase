@@ -98,6 +98,13 @@ class PrototypePathwayTest(unittest.TestCase):
             self.assertIn(label, body)
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
 
+    def test_prototype_sorts_gaps_with_the_questioning_table(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        extra = "\n".join(section_body(lines, "## Extra step"))
+        self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/questioning.md`", extra)
+        self.assertIn("Sort every unknown", extra)
+        self.assertNotIn("- Cosmetic: default to the mockup", extra)
+
 
 if __name__ == "__main__":
     unittest.main()
