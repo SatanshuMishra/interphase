@@ -69,6 +69,7 @@ Every file goes in `docs/specs/` at the root of your repository. `<slug>` is a s
 | `<slug>.md` | The spec, written from the pathway's template. |
 | `<slug>.decisions.md` | A `# Decisions for <title>` heading, one sentence, then one `- ` line for each question you settled. |
 | `<slug>.items.json` | The Steps, as a JSON array. |
+| `<slug>.record.json` | The interview record: where you see the result, the facts found with their sources, the acceptance criteria and the Steps. interphase keeps it after the run. |
 | `<slug>.repro.<ext>` | Bugs only. The draft failing test, kept as evidence. |
 | `<slug>.guard.json` | A working file for the guard. It is deleted when the run ends. |
 
@@ -80,7 +81,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `task` | yes | Complete instructions for the Step. Whoever builds it gets nothing else about it and never needs the spec. |
 | `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's test files. |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`. It is the same on every Step. |
-| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`. Each test fails before the Step and passes after it. The list may be empty only when nothing can be tested, and the spec says why. |
+| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven. |
 | `after` | no | Names of Steps that must be finished first. |
 | `contract_group` | no | A shared label for Steps that are two halves of one interface. |
 | `type` | no | Only the value `contract`. It marks the one Step in a `contract_group` that defines the shared interface. Every other Step in that group reaches it through `after`. |
@@ -112,7 +113,23 @@ python3 /path/to/interphase/scripts/check_items.py docs/specs/<slug>.items.json
 
 This checker validates every field above. It also confirms that the spec's SHA-256 matches the one recorded in `source`, and that every numbered acceptance criterion is claimed by a Step's `spec_ref`. It warns about a Step that claims no criterion, two Steps that share a file with no order between them, and a package export file that is not ordered after the Steps whose modules it exports.
 
-Run both commands from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in; a marketplace install puts it under `~/.claude/plugins/cache/interphase/interphase/<version>/`. Each prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
+Check an interview record:
+
+```
+python3 /path/to/interphase/scripts/check_record.py [--complete] docs/specs/<slug>.record.json
+```
+
+This checker confirms that every cited quote appears in its line, that every name in the record resolves, and that every acceptance criterion has a test the builder runs where passing proves it, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
+
+Render the spec's acceptance criteria and the items file from a record:
+
+```
+python3 /path/to/interphase/scripts/render_record.py --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json
+```
+
+It refuses a record that the checker rejects with `--complete`, and then writes nothing.
+
+Run every command in this section from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in; a marketplace install puts it under `~/.claude/plugins/cache/interphase/interphase/<version>/`. Each checker prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
 
 ## Requirements
 
