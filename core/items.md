@@ -19,7 +19,7 @@ The spec and the items file are separate deliverables. Each must be usable witho
 
 ## Interview record
 
-Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is found or settled, so that nothing depends on the conversation. It is a JSON object with exactly these four lists:
+Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is found or settled, so that nothing depends on the conversation. It is a JSON object with exactly these four lists, and a `status`:
 
 | Key | Each entry |
 |---|---|
@@ -27,6 +27,8 @@ Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it
 | `facts` | `id` (unique), `fact`, and one citation: `path` (repository-relative), `line` (from 1) and `quote` (text that appears in that line); or `url`; or `command` and `output` (what was run and what it showed) |
 | `criteria` | `number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each with `file`, `name`, `asserts`, `env` and `step`), and `unproven` (the reason) only when no test the builder runs can prove it where it counts |
 | `steps` | `name`, `files`, `criteria` (the numbers its tests prove), `task` once written, and any optional field of the items format except `source`, `acceptance` and `spec_ref` |
+
+`status` is `in-progress` from phase 1 and `handed-off` once phase 10 finishes. A record without `status` predates the field: the hook treats it as finished, and `check_record.py` reports it.
 
 Give every criterion a test the builder runs in one of its `where` environments, or an `unproven` reason. For example, a frame-rate target seen only on the user's phone is unproven when the builder cannot run the phone; a colour check the project's tests can run with the phone's renderer is proven by that test. Never mark a criterion unproven to skip a test the builder could run.
 

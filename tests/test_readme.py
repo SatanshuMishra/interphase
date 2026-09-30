@@ -89,6 +89,20 @@ class ReadmeTest(unittest.TestCase):
         )
         self.assertIn("removes the ones its run created", text)
 
+    def test_readme_describes_compaction_recovery(self):
+        lines = read_readme().splitlines()
+        start = lines.index("## Use")
+        end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+        section = "\n".join(lines[start:end])
+        self.assertIn(
+            "If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation",
+            section,
+        )
+        self.assertIn(
+            "each pathway tells Claude to re-read the record, the decisions and the phases before going on",
+            section,
+        )
+
     def test_readme_states_the_programming_guarantee(self):
         text = read_readme()
         self.assertIn(

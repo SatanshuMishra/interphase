@@ -27,6 +27,7 @@ UNCLAIMED_CRITERION = {
 
 def base_record():
     return {
+        "status": "in-progress",
         "environments": [
             {"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True},
             {"name": "phone", "what": "Galaxy Note10+, Android 12, Impeller renderer", "builder_runs": False},
@@ -217,7 +218,7 @@ class CheckRecordTest(unittest.TestCase):
                 self.assertTrue(any(fragment in message for message in errors), errors)
 
     def test_missing_parts_warn_until_complete(self):
-        empty = {"environments": [], "facts": [], "criteria": [], "steps": []}
+        empty = {"status": "in-progress", "environments": [], "facts": [], "criteria": [], "steps": []}
         loose = self.check(empty, False)
         self.assertEqual(len(messages(loose, "warning")), 3, loose)
         self.assertEqual(messages(loose, "error"), ())
@@ -235,6 +236,19 @@ class CheckRecordTest(unittest.TestCase):
         self.assertEqual(messages(loose, "error"), ())
         strict = self.check(unclaimed, True)
         self.assertTrue(any("7.2" in message for message in messages(strict, "error")), strict)
+
+    def test_status_marks_the_run(self):
+        base = base_record()
+        for status in ("in-progress", "handed-off"):
+            for complete in (False, True):
+                with self.subTest(status=status, complete=complete):
+                    self.assertEqual(self.check({**base, "status": status}, complete), ())
+        absent = {key: value for key, value in base.items() if key != "status"}
+        for complete in (False, True):
+            for label, record in (("missing", absent), ("done", {**base, "status": "done"}), ("number", {**base, "status": 3})):
+                with self.subTest(label, complete=complete):
+                    errors = messages(self.check(record, complete), "error")
+                    self.assertTrue(any("status" in message for message in errors), errors)
 
     def test_exit_codes_and_usage(self):
         record = json.dumps(base_record())

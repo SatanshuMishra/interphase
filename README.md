@@ -49,6 +49,8 @@ Each command takes the request as its argument. For example: `/interphase:bug Th
 
 interphase asks its first question in plain text. Later questions come as short multiple-choice sets, with the recommended answer first. Answer "yes" to accept a recommendation.
 
+If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and each pathway tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress.
+
 ## What it never does
 
 - It never creates, edits or deletes a file in your repository other than its own output files in `docs/specs/`. Running your tests can leave caches such as `__pycache__`; interphase removes the ones its run created before it finishes, and never touches caches that were already there.

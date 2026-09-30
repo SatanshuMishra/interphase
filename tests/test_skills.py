@@ -80,6 +80,20 @@ class SkillsTest(unittest.TestCase):
                 self.assertLess(len(text.splitlines()), 80)
                 self.assertNotIn("mitosis", text.lower())
 
+    def test_pathway_skills_reread_after_a_summary(self):
+        step = "6. If this conversation was summarized or cleared during this run, re-read `docs/specs/<slug>.record.json`, `docs/specs/<slug>.decisions.md` and `${CLAUDE_PLUGIN_ROOT}/core/phases.md` before acting."
+        for pathway in PATHWAYS:
+            with self.subTest(pathway=pathway):
+                _, body = split_skill(read_skill(pathway))
+                lines = body.splitlines()
+                self.assertIn(step, lines)
+                fifth = [
+                    index for index, line in enumerate(lines)
+                    if line.startswith("5. If phase 2 classifies")
+                ]
+                self.assertEqual(len(fifth), 1)
+                self.assertGreater(lines.index(step), fifth[0])
+
 
 if __name__ == "__main__":
     unittest.main()

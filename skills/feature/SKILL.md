@@ -11,3 +11,4 @@ Pathway: feature.
 3. The playbook is `${CLAUDE_PLUGIN_ROOT}/core/pathways/feature.md`.
 4. The spec template is `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-feature.md`.
 5. If phase 2 classifies the request as a different pathway, say so. Then invoke the Skill tool with that pathway's skill instead.
+6. If this conversation was summarized or cleared during this run, re-read `docs/specs/<slug>.record.json`, `docs/specs/<slug>.decisions.md` and `${CLAUDE_PLUGIN_ROOT}/core/phases.md` before acting.
