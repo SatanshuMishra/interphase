@@ -22,6 +22,7 @@ OUTPUT_FILES = (
     "<slug>.decisions.md",
     "<slug>.items.json",
     "<slug>.repro",
+    "<slug>.record.json",
 )
 
 SECTION_HEADINGS = (
@@ -52,6 +53,13 @@ class ReadmeTest(unittest.TestCase):
         text = read_readme()
         missing = tuple(name for name in OUTPUT_FILES if name not in text)
         self.assertEqual(missing, ())
+
+    def test_readme_documents_the_record(self):
+        text = read_readme()
+        self.assertIn("scripts/check_record.py", text)
+        self.assertIn("scripts/render_record.py", text)
+        self.assertIn("marked unproven", text)
+        self.assertNotIn("only when nothing can be tested", text)
 
     def test_readme_names_another_tool_at_most_once(self):
         lines = read_readme().splitlines()

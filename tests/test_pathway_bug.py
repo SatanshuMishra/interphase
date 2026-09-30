@@ -98,6 +98,22 @@ class PathwayBugTest(unittest.TestCase):
         acceptance = "\n".join(playbook_section("## Acceptance"))
         self.assertIn("Give every place with the same fault its own test that fails before the fix.", acceptance)
 
+    def test_bug_probe_ends_at_the_cause(self):
+        probes = "\n".join(playbook_section("## Probes"))
+        self.assertIn("A probe ends when its hypothesis is confirmed or refuted.", probes)
+        self.assertIn("Never build, test or repair the fix inside a probe", probes)
+        self.assertIn(
+            "follow the rule for it in Phase 3 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md`",
+            probes,
+        )
+
+    def test_bug_steps_use_the_record(self):
+        steps = "\n".join(playbook_section("## Steps"))
+        self.assertIn("Record that file and test in the record as a test of criterion 10.1", steps)
+        self.assertIn("List criterion 10.1 in the fix Step's `criteria`", steps)
+        self.assertNotIn("in the fix Step's `acceptance`", steps)
+        self.assertNotIn("in its `spec_ref`", steps)
+
     def test_bug_template_records_reuse_and_change(self):
         lines = read("core/templates/spec-bug.md").splitlines()
         body = "\n".join(dict(sections(lines))["## 14. Reuse and change"])

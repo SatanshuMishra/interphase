@@ -28,6 +28,7 @@ RULES = (
     "After the user approves the spec and the Steps, change neither without asking for approval again.",
     "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
     "Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.",
+    "Keep the interview in the record: write each environment, fact, criterion and Step to `docs/specs/<slug>.record.json` the moment it is found or settled, and after any summary of the conversation, re-read the record and the decisions file before acting.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -132,6 +133,65 @@ class CorePhasesTest(unittest.TestCase):
         review_body = phase_body("## Phase 9: Review")
         self.assertIn("the decisions path", review_body)
         self.assertIn("the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`", review_body)
+
+    def test_phases_keep_the_interview_in_the_record(self):
+        self.assertIn(
+            "Create `docs/specs/<slug>.record.json`",
+            phase_body("## Phase 1: Intake"),
+        )
+        interrogate = phase_body("## Phase 4: Interrogate")
+        for phrase in (
+            "After every question round, run",
+            "scripts/check_record.py",
+            "Fix every error before the next round.",
+        ):
+            self.assertIn(phrase, interrogate)
+        self.assertIn(
+            "--complete docs/specs/<slug>.record.json",
+            phase_body("## Phase 6: Design the Steps"),
+        )
+        write_body = phase_body("## Phase 8: Write the spec and the Steps")
+        for phrase in (
+            "Fill every section except Acceptance criteria.",
+            "scripts/render_record.py",
+        ):
+            self.assertIn(phrase, write_body)
+        hand_off = phase_body("## Phase 10: Hand off")
+        for phrase in (
+            "the record, the items file",
+            "List every criterion marked unproven first",
+        ):
+            self.assertIn(phrase, hand_off)
+
+    def test_phase_2_asks_only_when_it_matters(self):
+        body = phase_body("## Phase 2: Classify")
+        for phrase in (
+            "ask the pathway, the size and how to split it with AskUserQuestion before phase 3",
+            "Otherwise say both out loud in one sentence",
+        ):
+            self.assertIn(phrase, body)
+
+    def test_phase_3_records_where_the_user_sees_the_result(self):
+        body = phase_body("## Phase 3: Ground")
+        for phrase in (
+            "Learn where the user sees the result",
+            "marking whether the builder can run it",
+        ):
+            self.assertIn(phrase, body)
+
+    def test_phase_3_never_waits_on_the_user(self):
+        body = phase_body("## Phase 3: Ground")
+        for phrase in ("Never end a turn only to wait for it.", "mark it unconfirmed"):
+            self.assertIn(phrase, body)
+
+    def test_phase_3_delegates_only_checkable_answers(self):
+        body = phase_body("## Phase 3: Ground")
+        for phrase in (
+            "Read the code you need to understand yourself.",
+            "only for outside documentation, or for a question whose answer is where something is in the code",
+        ):
+            self.assertIn(phrase, body)
+        self.assertNotIn("For broad searches", read_phases())
 
 
 if __name__ == "__main__":

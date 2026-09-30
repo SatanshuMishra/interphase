@@ -17,6 +17,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 11. After the user approves the spec and the Steps, change neither without asking for approval again.
 12. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
 13. Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
+14. Keep the interview in the record: write each environment, fact, criterion and Step to `docs/specs/<slug>.record.json` the moment it is found or settled, and after any summary of the conversation, re-read the record and the decisions file before acting.
 
 ## Phase 1: Intake
 
@@ -26,15 +27,15 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Use `docs/specs/` at the repository root as the spec folder. Create it if it does not exist.
 - Take the guard snapshot: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" snapshot --repo . --owned "docs/specs/<slug>." --out docs/specs/<slug>.guard.json`.
 - Create `docs/specs/<slug>.decisions.md` with the heading `# Decisions for <title>` and one sentence: `Questions the user settled. These are binding.`
+- Create `docs/specs/<slug>.record.json` holding `{"environments": [], "facts": [], "criteria": [], "steps": []}`. Its format is in the section "Interview record" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - If the directory is not a git repository, skip the guard. Say so.
 
 ## Phase 2: Classify
 
 - Choose the pathway. Use feature for something that does not exist yet. Use bug when existing behaviour is wrong. Use prototype for a mockup or design to ship as a working product.
 - Choose the size. Use small for one behaviour in existing code, describable in one sentence. Use standard for most requests. Use large for a new subsystem or several connected behaviours.
-- Say both out loud in one sentence, for example "This looks like a small bug, so I'll use the bug pathway." Let the user override.
-- Split a request that mixes pathways, such as a bug plus a new feature, into separate specs. Ask which to do first.
-- Split a request that spans several independent subsystems into separate specs before asking any detail.
+- When the request is large, mixes pathways or spans independent subsystems, ask the pathway, the size and how to split it with AskUserQuestion before phase 3, with your recommendation first. Otherwise say both out loud in one sentence, for example "This looks like a small bug, so I'll use the bug pathway." Let the user override.
+- Recommend splitting a request that mixes pathways, such as a bug plus a new feature, or that spans several independent subsystems, into separate specs. Split it when the user agrees, and ask which to do first.
 - Let size set depth. Give a small request few questions, one Step and no question about how the work is cut, and mark template sections `Not applicable: <reason>` where they do not apply. Give a large request the full treatment.
 
 ## Phase 3: Ground
@@ -42,16 +43,19 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Read before asking. Learn the project's layout, language, test framework, the command that runs one test, its conventions, and the code the request touches.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find what already exists and the project's own written rules.
 - Learn what the Steps will need: the files each behaviour touches, where its tests live, the package export files beside them, and any interface two parts will share.
+- Learn where the user sees the result: the device, operating system, runtime, renderer, screen size and window chrome, and where the project's tests run. Record each as an environment in the record, marking whether the builder can run it.
 - Follow the `## Ground` section of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` for the pathway-specific investigation: feature research, bug reproduction, prototype exploration.
-- For broad searches or outside documentation, dispatch the `interphase:scout` agent with one self-contained question. Use its cited answer.
+- Read the code you need to understand yourself. Dispatch the `interphase:scout` agent only for outside documentation, or for a question whose answer is where something is in the code, with one self-contained question. Record each fact you keep in the record with its citation: the path, the line and the quoted text; the URL; or the command and what it showed.
+- When a finding needs something only the user can provide, such as their device, their presence or repeated measurement, ask for it once and carry on with every other phase. Never end a turn only to wait for it. If it is still unavailable when you write the spec, keep the finding and mark it unconfirmed.
 - Treat every fact found here as a question not asked.
 
 ## Phase 4: Interrogate
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
 - Use the `## Questions` bank of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` as the checklist of what must be known.
-- Design the Steps as the interview goes. When a requirement is settled, give it an owning Step in your working notes: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Design the Steps as the interview goes. When a requirement is settled, write its acceptance criterion to the record, with the environments where passing proves it and the tests that prove it or the reason it is unproven, and give it an owning Step in the record: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - Ask about the shape of the work in the same rounds as the other questions: what must ship together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
+- After every question round, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json`. Fix every error before the next round.
 
 ## Phase 5: Challenge
 
@@ -64,8 +68,9 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 - Check the whole set of Steps against the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - Settle what needs the whole picture: files two Steps share, package export files, interfaces two Steps share, and the order the Steps are built in.
-- Make sure every acceptance criterion has a Step whose test proves it, and that every Step proves at least one criterion.
+- Make sure every acceptance criterion has a Step whose test proves it where passing counts, or is marked unproven with the reason, and that every Step proves at least one criterion.
 - Ask the user any Step question only they can answer. Save each answer to the decisions file.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error.
 
 ## Phase 7: Read back
 
@@ -77,14 +82,14 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 ## Phase 8: Write the spec and the Steps
 
 - Copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md` to `docs/specs/<slug>.md`.
-- Fill every section. Replace every `{{placeholder}}`.
+- Fill every section except Acceptance criteria. Replace every `{{placeholder}}` outside it.
 - Keep every numbered heading exactly as the template has it.
 - Give every requirement an acceptance criterion that can pass or fail.
-- Give every acceptance criterion its own numbered heading under the Acceptance criteria section, such as `### 7.1 <short name>`.
 - Put every default into the Assumptions section.
 - Leave at most three open questions. Say for each why it is safe to leave open.
-- Write `docs/specs/<slug>.items.json` from the Steps designed in phases 4 to 7, following `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
-- Put the spec's absolute path and SHA-256 in every Step's `source`. After any edit to the spec, rewrite `source.sha256`.
+- Write each Step's task into its entry in the record, following the section "Writing a task" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the Acceptance criteria section, one numbered heading per criterion such as `### 7.1 <short name>`, and the items file, with the spec's absolute path and SHA-256 in every Step's `source`.
+- After any edit to the spec, rewrite `source.sha256`. Rerun the render script after any edit to the record or the spec; it rewrites both.
 
 ## Phase 9: Review
 
@@ -101,6 +106,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json`. The guard first removes the caches that running the project's code created since the snapshot.
 - If it reports a difference, stop. Tell the user exactly what changed.
 - Delete `docs/specs/<slug>.guard.json` after a clean verify.
-- Report the paths of the spec, the decisions file, the items file and, for bugs, the reproduction file.
-- Report the counts of Steps, assumptions and open questions.
+- Report the paths of the spec, the decisions file, the record, the items file and, for bugs, the reproduction file.
+- List every criterion marked unproven first, with its reason, as the top risks.
+- Report the counts of Steps, unproven criteria, assumptions and open questions.
 - Stop. Do not suggest a tool to build it. Do not start building it.

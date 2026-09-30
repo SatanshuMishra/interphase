@@ -75,6 +75,28 @@ class QuestioningTest(unittest.TestCase):
         structure_line = next(line for line in body if line.strip().startswith("| Structure |"))
         self.assertIn("which existing code already does the job", structure_line)
 
+    def test_questioning_treats_factual_wording_as_structure(self):
+        lines = read_questioning().splitlines()
+        body = section_body(lines, "## Sort every unknown")
+        cosmetic_line = next(line for line in body if line.strip().startswith("| Cosmetic |"))
+        self.assertIn("wording that states nothing about how the product behaves", cosmetic_line)
+        self.assertNotIn("exact wording", cosmetic_line)
+        structure_line = next(line for line in body if line.strip().startswith("| Structure |"))
+        self.assertIn("whether wording that states how the product behaves is true of it", structure_line)
+        self.assertIn(
+            "Wording that states how the product behaves is a fact, not a cosmetic choice.",
+            "\n".join(body),
+        )
+
+    def test_questioning_stops_only_when_proven_where_it_counts(self):
+        text = read_questioning()
+        self.assertIn(
+            "1. Every Must requirement has a way to tell pass from fail where passing counts, or is marked unproven with the reason.",
+            text,
+        )
+        record = "\n".join(section_body(text.splitlines(), "## Record each answer"))
+        self.assertIn("Update the record at the same time", record)
+
 
 if __name__ == "__main__":
     unittest.main()
