@@ -46,11 +46,7 @@ Draw from this bank. Ask only what the prototype and the code cannot answer.
 
 ## Extra step
 
-Sort every gap into one of three kinds before writing the spec:
-
-- Intent: only the user knows. Ask.
-- Structure: the code or documentation knows. Look it up.
-- Cosmetic: default to the mockup and record the assumption.
+Sort every gap before writing the spec, using the table in the section "Sort every unknown" of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
 
 ## Acceptance
 

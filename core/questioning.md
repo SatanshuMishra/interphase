@@ -5,8 +5,10 @@
 | Class | Examples | What to do |
 |---|---|---|
 | Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works, whether to share code at a fork, and the shape of the work: what ships together, what order matters, what could be thrown away | Ask until it is settled. |
-| Structure | where it plugs in, interfaces, where data is stored, which files change, which files and tests each Step needs, and which existing code already does the job | Look it up in the code; ask only when the code is silent. |
-| Cosmetic | colour, spacing, exact wording, icons | Default to the mockup or the existing style and record the default as an assumption. |
+| Structure | where it plugs in, interfaces, where data is stored, which files change, which files and tests each Step needs, which existing code already does the job, and whether wording that states how the product behaves is true of it | Look it up in the code; ask only when the code is silent. |
+| Cosmetic | colour, spacing, icons, and wording that states nothing about how the product behaves | Default to the mockup or the existing style and record the default as an assumption. |
+
+Wording that states how the product behaves is a fact, not a cosmetic choice. For example, a mockup's "the N days in a row you kept writing" says what the count measures; look it up in the code before using it.
 
 Test every unknown before you ask it. If a different answer would not change a file, a test or an acceptance criterion, do not ask it.
 
@@ -55,13 +57,13 @@ Imagine two different builders reading the request. Ask about every place they w
 
 - Append each settled answer to `docs/specs/<slug>.decisions.md` immediately. Write it as one line starting with `- `, as a rule in the user's terms. Example: `- Expired sessions redirect to the login screen; they never render an empty page.`
 - Never reword or delete an earlier line. Give a reversed decision a new line that says it replaces the earlier one.
-- Update the affected part of the working notes or spec at the same time.
+- Update the record at the same time: the criterion, the environments where passing proves it, and the owning Step.
 
 ## Know when to stop
 
 Stop asking when all four hold:
 
-1. Every Must requirement has a way to tell pass from fail.
+1. Every Must requirement has a way to tell pass from fail where passing counts, or is marked unproven with the reason.
 2. Every acceptance criterion has a Step whose test proves it.
 3. No open question would change a file, a test or an acceptance criterion. Everything else is written down as an assumption or deferred with a reason.
 4. The user confirmed the read-back in phase 7.

@@ -19,12 +19,14 @@ Reproduce the bug before you ask about it.
 ## Probes
 
 - A probe is a tiny, temporary code change that tests one hypothesis about the cause.
+- A probe ends when its hypothesis is confirmed or refuted. Never build, test or repair the fix inside a probe; whether a fix can keep some behaviour unchanged is an acceptance criterion, not a probe.
 - Create a throwaway worktree with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/probe.py" create --repo .`. Add `--with-uncommitted` when the bug depends on the user's uncommitted edits. The script prints the worktree path on its last line.
 - Change the suspected cause, never the symptom. "If the page is blank, redirect" hides a symptom and proves nothing.
 - Rerun the reproduction inside the probe worktree and record the result.
 - Remove it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/probe.py" remove --repo . --path <worktree>`.
 - Record the hypothesis, one line describing the change, and the result in the spec. Never record the change itself.
 - When the project cannot run, skip probes. Keep the ranked hypotheses and mark them unconfirmed.
+- When a probe needs something only the user can provide, follow the rule for it in Phase 3 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md`.
 
 ## Questions
 
@@ -58,7 +60,7 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
 
 Design the Steps during the interview, following the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 
-- Put the full text of the draft test and the path where it belongs in the fix Step's `task`.
+- Put the full text of the draft test and the path where it belongs in the fix Step's `task` in the record.
 - Include that test path in the fix Step's `files`.
-- Name that file and test in the fix Step's `acceptance`.
-- Give the fix Step criterion 10.1 in its `spec_ref`.
+- Record that file and test in the record as a test of criterion 10.1, with the fix Step as its `step`.
+- List criterion 10.1 in the fix Step's `criteria` in the record.

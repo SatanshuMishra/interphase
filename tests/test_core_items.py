@@ -6,6 +6,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 HEADINGS = (
     "## Output files",
+    "## Interview record",
     "## Items format",
     "## Designing Steps",
     "## Writing a task",
@@ -89,6 +90,29 @@ class CoreItemsTest(unittest.TestCase):
             "Carry into the task every Reuse and change line the Step touches: what to reuse as is and never copy, what to keep separate, and which existing code to change.",
             writing,
         )
+
+    def test_items_guide_documents_the_record(self):
+        text = read_guide()
+        self.assertIn("`<slug>.record.json`", section(text, "## Output files"))
+        record = section(text, "## Interview record")
+        for needle in (
+            "`environments`",
+            "`facts`",
+            "`criteria`",
+            "`steps`",
+            "`builder_runs`",
+            "`command`",
+            "`unproven`",
+            "scripts/check_record.py",
+            "--complete",
+            "scripts/render_record.py",
+        ):
+            self.assertIn(needle, record, needle)
+
+    def test_items_guide_allows_empty_acceptance_only_when_unproven(self):
+        items = section(read_guide(), "## Items format")
+        self.assertIn("only when every criterion the Step claims is marked unproven", items)
+        self.assertNotIn("only when nothing can be tested", items)
 
 
 if __name__ == "__main__":

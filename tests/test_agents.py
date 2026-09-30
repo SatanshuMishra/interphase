@@ -6,7 +6,7 @@ FORBIDDEN_TOOLS = frozenset({"Edit", "Write", "NotebookEdit", "Bash", "Agent"})
 EXPECTED = {
     "agents/scout.md": {
         "name": "scout",
-        "description": "Use when interphase needs facts looked up in the codebase, its documentation or outside library documentation, and the answer can come back as a short cited summary.",
+        "description": "Use when interphase needs outside documentation looked up, or needs to know where something is in the codebase, and each answer can be cited and checked.",
         "tools": "Read, Grep, Glob, WebFetch, WebSearch",
         "model": "inherit",
     },
@@ -71,6 +71,18 @@ class AgentsTest(unittest.TestCase):
         for marker in ("Status:", "Approved", "Issues found"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
+
+    def test_scout_answers_with_locations(self):
+        _, body = split_frontmatter(read_agent("agents/scout.md"))
+        self.assertIn("followed by the exact text of that line, quoted", body)
+        self.assertNotIn("Cite each fact with a `path:line` reference or a URL.", body)
+
+    def test_spec_reviewer_checks_proof_environments(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        self.assertIn(
+            "- Proof environment: an acceptance criterion whose tests run only where passing does not prove it for the user",
+            body,
+        )
 
     def test_spec_reviewer_checks_the_steps(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
