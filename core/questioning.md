@@ -68,4 +68,18 @@ Stop asking when all four hold:
 3. No open question would change a file, a test or an acceptance criterion. Everything else is written down as an assumption or deferred with a reason.
 4. The user confirmed the read-back in phase 7.
 
+In the brief lane and in an autonomous run, condition 4 holds without a read-back.
+
 There is no fixed question count. When you defer questions, list them in the spec's Open questions section with why each is safe to leave.
+
+## Work autonomously
+
+When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, ask no question and seek no approval.
+
+- Never guess and never fall back to the lightest option.
+- Resolve each unknown from the user's intent and the project's context: who the product serves, what is at stake, and the domain.
+- Research the established practice for that context. Dispatch the `interphase:scout` agent for outside documentation.
+- Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test.
+- Record each as an assumption naming the intent and context that decided it.
+
+Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule.
