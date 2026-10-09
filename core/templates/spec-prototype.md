@@ -83,3 +83,7 @@ Date: {{date}}.
 ## 19. Reuse and change
 
 {{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
+
+## 20. Variation
+
+{{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}

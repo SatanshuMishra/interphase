@@ -29,6 +29,7 @@ TEMPLATE_HEADINGS = (
     "## 12. Open questions",
     "## 13. Verification",
     "## 14. Reuse and change",
+    "## 15. Variation",
 )
 
 NUMBERED = re.compile(r"^## \d+\. ")
@@ -91,6 +92,18 @@ class PathwayFeatureTest(unittest.TestCase):
         for label in ("Reused as is", "Kept separate", "Changed"):
             self.assertIn(label, body)
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
+
+    def test_feature_acceptance_follows_the_variation_rules(self):
+        lines = tuple(PLAYBOOK.read_text(encoding="utf-8").splitlines())
+        acceptance = "\n".join(sections_by_heading(lines)["## Acceptance"])
+        self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
+        template_lines = tuple(TEMPLATE.read_text(encoding="utf-8").splitlines())
+        numbered = tuple(line for line in template_lines if NUMBERED.match(line))
+        self.assertEqual(numbered[-1], "## 15. Variation")
+        body = "\n".join(sections_by_heading(template_lines)["## 15. Variation"])
+        self.assertIn("{{", body)
+        self.assertIn("Not applicable: <reason>", body)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/variation.md", body)
 
 
 if __name__ == "__main__":
