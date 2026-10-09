@@ -151,3 +151,21 @@ class ReadmeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_readme_documents_the_project_pathway(self):
+        text = read_readme()
+        lines = text.splitlines()
+
+        def section(heading):
+            start = lines.index(heading)
+            end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+            return "\n".join(lines[start:end])
+
+        does = section("## What it does")
+        self.assertIn("one of four pathways", does)
+        self.assertIn("**Project**", does)
+        self.assertIn("a new repository, or a new stack, build, CI or release for an existing one", does)
+        self.assertIn("walking skeleton", does)
+        self.assertIn("/interphase:project", section("## Use"))
+        self.assertIn("spec-project.md", section("## Check the output yourself"))
+

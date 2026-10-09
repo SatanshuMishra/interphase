@@ -6,11 +6,12 @@ A Claude Code plugin that turns a rough request into a clear spec.
 
 interphase asks questions, challenges assumptions and pushes back on scope until your intent is clear. It does not aim for a perfect spec. It aims for a spec that gets the right thing built. A missed intent means major rework; a small inconsistency can be fixed later.
 
-Each request follows one of three pathways:
+Each request follows one of four pathways:
 
 - **Feature**: something that does not exist yet. interphase researches the code and the libraries involved, then asks what the feature must do.
 - **Bug**: existing behaviour is wrong. interphase reproduces the problem, ranks the likely causes and writes a draft failing test.
 - **Prototype**: a mockup or design export to ship as a working product. interphase explores the mockup and finds what it fakes or leaves out.
+- **Project**: a new repository, or a new stack, build, CI or release for an existing one. interphase settles the stage, platforms, stack, test strategy, CI, release, licence and logging, and the first Step is a walking skeleton that runs end to end.
 
 Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and ends each spec with a short Reuse and change section: what it reuses as is, what it keeps separate, and what existing code it changes.
 
@@ -48,6 +49,7 @@ You can also start a pathway yourself:
 | `/interphase:feature` | You want something that does not exist yet. |
 | `/interphase:bug` | Something works wrongly and you want the cause found first. |
 | `/interphase:prototype` | You have a mockup or design and want it built for real. |
+| `/interphase:project` | You are starting a project, or replacing one's stack, build, CI or release. |
 
 Each command takes the request as its argument. For example: `/interphase:bug The export button downloads an empty file.`
 
@@ -113,7 +115,7 @@ Check a spec against its template:
 python3 /path/to/interphase/scripts/check_spec.py --template /path/to/interphase/core/templates/spec-feature.md docs/specs/<slug>.md
 ```
 
-Use `spec-bug.md` or `spec-prototype.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`.
+Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`.
 
 Check an items file:
 

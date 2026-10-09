@@ -189,6 +189,15 @@ class CorePhasesTest(unittest.TestCase):
         ):
             self.assertIn(phrase, body)
 
+    def test_classify_knows_the_project_pathway(self):
+        body = phase_body("## Phase 2: Classify")
+        for phrase in (
+            "use project for a new repository, or for replacing an existing repository's stack, build, CI or release",
+            "use feature for anything else that does not exist yet",
+            "A new product built from a design mixes project and prototype; recommend a project spec first and a prototype spec second",
+        ):
+            self.assertIn(phrase, body)
+
     def test_phase_3_records_where_the_user_sees_the_result(self):
         body = phase_body("## Phase 3: Ground")
         for phrase in (
