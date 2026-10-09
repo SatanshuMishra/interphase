@@ -84,6 +84,20 @@ class AgentsTest(unittest.TestCase):
             body,
         )
 
+    def test_reviewer_checks_variation(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for marker in (
+            "- Variation:",
+            "a behaviour that varies from run to run proved by one example",
+            "a Step that tunes a prompt, rule or threshold against its own acceptance cases",
+            "a held-out case that appears in a prompt or rule",
+            "a criterion for varying behaviour with no kind",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, body)
+        self.assertLess(body.index("- Proof environment:"), body.index("- Variation:"))
+        self.assertLess(body.index("- Variation:"), body.index("- Boundary:"))
+
     def test_spec_reviewer_checks_the_steps(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in (
