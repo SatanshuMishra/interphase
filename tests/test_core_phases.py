@@ -206,6 +206,18 @@ class CorePhasesTest(unittest.TestCase):
             self.assertIn(phrase, body)
         self.assertNotIn("For broad searches", read_phases())
 
+    def test_ground_marks_varying_behaviour(self):
+        self.assertIn(
+            "- Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.",
+            phase_body("## Phase 3: Ground"),
+        )
+
+    def test_interrogate_specifies_each_varying_criterion_as_a_population(self):
+        self.assertIn(
+            "- Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.",
+            phase_body("## Phase 4: Interrogate"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
