@@ -148,10 +148,6 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("core/templates/spec-brief.md", produces)
         self.assertIn("4.x", produces)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_readme_documents_the_project_pathway(self):
         text = read_readme()
         lines = text.splitlines()
@@ -169,3 +165,6 @@ if __name__ == "__main__":
         self.assertIn("/interphase:project", section("## Use"))
         self.assertIn("spec-project.md", section("## Check the output yourself"))
 
+
+if __name__ == "__main__":
+    unittest.main()
