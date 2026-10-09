@@ -34,6 +34,23 @@ BLOCK_7_1 = (
     "Where passing proves it: python3 -m unittest on macOS.\n\n"
     "- `tests/test_app.py` `test_total`: the total adds up Runs in: python3 -m unittest on macOS."
 )
+ITEM_FIELDS = frozenset(
+    (
+        "name",
+        "task",
+        "files",
+        "source",
+        "acceptance",
+        "after",
+        "contract_group",
+        "type",
+        "complexity",
+        "file_notes",
+        "msp",
+        "spec_ref",
+        "assumptions",
+    )
+)
 
 
 def record():
@@ -109,6 +126,12 @@ def renumbered(source):
     criteria = source["criteria"]
     moved = {**source, "criteria": criteria[:1] + [{**criteria[1], "number": "8.2"}]}
     return replace_step(moved, 1, {**source["steps"][1], "criteria": ["8.2"]})
+
+
+def varying(source, pass_rate):
+    criteria = source["criteria"]
+    test = {**criteria[0]["tests"][0], "cases": 60, "runs": 3, "pass_rate": pass_rate}
+    return {**source, "criteria": [{**criteria[0], "varies": "output", "tests": [test]}] + criteria[1:]}
 
 
 def split_section(text):
@@ -221,6 +244,35 @@ class RenderRecordTest(unittest.TestCase):
                 self.assertIn("Acceptance criteria this Step proves:", task)
                 for number in step["criteria"]:
                     self.assertIn(spec_block(spec_text, number), task)
+
+    def test_population_is_written_into_spec_and_task(self):
+        for pass_rate, shown in ((0.9, "0.9"), (1, "1")):
+            line = "Population: 60 cases, 3 runs each, pass rate at least %s." % shown
+            with self.subTest(pass_rate=pass_rate), tempfile.TemporaryDirectory() as folder:
+                spec_text, items_text = self.rendered(folder, varying(record(), pass_rate))
+                block = spec_block(spec_text, "7.1")
+                self.assertEqual(block, BLOCK_7_1 + " " + line)
+                tasks = {step["name"]: step["task"] for step in json.loads(items_text)}
+                self.assertIn(block, tasks["build-app"])
+                self.assertNotIn("Population:", spec_block(spec_text, "7.2"))
+                self.assertNotIn("Population:", tasks["tune-app"])
+
+    def test_items_format_is_unchanged_by_population(self):
+        items_module = self.load("check_items")
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, varying(record(), 0.9))
+            findings = items_module.check_file(str(pathlib.Path(folder) / ITEMS_PATH))
+        self.assertEqual(tuple(finding for finding in findings if finding[0] == "error"), ())
+        items = json.loads(items_text)
+        for step in items:
+            with self.subTest(step=step["name"]):
+                self.assertEqual(frozenset(step) - ITEM_FIELDS, frozenset())
+                self.assertEqual(sorted(step["source"]), ["path", "sha256"])
+                for entry in step["acceptance"]:
+                    self.assertEqual(sorted(entry), ["file", "test"])
+        steps = {step["name"]: step for step in items}
+        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
+        self.assertIn("Population: 60 cases, 3 runs each, pass rate at least 0.9.", steps["build-app"]["task"])
 
     def test_render_refuses_what_the_complete_check_rejects(self):
         cases = (
