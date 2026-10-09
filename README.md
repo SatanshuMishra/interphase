@@ -16,6 +16,8 @@ Every spec follows five programming rules, kept in `core/practices.md`. interpha
 
 interphase notices behaviour that varies from run to run without being told. That covers open-ended input such as speech or free text, model output, and results measured on a device. It specifies that behaviour as a population: the ways its input varies, a held-out set it drafts for you to approve, outcome grading, repeated runs and a pass rate.
 
+For a small change, interphase writes a short brief instead of a full spec. It takes the brief lane only when all six conditions hold after it reads the code: each item is one behaviour in one sentence that you asked for or that was already observed; the change follows patterns the code already has, with no new module, dependency, interface, stored-data format or build change; there is no design choice between real alternatives and no reuse fork; every acceptance test runs where the builder runs, so nothing is marked unproven; nothing it touches varies from run to run; and, for a bug, the cause is confirmed by reproduction. It says the lane in one sentence, which you may override, and switches to the full pathway if one condition breaks. A brief has one Step per item and one approval of the written brief, with no read-back and no reviewer agent.
+
 Every run ends with a spec package in your repository. It holds the spec, the decisions you made, and a list of Steps. A Step is one piece of build work with its own files and its own test. interphase designs the Steps with you during the interview; it never cuts them out of the finished spec. The spec and the Steps are separate deliverables, and each can be used without the other.
 
 ## Install
@@ -53,6 +55,8 @@ interphase asks its first question in plain text. Later questions come as short 
 
 If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and each pathway tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress.
 
+When you tell interphase to work autonomously, it asks nothing and resolves each ambiguity from your intent and your project's context, researching the usual practice for that context. It records every choice as an assumption. At hand-off it lists its own decisions as top risks, first any that override an earlier decision, then the rest.
+
 ## What it never does
 
 - It never creates, edits or deletes a file in your repository other than its own output files in `docs/specs/`. Running your tests can leave caches such as `__pycache__`; interphase removes the ones its run created before it finishes, and never touches caches that were already there.
@@ -67,6 +71,8 @@ A guard records the state of your repository at the start of a run. At the end i
 ## What it produces
 
 Every file goes in `docs/specs/` at the root of your repository. `<slug>` is a short lowercase name, taken from your request.
+
+A brief is written from `core/templates/spec-brief.md`, and its acceptance criteria are numbered 4.x.
 
 | File | Contents |
 |---|---|

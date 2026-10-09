@@ -122,6 +122,32 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("Reuse and change", text)
         self.assertIn("core/practices.md", text)
 
+    def test_readme_documents_the_brief_lane_and_autonomy(self):
+        text = read_readme()
+        lines = text.splitlines()
+
+        def section(heading):
+            start = lines.index(heading)
+            end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+            return "\n".join(lines[start:end])
+
+        does = section("## What it does")
+        self.assertIn("brief lane", does)
+        self.assertIn("all six conditions hold", does)
+        self.assertIn("one Step per item", does)
+        self.assertIn("one approval of the written brief", does)
+        self.assertIn("no read-back and no reviewer agent", does)
+        self.assertIn("switches to the full pathway", does)
+        use = section("## Use")
+        self.assertIn("work autonomously", use)
+        self.assertIn("resolves each ambiguity from your intent and your project's context", use)
+        self.assertIn("records every choice as an assumption", use)
+        self.assertIn("top risks", use)
+        self.assertIn("first any that override an earlier decision", use)
+        produces = section("## What it produces")
+        self.assertIn("core/templates/spec-brief.md", produces)
+        self.assertIn("4.x", produces)
+
 
 if __name__ == "__main__":
     unittest.main()
