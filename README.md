@@ -57,7 +57,7 @@ interphase asks its first question in plain text. Later questions come as short 
 
 If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and each pathway tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress.
 
-When you tell interphase to work autonomously, it asks nothing and resolves each ambiguity from your intent and your project's context, researching the usual practice for that context. It records every choice as an assumption. At hand-off it lists its own decisions as top risks, first any that override an earlier decision, then the rest.
+When you tell interphase to work autonomously, it asks nothing and resolves each ambiguity from your intent and your project's context, researching the usual practice for that context. It records every choice as an assumption. It never trims what the context calls for: whatever your project lacks today, such as a library, a stored field or a deployment setting, becomes part of the spec instead of a reason to leave the requirement out. At hand-off it lists its own decisions as top risks, first any that override an earlier decision or one of your project's written rules, then the rest.
 
 ## What it never does
 

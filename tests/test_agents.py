@@ -134,5 +134,21 @@ class AgentsTest(unittest.TestCase):
                 self.assertIn(marker, body)
 
 
+    def test_spec_reviewer_checks_autonomous_runs_against_their_context(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for marker in (
+            "- Context: in an autonomous run, a non-goal, Won't, open question, later spec or note left to the deployment that leaves out something the product's context calls for",
+            "what the laws, standards or established practice of its domain require",
+            "a requirement met outside the code with no acceptance criterion",
+            "In an autonomous run, what the product's context calls for counts as asked for.",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, body)
+        self.assertLess(body.index("- Scope:"), body.index("- Context:"))
+        self.assertLess(body.index("- Context:"), body.index("- Testability:"))
+        self.assertLess(body.index("- Tracking talk:"), body.index("counts as asked for"))
+        self.assertLess(body.index("counts as asked for"), body.index("Report only issues"))
+
+
 if __name__ == "__main__":
     unittest.main()

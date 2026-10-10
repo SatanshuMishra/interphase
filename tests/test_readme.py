@@ -144,6 +144,8 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("records every choice as an assumption", use)
         self.assertIn("top risks", use)
         self.assertIn("first any that override an earlier decision", use)
+        self.assertIn("never trims what the context calls for", use)
+        self.assertIn("or one of your project's written rules", use)
         produces = section("## What it produces")
         self.assertIn("core/templates/spec-brief.md", produces)
         self.assertIn("4.x", produces)
