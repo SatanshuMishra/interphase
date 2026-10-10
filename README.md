@@ -14,6 +14,8 @@ Each request follows one of three pathways:
 
 Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and ends each spec with a short Reuse and change section: what it reuses as is, what it keeps separate, and what existing code it changes.
 
+interphase notices behaviour that varies from run to run without being told. That covers open-ended input such as speech or free text, model output, and results measured on a device. It specifies that behaviour as a population: the ways its input varies, a held-out set it drafts for you to approve, outcome grading, repeated runs and a pass rate.
+
 Every run ends with a spec package in your repository. It holds the spec, the decisions you made, and a list of Steps. A Step is one piece of build work with its own files and its own test. interphase designs the Steps with you during the interview; it never cuts them out of the finished spec. The spec and the Steps are separate deliverables, and each can be used without the other.
 
 ## Install
@@ -122,6 +124,8 @@ python3 /path/to/interphase/scripts/check_record.py [--complete] docs/specs/<slu
 ```
 
 This checker confirms that every cited quote appears in its line, that every name in the record resolves, and that every acceptance criterion has a test the builder runs where passing proves it, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
+
+A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them as a Population line.
 
 Render the spec's acceptance criteria and the items file from a record:
 

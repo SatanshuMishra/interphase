@@ -103,6 +103,16 @@ class ReadmeTest(unittest.TestCase):
             section,
         )
 
+    def test_readme_documents_varying_behaviour(self):
+        text = read_readme()
+        self.assertIn("behaviour that varies from run to run", text)
+        self.assertIn("a population", text)
+        self.assertIn("held-out set", text)
+        self.assertIn("pass rate", text)
+        for key in ("varies", "cases", "runs", "pass_rate"):
+            self.assertIn("`" + key + "`", text)
+        self.assertIn("Population line", text)
+
     def test_readme_states_the_programming_guarantee(self):
         text = read_readme()
         self.assertIn(

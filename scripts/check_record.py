@@ -18,9 +18,11 @@ PARTIAL_CITATIONS = {
     ("command", "output"): "only one of command and output",
 }
 FACT_KEYS = ("id", "fact") + tuple(key for form in CITATIONS for key in form)
-CRITERION_KEYS = ("number", "title", "text", "where", "tests", "unproven")
+CRITERION_KEYS = ("number", "title", "text", "where", "tests", "unproven", "varies")
 CRITERION_REQUIRED = ("number", "title", "text", "where", "tests")
 TEST_KEYS = ("file", "name", "asserts", "env", "step")
+VARIES = ("input", "output", "measured")
+POPULATION_KEYS = ("cases", "runs", "pass_rate")
 STEP_KEYS = (
     "name",
     "files",
@@ -75,8 +77,16 @@ def from_items(findings):
     return tuple((severity, message) for severity, _, message in findings)
 
 
+def is_count(value, least):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= least
+
+
 def is_line(value):
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+    return is_count(value, 1)
+
+
+def is_rate(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and 0 < value <= 1
 
 
 def duplicated(values):
@@ -375,11 +385,33 @@ def check_test_step(tag, test, number, by_name):
     return outside + unclaimed
 
 
-def check_test(who, position, test, number, known, by_name):
+def check_population(who, position, test):
+    tag = "%s test %d" % (who, position + 1)
+    counts = tuple(
+        error("%s has %s that is not an integer of at least %d" % (tag, key, least))
+        for key, least in (("cases", 1), ("runs", 2))
+        if key in test and not is_count(test[key], least)
+    )
+    rate = (
+        (error("%s has pass_rate that is not a number above 0 and at most 1" % tag),)
+        if "pass_rate" in test and not is_rate(test["pass_rate"])
+        else ()
+    )
+    return missing_keys(tag, test, POPULATION_KEYS) + counts + rate
+
+
+def check_test(who, position, test, number, known, by_name, varying):
     tag = entry_label(who, position, test)
     if not well_formed(test):
         return (error("%s is not an object with non-empty string file, name, asserts, env and step" % tag),)
-    return unknown_keys(tag, test, TEST_KEYS) + check_test_env(tag, test, known) + check_test_step(tag, test, number, by_name)
+    allowed = TEST_KEYS + POPULATION_KEYS if varying else TEST_KEYS
+    population = check_population(who, position, test) if varying else ()
+    return (
+        unknown_keys(tag, test, allowed)
+        + population
+        + check_test_env(tag, test, known)
+        + check_test_step(tag, test, number, by_name)
+    )
 
 
 def check_tests(who, criterion, known, by_name):
@@ -391,8 +423,17 @@ def check_tests(who, criterion, known, by_name):
     return tuple(
         finding
         for position, test in enumerate(tests)
-        for finding in check_test(who, position, test, criterion.get("number"), known, by_name)
+        for finding in check_test(who, position, test, criterion.get("number"), known, by_name, "varies" in criterion)
     )
+
+
+def check_varies(who, criterion):
+    if "varies" not in criterion:
+        return ()
+    varies = criterion["varies"]
+    if isinstance(varies, str) and varies in VARIES:
+        return ()
+    return (error("%s has varies %r, which is not %s" % (who, varies, " or ".join(repr(kind) for kind in VARIES))),)
 
 
 def where_names(criterion):
@@ -436,6 +477,7 @@ def check_criterion(index, criterion, known, builders, by_name, complete):
         + check_number(who, criterion)
         + text_fields(who, criterion, ("title", "text", "unproven"))
         + check_where(who, criterion, known)
+        + check_varies(who, criterion)
         + check_tests(who, criterion, known, by_name)
         + check_proof(who, criterion, builders, complete)
     )

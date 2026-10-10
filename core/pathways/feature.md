@@ -37,6 +37,7 @@ Propose two or three approaches with their trade-offs. Put the recommended one f
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.
 - Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 7.1 <short name>`.
+- Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
 ## Steps
 

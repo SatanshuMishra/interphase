@@ -26,6 +26,7 @@ TEMPLATE_HEADINGS = (
     "## 12. Open questions",
     "## 13. Prevention",
     "## 14. Reuse and change",
+    "## 15. Variation",
 )
 
 
@@ -120,6 +121,17 @@ class PathwayBugTest(unittest.TestCase):
         for label in ("Reused as is", "Kept separate", "Changed"):
             self.assertIn(label, body)
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
+
+    def test_bug_acceptance_follows_the_variation_rules(self):
+        acceptance = "\n".join(playbook_section("## Acceptance"))
+        self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
+        lines = read("core/templates/spec-bug.md").splitlines()
+        numbered = tuple(line for line in lines if re.match(r"^## \d+\. ", line))
+        self.assertEqual(numbered[-1], "## 15. Variation")
+        body = "\n".join(dict(sections(lines))["## 15. Variation"])
+        self.assertIn("{{", body)
+        self.assertIn("Not applicable: <reason>", body)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/variation.md", body)
 
 
 if __name__ == "__main__":
