@@ -137,10 +137,12 @@ class AgentsTest(unittest.TestCase):
     def test_spec_reviewer_checks_autonomous_runs_against_their_context(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in (
-            "- Context: in an autonomous run, a non-goal, Won't, open question, later spec or note left to the deployment that leaves out something the product's context calls for",
+            "- Context: in an autonomous run, a requirement the product's context calls for in the requested work",
             "what the laws, standards or established practice of its domain require",
+            "that the spec does not make a goal, however it is left out: a non-goal, a Won't, an open question, a later spec, a boundary, an assumption, a note left to the deployment or silence.",
             "a requirement met outside the code with no acceptance criterion",
-            "In an autonomous run, what the product's context calls for counts as asked for.",
+            "a part of it the code could enforce and test that is left outside the code",
+            "In an autonomous run, what the product's context calls for in the requested work counts as asked for.",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)

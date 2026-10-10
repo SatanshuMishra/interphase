@@ -122,25 +122,25 @@ class QuestioningTest(unittest.TestCase):
         lines = read_questioning().splitlines()
         body = "\n".join(section_body(lines, "## Work autonomously"))
         for phrase in (
-            "the standards for the capability itself, and the laws and standards that govern the domain and the data the product holds",
-            "Make every requirement the context calls for a goal.",
+            "the standards for the capability itself, and the laws and standards that govern the domain and the data the requested work touches",
+            "Make every requirement the context calls for in the requested work a goal.",
             "Never cut one to keep Musts near 60 percent of the effort, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
             "Non-goals hold only what the context does not call for.",
             "Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit.",
             "a new dependency, a new stored field, an added service or a change to how it is deployed",
-            "When something outside the code meets a requirement",
-            "still write the requirement and its acceptance criterion, and mark the criterion unproven with the reason when the builder cannot check it.",
-            "When a written rule of the project forbids what the context calls for, meet the requirement within the rule if the established practice allows it. Otherwise keep the requirement and record that it overrides the rule.",
+            "When only something outside the code can meet a requirement",
+            "still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.",
+            "When a written rule of the project forbids what the context calls for, meet the requirement within the rule if the established practice allows it. Otherwise keep the requirement and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
             "the spec requires what lets it, never a non-goal.",
         ):
             self.assertIn(phrase, body)
         record = body.index("Record each as an assumption naming the intent and context that decided it.")
         self.assertLess(body.index("Write the concrete, specific requirements"), record)
-        self.assertLess(record, body.index("Make every requirement the context calls for a goal."))
+        self.assertLess(record, body.index("Make every requirement the context calls for in the requested work a goal."))
         scope = section_body(lines, "## Push back on scope")
         self.assertEqual(
             [line for line in scope if line.startswith("- ")][-1],
-            "- In an autonomous run, push back only on what the project's context does not call for, following the section Work autonomously.",
+            "- In an autonomous run, push back only on what the project's context does not call for in the requested work, following the section Work autonomously.",
         )
 
     def test_stopping_needs_no_read_back_in_the_brief_lane_or_autonomous_runs(self):

@@ -10,7 +10,7 @@ These rules apply to every spec on every pathway.
 4. Follow the project's own written rules and patterns. Keep to the conventions its written rules and existing code follow.
 5. Use what the language, libraries or project already provide. Never rebuild what the standard library, a dependency or the project already does.
 
-The project's own written rules win when they conflict with the other four.
+The project's own written rules win when they conflict with the other four. In an autonomous run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
 
 A copy is the same rule written in two places that must always change together. Two pieces of code that look alike but change for different reasons are not a copy.
 
@@ -41,5 +41,7 @@ Recommend sharing the parts that must always change together and keeping apart t
 Write the spec's Reuse and change section as three lists: Reused as is, Kept separate and Changed. Write one line per item: the path or symbol, then what it is used for or why, in a few words. Name only code this change reuses, changes, or kept apart at a fork. Write None for an empty list.
 
 When a project rule overrode one of the other four, add one line after the three lists that starts with Project rule followed: and names the rule and the file it is written in.
+
+When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement, and write the override to the decisions file as a decision made on the user's behalf.
 
 Never write a proof for each rule.
