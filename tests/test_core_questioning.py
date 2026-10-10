@@ -131,7 +131,7 @@ class QuestioningTest(unittest.TestCase):
             "a new dependency, a new stored field, an added service or a change to how it is deployed",
             "When only something outside the code can meet a requirement",
             "still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.",
-            "When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule if the established practice allows it. Otherwise keep the requirement and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
+            "When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
             "the spec requires what lets it, never a non-goal.",
         ):
             self.assertIn(phrase, body)
