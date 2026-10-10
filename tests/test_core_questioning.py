@@ -114,9 +114,9 @@ class QuestioningTest(unittest.TestCase):
             "virus scanning, encryption at rest, an access audit log and a retention rule",
         ):
             self.assertIn(phrase, body)
-        for held_out in ("login", "coffee", "bank"):
+        for held_out in ("payroll", "allotment", "sign-in", "sign in", "accounts"):
             self.assertNotIn(held_out, body.lower(), held_out)
-        self.assertNotIn("login architecture", read_questioning().lower())
+        self.assertNotIn("add accounts", read_questioning().lower())
 
     def test_stopping_needs_no_read_back_in_the_brief_lane_or_autonomous_runs(self):
         body = section_body(read_questioning().splitlines(), "## Know when to stop")

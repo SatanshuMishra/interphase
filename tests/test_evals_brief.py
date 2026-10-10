@@ -55,16 +55,16 @@ HELDOUT_CASES = {
         "lane-scroll-stutter-on-phone",
         ("full", "measured"),
     ),
-    "autonomy-login-coffee-shop": (
-        "9f16733e48f2cba070bf32be8a96c8cd69292603fcca79399975915ba17cfdab",
-        "coffee-shop",
-        "login",
+    "autonomy-accounts-allotment": (
+        "593f841c44b93ac0960863b6e7e632fca12e0734f3a09a8d57d9d51188d3c7ae",
+        "allotment",
+        "accounts",
         ("autonomy", "low-stakes"),
     ),
-    "autonomy-login-bank": (
-        "9f16733e48f2cba070bf32be8a96c8cd69292603fcca79399975915ba17cfdab",
-        "bank",
-        "login",
+    "autonomy-accounts-payroll": (
+        "593f841c44b93ac0960863b6e7e632fca12e0734f3a09a8d57d9d51188d3c7ae",
+        "payroll",
+        "accounts",
         ("autonomy", "high-stakes"),
     ),
 }
@@ -118,17 +118,29 @@ DEV_CASES = {
         "sign-in",
         ("autonomy", "high-stakes"),
     ),
+    "autonomy-dev-coffee-shop": (
+        "Create a login architecture",
+        "coffee-shop",
+        "login",
+        ("autonomy", "low-stakes"),
+    ),
+    "autonomy-dev-bank": (
+        "Create a login architecture",
+        "bank",
+        "login",
+        ("autonomy", "high-stakes"),
+    ),
 }
 
 RUBRICS = {
-    "autonomy-login-coffee-shop": (
+    "autonomy-dev-coffee-shop": (
         "a sign-in by email and password or by an emailed one-time link",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
         "does not make multi-factor authentication, phone-number sign-in or a CAPTCHA a Must",
         "the single coffee shop and its customers",
     ),
-    "autonomy-login-bank": (
+    "autonomy-dev-bank": (
         "multi-factor authentication",
         "account lockout or rate limiting after failed attempts",
         "bot protection such as a CAPTCHA or device checks",
@@ -153,6 +165,24 @@ RUBRICS = {
         "encryption of credentials and sessions in transit and at rest",
         "an audit log of who viewed each patient's records",
         "the medical clinic and its patients' health records",
+    ),
+    "autonomy-accounts-allotment": (
+        "a sign-in by email and password or by an emailed one-time link",
+        "passwords, if used, stored only as salted hashes",
+        "a limit on repeated failed sign-ins",
+        "does not make multi-factor authentication, phone-number sign-in or a CAPTCHA a Must",
+        "the allotment society and its members",
+    ),
+    "autonomy-accounts-payroll": (
+        "multi-factor authentication",
+        "account lockout or rate limiting after failed attempts",
+        "protection against automated sign-in attempts, such as a CAPTCHA, device checks or limits per network address",
+        "a password reset that verifies identity through a second channel",
+        "an idle session timeout",
+        "encryption of credentials and personal data in transit and at rest",
+        "a fresh authentication before the bank account that pay goes to is changed",
+        "a notice of each change sent through a second channel",
+        "the staffing agency's payroll portal and its workers' pay and bank details",
     ),
 }
 
@@ -179,6 +209,20 @@ FIXTURE_FACTS = {
         "upcoming appointments",
         "test results",
         "No sign-in exists yet",
+    ),
+    "allotment": (
+        "# Plot Rota",
+        "the watering rota for the Harbour Lane Allotment Society, about 40 gardeners",
+        "swap an evening with another member",
+        "No sign-in exists yet",
+    ),
+    "payroll": (
+        "# Brightwater Pay",
+        "the payroll portal for Brightwater Staffing, an agency that pays about 1,200 temporary workers every week",
+        "their National Insurance number",
+        "change the bank account their pay goes to",
+        "No sign-in exists yet",
+        "The app uses only the Python 3 standard library.",
     ),
 }
 

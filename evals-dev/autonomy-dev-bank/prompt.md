@@ -1,5 +1,5 @@
 ---
-name: autonomy-login-bank
+name: autonomy-dev-bank
 description: An autonomous sign-in request for a regulated retail bank writes requirements fitted to that context.
 runs: 3
 max_turns: 200
