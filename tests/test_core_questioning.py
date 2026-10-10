@@ -114,9 +114,35 @@ class QuestioningTest(unittest.TestCase):
             "virus scanning, encryption at rest, an access audit log and a retention rule",
         ):
             self.assertIn(phrase, body)
-        for held_out in ("login", "coffee", "bank"):
+        for held_out in ("payroll", "allotment", "sign-in", "sign in", "accounts"):
             self.assertNotIn(held_out, body.lower(), held_out)
-        self.assertNotIn("login architecture", read_questioning().lower())
+        self.assertNotIn("add accounts", read_questioning().lower())
+
+    def test_autonomous_runs_keep_what_the_context_calls_for(self):
+        lines = read_questioning().splitlines()
+        body = "\n".join(section_body(lines, "## Work autonomously"))
+        for phrase in (
+            "the standards for the capability itself, the laws and standards that govern the domain and the data the requested work touches, and what comparable products in that domain ship.",
+            "List the threats that practice expects for what is at stake in the requested work, and require a defence for each in the layers that practice uses at those stakes: the established minimum where little is at stake, and never only that minimum where much is.",
+            "Make every requirement the context calls for in the requested work a goal.",
+            "Never cut one to keep Musts near 60 percent of the effort, never leave one only in the assumptions, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
+            "Non-goals hold only what the context does not call for in the requested work.",
+            "Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit.",
+            "a new dependency, a new stored field, an added service or a change to how it is deployed",
+            "When only something outside the code can meet a requirement",
+            "still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.",
+            "When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
+            "the spec requires what lets it, never a non-goal.",
+        ):
+            self.assertIn(phrase, body)
+        record = body.index("Record each as an assumption naming the intent and context that decided it.")
+        self.assertLess(body.index("Write the concrete, specific requirements"), record)
+        self.assertLess(record, body.index("Make every requirement the context calls for in the requested work a goal."))
+        scope = section_body(lines, "## Push back on scope")
+        self.assertEqual(
+            [line for line in scope if line.startswith("- ")][-1],
+            "- In an autonomous run, push back only on what the project's context does not call for in the requested work, following the section Work autonomously.",
+        )
 
     def test_stopping_needs_no_read_back_in_the_brief_lane_or_autonomous_runs(self):
         body = section_body(read_questioning().splitlines(), "## Know when to stop")

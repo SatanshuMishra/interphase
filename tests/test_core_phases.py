@@ -294,11 +294,18 @@ class CorePhasesTest(unittest.TestCase):
         self.assertEqual(len(unproven), 1)
         risks = hand_off[unproven[0] + 1]
         self.assertTrue(risks.startswith("- In an autonomous run, list next"), risks)
-        overriding = risks.find("every decision that overrides a line of an earlier decisions file")
+        overriding = risks.find(
+            "every decision that overrides a line of an earlier decisions file or a written rule or convention of the project"
+        )
         others = risks.find("then every other decision made on the user's behalf")
         self.assertNotIn(-1, (overriding, others))
         self.assertLess(overriding, others)
         self.assertIn("as top risks", risks)
+        review = phase_body("## Phase 9: Review")
+        self.assertIn(
+            "the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`, and say whether the run is autonomous.",
+            review,
+        )
 
 
 if __name__ == "__main__":

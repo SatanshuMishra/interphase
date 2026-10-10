@@ -52,6 +52,7 @@ Imagine two different builders reading the request. Ask about every place they w
 - For each proposed item, ask: would you stop the release without it? Keep Musts to no more than about 60 percent of the effort.
 - Record what is cut as a non-goal or a Won't, so it does not creep back.
 - Surface hidden scope with the pre-mortem.
+- In an autonomous run, push back only on what the project's context does not call for in the requested work, following the section Work autonomously.
 
 ## Record each answer
 
@@ -78,8 +79,13 @@ When the user's instructions, in the conversation or in the project's written in
 
 - Never guess and never fall back to the lightest option.
 - Resolve each unknown from the user's intent and the project's context: who the product serves, what is at stake, and the domain.
-- Research the established practice for that context. Dispatch the `interphase:scout` agent for outside documentation.
+- Research the established practice for that context: the standards for the capability itself, the laws and standards that govern the domain and the data the requested work touches, and what comparable products in that domain ship. Dispatch the `interphase:scout` agent for outside documentation.
+- List the threats that practice expects for what is at stake in the requested work, and require a defence for each in the layers that practice uses at those stakes: the established minimum where little is at stake, and never only that minimum where much is.
 - Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test.
 - Record each as an assumption naming the intent and context that decided it.
+- Make every requirement the context calls for in the requested work a goal. Never cut one to keep Musts near 60 percent of the effort, never leave one only in the assumptions, and never record one as a non-goal, a Won't, an open question or work for a later spec. Non-goals hold only what the context does not call for in the requested work.
+- Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit. When the context calls for something the project cannot do yet, require what it takes, such as a new dependency, a new stored field, an added service or a change to how it is deployed.
+- When only something outside the code can meet a requirement, such as the server in front of the app, still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.
+- When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.
 
-Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule.
+Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule. If the hospital project cannot encrypt files yet, the spec requires what lets it, never a non-goal.

@@ -50,6 +50,19 @@ class CorePracticesTest(unittest.TestCase):
             self.assertTrue(line.startswith(f"{number}. {rule}"), line)
         self.assertIn("The project's own written rules win when they conflict with the other four.", body)
 
+    def test_autonomous_runs_let_the_context_override_a_project_rule(self):
+        rules = section(read_practices(), "## The five rules")
+        self.assertIn(
+            "The project's own written rules win when they conflict with the other four. In an autonomous run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.",
+            rules,
+        )
+        record = section(read_practices(), "## Record the result")
+        followed = record.index("starts with Project rule followed:")
+        overridden = record.index(
+            "When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement."
+        )
+        self.assertLess(followed, overridden)
+
     def test_practices_defines_a_copy_and_bending(self):
         body = section(read_practices(), "## The five rules")
         self.assertIn("A copy is the same rule written in two places that must always change together.", body)

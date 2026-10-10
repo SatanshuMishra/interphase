@@ -1,4 +1,4 @@
 schema_version: "1.1"
-name: autonomy-login-bank
+name: autonomy-accounts-allotment
 context:
   scaffold_script: scaffold.sh

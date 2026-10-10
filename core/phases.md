@@ -105,7 +105,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md" docs/specs/<slug>.md`.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`.
 - Fix every error. Read every warning and fix the ones that are real.
-- Dispatch the `interphase:spec-reviewer` agent with the spec path, the items path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`. Fix the issues it finds that would cause the wrong thing to be built.
+- Dispatch the `interphase:spec-reviewer` agent with the spec path, the items path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`, and say whether the run is autonomous. Fix the issues it finds that would cause the wrong thing to be built.
 - Show the user what changed in review.
 - Ask for approval of the written spec and the Steps with AskUserQuestion. Loop until approved.
 - Once the user approves, change neither the spec nor the items file. Save the approval to the decisions file, then go straight to Phase 10 in the same turn. If you find something to change, reopen this phase: edit, rewrite `source.sha256`, rerun both checks and ask for approval again.
@@ -118,6 +118,6 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Set the record's `status` to `handed-off`.
 - Report the paths of the spec, the decisions file, the record, the items file and, for bugs, the reproduction file.
 - List every criterion marked unproven first, with its reason, as the top risks.
-- In an autonomous run, list next every decision that overrides a line of an earlier decisions file, then every other decision made on the user's behalf, as top risks.
+- In an autonomous run, list next every decision that overrides a line of an earlier decisions file or a written rule or convention of the project, then every other decision made on the user's behalf, as top risks.
 - Report the counts of Steps, unproven criteria, assumptions and open questions.
 - Stop. Do not suggest a tool to build it. Do not start building it.

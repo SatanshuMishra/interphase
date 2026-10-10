@@ -1,5 +1,5 @@
 ---
-name: autonomy-login-coffee-shop
+name: autonomy-dev-coffee-shop
 description: An autonomous sign-in request for one small coffee shop writes requirements fitted to that context.
 runs: 3
 max_turns: 200
