@@ -29,6 +29,7 @@ RULES = (
     "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
     "Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.",
     "Keep the interview in the record: write each environment, fact, criterion and Step to `docs/specs/<slug>.record.json` the moment it is found or settled, and after any summary of the conversation, re-read the record and the decisions file before acting.",
+    "Rules 5 and 8 give way only to explicit instructions to work autonomously; then follow the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -49,6 +50,10 @@ def phase_body(heading):
     while end < len(lines) and not lines[end].startswith("## "):
         end += 1
     return "\n".join(lines[start:end])
+
+
+def bullets(body):
+    return tuple(line for line in body.splitlines() if line.startswith("- "))
 
 
 class CorePhasesTest(unittest.TestCase):
@@ -184,6 +189,15 @@ class CorePhasesTest(unittest.TestCase):
         ):
             self.assertIn(phrase, body)
 
+    def test_classify_knows_the_project_pathway(self):
+        body = phase_body("## Phase 2: Classify")
+        for phrase in (
+            "use project for a new repository, or for replacing an existing repository's stack, build, CI or release",
+            "use feature for anything else that does not exist yet",
+            "A new product built from a design mixes project and prototype; recommend a project spec first and a prototype spec second",
+        ):
+            self.assertIn(phrase, body)
+
     def test_phase_3_records_where_the_user_sees_the_result(self):
         body = phase_body("## Phase 3: Ground")
         for phrase in (
@@ -205,6 +219,86 @@ class CorePhasesTest(unittest.TestCase):
         ):
             self.assertIn(phrase, body)
         self.assertNotIn("For broad searches", read_phases())
+
+    def test_ground_marks_varying_behaviour(self):
+        self.assertIn(
+            "- Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.",
+            phase_body("## Phase 3: Ground"),
+        )
+
+    def test_interrogate_specifies_each_varying_criterion_as_a_population(self):
+        self.assertIn(
+            "- Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.",
+            phase_body("## Phase 4: Interrogate"),
+        )
+
+    def test_phases_route_small_requests_to_the_brief_lane(self):
+        brief = "`${CLAUDE_PLUGIN_ROOT}/core/brief.md`"
+        classify = phase_body("## Phase 2: Classify")
+        for phrase in (
+            "Use small for one or more items, each one behaviour in existing code describable in one sentence; whether a small request takes the brief lane is confirmed at the end of Phase 3, following "
+            + brief
+            + ".",
+            "Use standard for most requests.",
+            "Use large for a new subsystem or several connected behaviours.",
+        ):
+            self.assertIn(phrase, classify)
+        depth = tuple(line for line in bullets(classify) if line.startswith("- Let size set depth"))
+        self.assertEqual(len(depth), 1)
+        self.assertIn("A small request takes the brief lane when the conditions in " + brief + " hold.", depth[0])
+        self.assertIn("one Step per item", depth[0])
+        self.assertEqual(
+            bullets(phase_body("## Phase 3: Ground"))[-1],
+            "- When the request is small, end the phase by checking the conditions in "
+            + brief
+            + " and choosing the lane.",
+        )
+        for heading in ("## Phase 5: Challenge", "## Phase 7: Read back", "## Phase 9: Review"):
+            self.assertEqual(
+                bullets(phase_body(heading))[0],
+                "- In the brief lane, follow " + brief + ".",
+                heading,
+            )
+        copy = tuple(
+            line
+            for line in bullets(phase_body("## Phase 8: Write the spec and the Steps"))
+            if line.startswith("- Copy ")
+        )
+        self.assertEqual(len(copy), 1)
+        self.assertIn(
+            "In the brief lane, copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.",
+            copy[0],
+        )
+
+    def test_autonomous_runs_skip_approval_and_list_their_decisions_as_risks(self):
+        rules = tuple(line for line in phase_body("## Rules").splitlines() if line[:1].isdigit())
+        self.assertEqual(len(rules), 15)
+        self.assertEqual(
+            rules[-1],
+            "15. Rules 5 and 8 give way only to explicit instructions to work autonomously; then follow the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.",
+        )
+        ground = bullets(phase_body("## Phase 3: Ground"))
+        self.assertTrue(
+            ground[-2].startswith(
+                "- Read the decisions files of earlier specs in the spec folder that touch the same code"
+            ),
+            ground[-2],
+        )
+        self.assertTrue(ground[-1].startswith("- When the request is small"), ground[-1])
+        hand_off = bullets(phase_body("## Phase 10: Hand off"))
+        unproven = tuple(
+            index
+            for index, line in enumerate(hand_off)
+            if line.startswith("- List every criterion marked unproven first")
+        )
+        self.assertEqual(len(unproven), 1)
+        risks = hand_off[unproven[0] + 1]
+        self.assertTrue(risks.startswith("- In an autonomous run, list next"), risks)
+        overriding = risks.find("every decision that overrides a line of an earlier decisions file")
+        others = risks.find("then every other decision made on the user's behalf")
+        self.assertNotIn(-1, (overriding, others))
+        self.assertLess(overriding, others)
+        self.assertIn("as top risks", risks)
 
 
 if __name__ == "__main__":

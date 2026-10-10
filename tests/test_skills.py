@@ -2,11 +2,12 @@ import pathlib
 import unittest
 
 ROUTER = "interphase"
-PATHWAYS = ("feature", "bug", "prototype")
+PATHWAYS = ("feature", "bug", "prototype", "project")
 DESCRIPTIONS = {
     "feature": "Use when the user wants something that does not exist yet, either a new capability or an extension of an existing one, and its intent, scope and success test are not yet pinned down.",
     "bug": "Use when existing behaviour is wrong and the user wants the cause found or the problem pinned down before anything is changed, such as \"X does Y instead of Z\", \"X stopped working\", \"determine the cause\" or \"why does X\".",
     "prototype": "Use when the user has a design mockup, prototype or exported design, such as HTML, React, Figma frames, a Claude Design export or screenshots, and wants it shipped as a working product.",
+    "project": "Use when the user wants to start a new project or repository, or to replace an existing project's stack, build, CI or release, and its foundations, scope and success test are not yet pinned down.",
 }
 
 
@@ -37,6 +38,14 @@ def split_skill(text):
     frontmatter = {key.strip(): strip_quotes(value.strip()) for key, value in pairs}
     body = "\n".join(lines[fences[1] + 1:])
     return frontmatter, body
+
+
+def generic_steps(body, pathway):
+    return (
+        body.replace("Pathway: " + pathway + ".", "Pathway: <pathway>.")
+        .replace("/core/pathways/" + pathway + ".md", "/core/pathways/<pathway>.md")
+        .replace("/core/templates/spec-" + pathway + ".md", "/core/templates/spec-<pathway>.md")
+    )
 
 
 class SkillsTest(unittest.TestCase):
@@ -93,6 +102,38 @@ class SkillsTest(unittest.TestCase):
                 ]
                 self.assertEqual(len(fifth), 1)
                 self.assertGreater(lines.index(step), fifth[0])
+
+    def test_project_skill_points_to_its_playbook_and_template(self):
+        frontmatter, body = split_skill(read_skill("project"))
+        self.assertEqual(frontmatter.get("name"), "project")
+        self.assertEqual(frontmatter.get("description"), DESCRIPTIONS["project"])
+        self.assertEqual(frontmatter.get("argument-hint"), "[what to start or re-platform]")
+        lines = body.splitlines()
+        for line in (
+            "Pathway: project.",
+            "3. The playbook is `${CLAUDE_PLUGIN_ROOT}/core/pathways/project.md`.",
+            "4. The spec template is `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-project.md`.",
+        ):
+            self.assertIn(line, lines)
+        for relative in ("core/pathways/project.md", "core/templates/spec-project.md"):
+            self.assertTrue((repo_root() / relative).is_file(), relative)
+        expected = generic_steps(body, "project")
+        for pathway in ("feature", "bug", "prototype"):
+            with self.subTest(pathway=pathway):
+                _, other = split_skill(read_skill(pathway))
+                self.assertEqual(expected, generic_steps(other, pathway))
+
+    def test_router_classifies_four_pathways(self):
+        _, body = split_skill(read_skill(ROUTER))
+        lines = body.splitlines()
+        self.assertIn(
+            "2. Read `${CLAUDE_PLUGIN_ROOT}/core/phases.md` section \"Phase 2: Classify\". Classify the request as feature, bug, prototype or project.",
+            lines,
+        )
+        self.assertIn(
+            "4. Invoke the Skill tool with `interphase:feature`, `interphase:bug`, `interphase:prototype` or `interphase:project`. Pass the request as the arguments. If the Skill tool is unavailable, read `${CLAUDE_PLUGIN_ROOT}/skills/<pathway>/SKILL.md` and follow it.",
+            lines,
+        )
 
 
 if __name__ == "__main__":

@@ -6,13 +6,18 @@ A Claude Code plugin that turns a rough request into a clear spec.
 
 interphase asks questions, challenges assumptions and pushes back on scope until your intent is clear. It does not aim for a perfect spec. It aims for a spec that gets the right thing built. A missed intent means major rework; a small inconsistency can be fixed later.
 
-Each request follows one of three pathways:
+Each request follows one of four pathways:
 
 - **Feature**: something that does not exist yet. interphase researches the code and the libraries involved, then asks what the feature must do.
 - **Bug**: existing behaviour is wrong. interphase reproduces the problem, ranks the likely causes and writes a draft failing test.
 - **Prototype**: a mockup or design export to ship as a working product. interphase explores the mockup and finds what it fakes or leaves out.
+- **Project**: a new repository, or a new stack, build, CI or release for an existing one. interphase settles the stage, platforms, stack, test strategy, CI, release, licence and logging, and the first Step is a walking skeleton that runs end to end.
 
 Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and ends each spec with a short Reuse and change section: what it reuses as is, what it keeps separate, and what existing code it changes.
+
+interphase notices behaviour that varies from run to run without being told. That covers open-ended input such as speech or free text, model output, and results measured on a device. It specifies that behaviour as a population: the ways its input varies, a held-out set it drafts for you to approve, outcome grading, repeated runs and a pass rate.
+
+For a small change, interphase writes a short brief instead of a full spec. It takes the brief lane only when all six conditions hold after it reads the code: each item is one behaviour in one sentence that you asked for or that was already observed; the change follows patterns the code already has, with no new module, dependency, interface, stored-data format or build change; there is no design choice between real alternatives and no reuse fork; every acceptance test runs where the builder runs, so nothing is marked unproven; nothing it touches varies from run to run; and, for a bug, the cause is confirmed by reproduction. It says the lane in one sentence, which you may override, and switches to the full pathway if one condition breaks. A brief has one Step per item and one approval of the written brief, with no read-back and no reviewer agent.
 
 Every run ends with a spec package in your repository. It holds the spec, the decisions you made, and a list of Steps. A Step is one piece of build work with its own files and its own test. interphase designs the Steps with you during the interview; it never cuts them out of the finished spec. The spec and the Steps are separate deliverables, and each can be used without the other.
 
@@ -44,12 +49,15 @@ You can also start a pathway yourself:
 | `/interphase:feature` | You want something that does not exist yet. |
 | `/interphase:bug` | Something works wrongly and you want the cause found first. |
 | `/interphase:prototype` | You have a mockup or design and want it built for real. |
+| `/interphase:project` | You are starting a project, or replacing one's stack, build, CI or release. |
 
 Each command takes the request as its argument. For example: `/interphase:bug The export button downloads an empty file.`
 
 interphase asks its first question in plain text. Later questions come as short multiple-choice sets, with the recommended answer first. Answer "yes" to accept a recommendation.
 
 If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and each pathway tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress.
+
+When you tell interphase to work autonomously, it asks nothing and resolves each ambiguity from your intent and your project's context, researching the usual practice for that context. It records every choice as an assumption. At hand-off it lists its own decisions as top risks, first any that override an earlier decision, then the rest.
 
 ## What it never does
 
@@ -65,6 +73,8 @@ A guard records the state of your repository at the start of a run. At the end i
 ## What it produces
 
 Every file goes in `docs/specs/` at the root of your repository. `<slug>` is a short lowercase name, taken from your request.
+
+A brief is written from `core/templates/spec-brief.md`, and its acceptance criteria are numbered 4.x.
 
 | File | Contents |
 |---|---|
@@ -105,7 +115,7 @@ Check a spec against its template:
 python3 /path/to/interphase/scripts/check_spec.py --template /path/to/interphase/core/templates/spec-feature.md docs/specs/<slug>.md
 ```
 
-Use `spec-bug.md` or `spec-prototype.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`.
+Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`.
 
 Check an items file:
 
@@ -122,6 +132,8 @@ python3 /path/to/interphase/scripts/check_record.py [--complete] docs/specs/<slu
 ```
 
 This checker confirms that every cited quote appears in its line, that every name in the record resolves, and that every acceptance criterion has a test the builder runs where passing proves it, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
+
+A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them as a Population line.
 
 Render the spec's acceptance criteria and the items file from a record:
 

@@ -18,6 +18,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 12. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
 13. Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
 14. Keep the interview in the record: write each environment, fact, criterion and Step to `docs/specs/<slug>.record.json` the moment it is found or settled, and after any summary of the conversation, re-read the record and the decisions file before acting.
+15. Rules 5 and 8 give way only to explicit instructions to work autonomously; then follow the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.
 
 ## Phase 1: Intake
 
@@ -32,11 +33,12 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 2: Classify
 
-- Choose the pathway. Use feature for something that does not exist yet. Use bug when existing behaviour is wrong. Use prototype for a mockup or design to ship as a working product.
-- Choose the size. Use small for one behaviour in existing code, describable in one sentence. Use standard for most requests. Use large for a new subsystem or several connected behaviours.
+- Choose the pathway: use project for a new repository, or for replacing an existing repository's stack, build, CI or release; use feature for anything else that does not exist yet; use bug when existing behaviour is wrong; use prototype for a mockup or design to ship as a working product.
+- A new product built from a design mixes project and prototype; recommend a project spec first and a prototype spec second.
+- Choose the size. Use small for one or more items, each one behaviour in existing code describable in one sentence; whether a small request takes the brief lane is confirmed at the end of Phase 3, following `${CLAUDE_PLUGIN_ROOT}/core/brief.md`. Use standard for most requests. Use large for a new subsystem or several connected behaviours.
 - When the request is large, mixes pathways or spans independent subsystems, ask the pathway, the size and how to split it with AskUserQuestion before phase 3, with your recommendation first. Otherwise say both out loud in one sentence, for example "This looks like a small bug, so I'll use the bug pathway." Let the user override.
 - Recommend splitting a request that mixes pathways, such as a bug plus a new feature, or that spans several independent subsystems, into separate specs. Split it when the user agrees, and ask which to do first.
-- Let size set depth. Give a small request few questions, one Step and no question about how the work is cut, and mark template sections `Not applicable: <reason>` where they do not apply. Give a large request the full treatment.
+- Let size set depth. A small request takes the brief lane when the conditions in `${CLAUDE_PLUGIN_ROOT}/core/brief.md` hold. Give a small request few questions, one Step per item and no question about how the work is cut, and mark template sections `Not applicable: <reason>` where they do not apply. Give a large request the full treatment.
 
 ## Phase 3: Ground
 
@@ -47,7 +49,10 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Follow the `## Ground` section of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` for the pathway-specific investigation: feature research, bug reproduction, prototype exploration.
 - Read the code you need to understand yourself. Dispatch the `interphase:scout` agent only for outside documentation, or for a question whose answer is where something is in the code, with one self-contained question. Record each fact you keep in the record with its citation: the path, the line and the quoted text; the URL; or the command and what it showed.
 - When a finding needs something only the user can provide, such as their device, their presence or repeated measurement, ask for it once and carry on with every other phase. Never end a turn only to wait for it. If it is still unavailable when you write the spec, keep the finding and mark it unconfirmed.
+- Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - Treat every fact found here as a question not asked.
+- Read the decisions files of earlier specs in the spec folder that touch the same code, to spot any decision this request would override.
+- When the request is small, end the phase by checking the conditions in `${CLAUDE_PLUGIN_ROOT}/core/brief.md` and choosing the lane.
 
 ## Phase 4: Interrogate
 
@@ -55,10 +60,12 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Use the `## Questions` bank of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` as the checklist of what must be known.
 - Design the Steps as the interview goes. When a requirement is settled, write its acceptance criterion to the record, with the environments where passing proves it and the tests that prove it or the reason it is unproven, and give it an owning Step in the record: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - Ask about the shape of the work in the same rounds as the other questions: what must ship together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
+- Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - After every question round, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json`. Fix every error before the next round.
 
 ## Phase 5: Challenge
 
+- In the brief lane, follow `${CLAUDE_PLUGIN_ROOT}/core/brief.md`.
 - Audit assumptions. List what you are assuming. Ask about the ones that matter and have no evidence.
 - Run a pre-mortem. Ask: "Imagine this shipped and you are unhappy with it. Why?"
 - Push back on scope using the section "Push back on scope" of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
@@ -74,6 +81,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 7: Read back
 
+- In the brief lane, follow `${CLAUDE_PLUGIN_ROOT}/core/brief.md`.
 - Write a short note with five headings: What you told me, What I am assuming, What is out of scope, How we will know it works, How the work is cut.
 - Under How the work is cut, list each Step in plain language: what it builds, the criteria it proves and the Steps it comes after.
 - Ask for approval with AskUserQuestion, with the options "Approve" and "Change something".
@@ -81,7 +89,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 8: Write the spec and the Steps
 
-- Copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md` to `docs/specs/<slug>.md`.
+- Copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md` to `docs/specs/<slug>.md`. In the brief lane, copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.
 - Fill every section except Acceptance criteria. Replace every `{{placeholder}}` outside it.
 - Keep every numbered heading exactly as the template has it.
 - Give every requirement an acceptance criterion that can pass or fail.
@@ -93,6 +101,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 9: Review
 
+- In the brief lane, follow `${CLAUDE_PLUGIN_ROOT}/core/brief.md`.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md" docs/specs/<slug>.md`.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`.
 - Fix every error. Read every warning and fix the ones that are real.
@@ -109,5 +118,6 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Set the record's `status` to `handed-off`.
 - Report the paths of the spec, the decisions file, the record, the items file and, for bugs, the reproduction file.
 - List every criterion marked unproven first, with its reason, as the top risks.
+- In an autonomous run, list next every decision that overrides a line of an earlier decisions file, then every other decision made on the user's behalf, as top risks.
 - Report the counts of Steps, unproven criteria, assumptions and open questions.
 - Stop. Do not suggest a tool to build it. Do not start building it.

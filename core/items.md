@@ -25,7 +25,7 @@ Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it
 |---|---|
 | `environments` | `name` (lowercase kebab-case, unique), `what` (the device, system, runtime or renderer), `builder_runs` (`true` when whoever builds a Step can run tests there) |
 | `facts` | `id` (unique), `fact`, and one citation: `path` (repository-relative), `line` (from 1) and `quote` (text that appears in that line); or `url`; or `command` and `output` (what was run and what it showed) |
-| `criteria` | `number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each with `file`, `name`, `asserts`, `env` and `step`), and `unproven` (the reason) only when no test the builder runs can prove it where it counts |
+| `criteria` | `number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each with `file`, `name`, `asserts`, `env` and `step`), `unproven` (the reason) only when no test the builder runs can prove it where it counts, and `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
 | `steps` | `name`, `files`, `criteria` (the numbers its tests prove), `task` once written, and any optional field of the items format except `source`, `acceptance` and `spec_ref` |
 
 `status` is `in-progress` from phase 1 and `handed-off` once phase 10 finishes. A record without `status` predates the field: the hook treats it as finished, and `check_record.py` reports it.
@@ -56,14 +56,14 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 | `spec_ref` | no, but always set it | list of the numbers of the acceptance criteria the Step's tests prove, such as `"7.3"`; it traces each criterion to a Step and never tells a builder to read the spec |
 | `assumptions` | no | readings chosen where the spec is silent; aim for none |
 
-Use no other fields. The only value `type` may take is `contract`.
+Use no other fields. The only value `type` may take is `contract`. The items file's fields do not change for varying behaviour: its population, runs and pass rate live in the record and in the task text.
 
 ## Designing Steps
 
 - Design the Steps during the interview, from the settled decisions and the facts found in the code. Never derive them by reading the finished spec.
 - Write each Step to the record as you design it: its name, its files, the criteria its tests prove, and later its task.
 - Make one Step one independently testable behaviour with its own files.
-- Give a small request one Step.
+- Give a small request one Step per item.
 - Give every Step the acceptance criteria its tests prove, and every acceptance criterion at least one Step.
 - Ask the user about the shape of the work: what ships together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
 - Keep the Steps' `files` apart wherever you can. Steps that share a file cannot be built at the same time. When two Steps must share a file, order them with `after`.

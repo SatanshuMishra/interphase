@@ -55,6 +55,7 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
   - Current: "WHEN <condition> THEN the system <wrong behaviour>".
   - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>".
   - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>".
+- Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
 ## Steps
 

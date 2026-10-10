@@ -103,6 +103,16 @@ class ReadmeTest(unittest.TestCase):
             section,
         )
 
+    def test_readme_documents_varying_behaviour(self):
+        text = read_readme()
+        self.assertIn("behaviour that varies from run to run", text)
+        self.assertIn("a population", text)
+        self.assertIn("held-out set", text)
+        self.assertIn("pass rate", text)
+        for key in ("varies", "cases", "runs", "pass_rate"):
+            self.assertIn("`" + key + "`", text)
+        self.assertIn("Population line", text)
+
     def test_readme_states_the_programming_guarantee(self):
         text = read_readme()
         self.assertIn(
@@ -111,6 +121,49 @@ class ReadmeTest(unittest.TestCase):
         )
         self.assertIn("Reuse and change", text)
         self.assertIn("core/practices.md", text)
+
+    def test_readme_documents_the_brief_lane_and_autonomy(self):
+        text = read_readme()
+        lines = text.splitlines()
+
+        def section(heading):
+            start = lines.index(heading)
+            end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+            return "\n".join(lines[start:end])
+
+        does = section("## What it does")
+        self.assertIn("brief lane", does)
+        self.assertIn("all six conditions hold", does)
+        self.assertIn("one Step per item", does)
+        self.assertIn("one approval of the written brief", does)
+        self.assertIn("no read-back and no reviewer agent", does)
+        self.assertIn("switches to the full pathway", does)
+        use = section("## Use")
+        self.assertIn("work autonomously", use)
+        self.assertIn("resolves each ambiguity from your intent and your project's context", use)
+        self.assertIn("records every choice as an assumption", use)
+        self.assertIn("top risks", use)
+        self.assertIn("first any that override an earlier decision", use)
+        produces = section("## What it produces")
+        self.assertIn("core/templates/spec-brief.md", produces)
+        self.assertIn("4.x", produces)
+
+    def test_readme_documents_the_project_pathway(self):
+        text = read_readme()
+        lines = text.splitlines()
+
+        def section(heading):
+            start = lines.index(heading)
+            end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("## "))
+            return "\n".join(lines[start:end])
+
+        does = section("## What it does")
+        self.assertIn("one of four pathways", does)
+        self.assertIn("**Project**", does)
+        self.assertIn("a new repository, or a new stack, build, CI or release for an existing one", does)
+        self.assertIn("walking skeleton", does)
+        self.assertIn("/interphase:project", section("## Use"))
+        self.assertIn("spec-project.md", section("## Check the output yourself"))
 
 
 if __name__ == "__main__":

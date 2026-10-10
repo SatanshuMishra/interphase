@@ -22,10 +22,21 @@ check_record = load_sibling("check_record")
 check_spec = load_sibling("check_spec")
 
 
+def population(test):
+    if not all(key in test for key in check_record.POPULATION_KEYS):
+        return ""
+    return " Population: %s cases, %s runs each, pass rate at least %s." % (
+        test["cases"],
+        test["runs"],
+        test["pass_rate"],
+    )
+
+
 def criterion_block(criterion, what):
     where = "Where passing proves it: %s." % "; ".join(what[name] for name in criterion["where"])
     tests = tuple(
-        "- `%s` `%s`: %s Runs in: %s." % (test["file"], test["name"], test["asserts"], what[test["env"]])
+        "- `%s` `%s`: %s Runs in: %s.%s"
+        % (test["file"], test["name"], test["asserts"], what[test["env"]], population(test))
         for test in criterion["tests"]
     )
     unproven = ("Unproven: " + criterion["unproven"],) if "unproven" in criterion else ()

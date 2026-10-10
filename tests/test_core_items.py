@@ -118,10 +118,23 @@ class CoreItemsTest(unittest.TestCase):
             record,
         )
 
+    def test_items_guide_documents_varying_criteria(self):
+        text = read_guide()
+        record = section(text, "## Interview record")
+        for needle in ("`varies`", "`input`", "`output`", "`measured`", "`cases`", "`runs`", "`pass_rate`"):
+            self.assertIn(needle, record, needle)
+        items = section(text, "## Items format")
+        self.assertIn("The items file's fields do not change", items)
+
     def test_items_guide_allows_empty_acceptance_only_when_unproven(self):
         items = section(read_guide(), "## Items format")
         self.assertIn("only when every criterion the Step claims is marked unproven", items)
         self.assertNotIn("only when nothing can be tested", items)
+
+    def test_small_requests_get_one_step_per_item(self):
+        designing = section(read_guide(), "## Designing Steps").splitlines()
+        self.assertIn("- Give a small request one Step per item.", designing)
+        self.assertNotIn("- Give a small request one Step.", designing)
 
 
 if __name__ == "__main__":

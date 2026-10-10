@@ -15,6 +15,7 @@ TEST_ENTRY = {
     "env": "unit-tests",
     "step": "build-app",
 }
+VARYING_TEST_ENTRY = {**TEST_ENTRY, "cases": 60, "runs": 3, "pass_rate": 0.9}
 UNCLAIMED_CRITERION = {
     "number": "7.2",
     "title": "The total shows on the phone",
@@ -81,6 +82,10 @@ def append(record, key, item):
 
 def messages(findings, severity):
     return tuple(message for level, message in findings if level == severity)
+
+
+def varying(record, kind, *tests):
+    return change(record, "criteria", 0, varies=kind, tests=[VARYING_TEST_ENTRY] + list(tests))
 
 
 class CheckRecordTest(unittest.TestCase):
@@ -249,6 +254,84 @@ class CheckRecordTest(unittest.TestCase):
                 with self.subTest(label, complete=complete):
                     errors = messages(self.check(record, complete), "error")
                     self.assertTrue(any("status" in message for message in errors), errors)
+
+    def test_varies_accepts_only_the_three_kinds(self):
+        for kind in ("input", "output", "measured"):
+            with self.subTest(kind=kind):
+                self.assertEqual(self.check(varying(base_record(), kind), True), ())
+        for kind in ("sometimes", "Input", "", True, None, ["input"]):
+            for complete in (False, True):
+                with self.subTest(kind=kind, complete=complete):
+                    errors = messages(self.check(varying(base_record(), kind), complete), "error")
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertIn("criterion 7.1", errors[0])
+                    self.assertIn("varies", errors[0])
+
+    def test_varying_test_needs_cases_runs_and_pass_rate(self):
+        second = {**VARYING_TEST_ENTRY, "name": "test_total_again"}
+        self.assertEqual(self.check(varying(base_record(), "output"), True), ())
+        for label, fields in (
+            ("one case", {"cases": 1}),
+            ("two runs", {"runs": 2}),
+            ("pass rate of 1", {"pass_rate": 1}),
+            ("pass rate of 1.0", {"pass_rate": 1.0}),
+        ):
+            with self.subTest(label):
+                self.assertEqual(self.check(varying(base_record(), "output", {**second, **fields}), True), ())
+        removed = tuple(
+            ("without %s" % key, key, {name: value for name, value in second.items() if name != key})
+            for key in ("cases", "runs", "pass_rate")
+        )
+        broken = tuple(
+            ("%s of %r" % (key, value), key, {**second, key: value})
+            for key, value in (
+                ("cases", 0),
+                ("cases", True),
+                ("cases", 60.0),
+                ("cases", "60"),
+                ("runs", 1),
+                ("runs", True),
+                ("runs", 3.5),
+                ("runs", None),
+                ("pass_rate", 0),
+                ("pass_rate", 1.5),
+                ("pass_rate", -0.5),
+                ("pass_rate", True),
+                ("pass_rate", "0.9"),
+            )
+        )
+        for label, key, test in removed + broken:
+            for complete in (False, True):
+                with self.subTest(label, complete=complete):
+                    errors = messages(self.check(varying(base_record(), "input", test), complete), "error")
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertIn("criterion 7.1 test 2", errors[0])
+                    self.assertIn(key, errors[0])
+
+    def test_unproven_varying_criterion_needs_no_population(self):
+        for kind in ("input", "output", "measured"):
+            with self.subTest(kind=kind):
+                record = change(
+                    base_record(), "criteria", 0, varies=kind, where=["phone"], tests=[], unproven="needs the phone"
+                )
+                self.assertEqual(self.check(record, True), ())
+
+    def test_records_without_varies_check_as_before(self):
+        base = base_record()
+        self.assertEqual(self.check(base, True), ())
+        for key in ("cases", "runs", "pass_rate"):
+            value = VARYING_TEST_ENTRY[key]
+            with self.subTest(key=key):
+                named = change(base, "criteria", 0, tests=[{**TEST_ENTRY, key: value}])
+                other = change(base, "criteria", 0, tests=[{**TEST_ENTRY, "colour": value}])
+                expected = tuple(
+                    (level, message.replace("'colour'", repr(key))) for level, message in self.check(other, True)
+                )
+                self.assertTrue(expected)
+                self.assertEqual(self.check(named, True), expected)
+        populated = change(base, "criteria", 0, tests=[VARYING_TEST_ENTRY])
+        self.assertEqual(len(messages(self.check(populated, True), "error")), 3)
+        self.assertEqual(self.check(change(populated, "criteria", 0, varies="output"), True), ())
 
     def test_exit_codes_and_usage(self):
         record = json.dumps(base_record())
