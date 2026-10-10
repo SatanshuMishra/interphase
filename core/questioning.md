@@ -80,6 +80,7 @@ When the user's instructions, in the conversation or in the project's written in
 - Never guess and never fall back to the lightest option.
 - Resolve each unknown from the user's intent and the project's context: who the product serves, what is at stake, and the domain.
 - Research the established practice for that context: the standards for the capability itself, and the laws and standards that govern the domain and the data the requested work touches. Dispatch the `interphase:scout` agent for outside documentation.
+- List the threats that practice expects for what is at stake, and require a defence for each, in the layers that practice uses for that context rather than only the lightest one that meets a minimum standard.
 - Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test.
 - Record each as an assumption naming the intent and context that decided it.
 - Make every requirement the context calls for in the requested work a goal. Never cut one to keep Musts near 60 percent of the effort, and never record one as a non-goal, a Won't, an open question or work for a later spec. Non-goals hold only what the context does not call for.

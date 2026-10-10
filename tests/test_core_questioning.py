@@ -123,6 +123,7 @@ class QuestioningTest(unittest.TestCase):
         body = "\n".join(section_body(lines, "## Work autonomously"))
         for phrase in (
             "the standards for the capability itself, and the laws and standards that govern the domain and the data the requested work touches",
+            "List the threats that practice expects for what is at stake, and require a defence for each, in the layers that practice uses for that context rather than only the lightest one that meets a minimum standard.",
             "Make every requirement the context calls for in the requested work a goal.",
             "Never cut one to keep Musts near 60 percent of the effort, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
             "Non-goals hold only what the context does not call for.",
