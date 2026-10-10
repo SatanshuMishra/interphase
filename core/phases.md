@@ -33,7 +33,8 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 2: Classify
 
-- Choose the pathway. Use feature for something that does not exist yet. Use bug when existing behaviour is wrong. Use prototype for a mockup or design to ship as a working product.
+- Choose the pathway: use project for a new repository, or for replacing an existing repository's stack, build, CI or release; use feature for anything else that does not exist yet; use bug when existing behaviour is wrong; use prototype for a mockup or design to ship as a working product.
+- A new product built from a design mixes project and prototype; recommend a project spec first and a prototype spec second.
 - Choose the size. Use small for one or more items, each one behaviour in existing code describable in one sentence; whether a small request takes the brief lane is confirmed at the end of Phase 3, following `${CLAUDE_PLUGIN_ROOT}/core/brief.md`. Use standard for most requests. Use large for a new subsystem or several connected behaviours.
 - When the request is large, mixes pathways or spans independent subsystems, ask the pathway, the size and how to split it with AskUserQuestion before phase 3, with your recommendation first. Otherwise say both out loud in one sentence, for example "This looks like a small bug, so I'll use the bug pathway." Let the user override.
 - Recommend splitting a request that mixes pathways, such as a bug plus a new feature, or that spans several independent subsystems, into separate specs. Split it when the user agrees, and ask which to do first.

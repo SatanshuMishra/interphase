@@ -22,6 +22,13 @@ CASES = {
         "interphase:prototype",
         {"min": "1"},
     ),
+    "new-project-starts-project-pathway": (
+        "I want to build a recipe-sharing website. "
+        "Nothing exists yet, not even a repository. "
+        "Help me pin down how to set it up before anyone builds it.",
+        "interphase:project",
+        {"min": "1"},
+    ),
     "router-never-starts-itself": (
         "Help me figure out what to build next for this project.",
         "interphase:interphase",
