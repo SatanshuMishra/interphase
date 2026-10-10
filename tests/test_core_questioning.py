@@ -122,10 +122,10 @@ class QuestioningTest(unittest.TestCase):
         lines = read_questioning().splitlines()
         body = "\n".join(section_body(lines, "## Work autonomously"))
         for phrase in (
-            "the standards for the capability itself, and the laws and standards that govern the domain and the data the requested work touches",
+            "the standards for the capability itself, the laws and standards that govern the domain and the data the requested work touches, and what comparable products in that domain ship.",
             "List the threats that practice expects for what is at stake in the requested work, and require a defence for each in the layers that practice uses at those stakes: the established minimum where little is at stake, and never only that minimum where much is.",
             "Make every requirement the context calls for in the requested work a goal.",
-            "Never cut one to keep Musts near 60 percent of the effort, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
+            "Never cut one to keep Musts near 60 percent of the effort, never leave one only in the assumptions, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
             "Non-goals hold only what the context does not call for in the requested work.",
             "Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit.",
             "a new dependency, a new stored field, an added service or a change to how it is deployed",
