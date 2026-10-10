@@ -63,7 +63,7 @@ Use no other fields. The only value `type` may take is `contract`. The items fil
 - Design the Steps during the interview, from the settled decisions and the facts found in the code. Never derive them by reading the finished spec.
 - Write each Step to the record as you design it: its name, its files, the criteria its tests prove, and later its task.
 - Make one Step one independently testable behaviour with its own files.
-- Give a small request one Step.
+- Give a small request one Step per item.
 - Give every Step the acceptance criteria its tests prove, and every acceptance criterion at least one Step.
 - Ask the user about the shape of the work: what ships together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
 - Keep the Steps' `files` apart wherever you can. Steps that share a file cannot be built at the same time. When two Steps must share a file, order them with `after`.

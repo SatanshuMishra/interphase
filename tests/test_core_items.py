@@ -131,6 +131,11 @@ class CoreItemsTest(unittest.TestCase):
         self.assertIn("only when every criterion the Step claims is marked unproven", items)
         self.assertNotIn("only when nothing can be tested", items)
 
+    def test_small_requests_get_one_step_per_item(self):
+        designing = section(read_guide(), "## Designing Steps").splitlines()
+        self.assertIn("- Give a small request one Step per item.", designing)
+        self.assertNotIn("- Give a small request one Step.", designing)
+
 
 if __name__ == "__main__":
     unittest.main()

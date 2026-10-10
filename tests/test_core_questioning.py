@@ -97,6 +97,35 @@ class QuestioningTest(unittest.TestCase):
         record = "\n".join(section_body(text.splitlines(), "## Record each answer"))
         self.assertIn("Update the record at the same time", record)
 
+    def test_autonomous_runs_resolve_ambiguity_from_intent_and_context(self):
+        lines = read_questioning().splitlines()
+        self.assertIn("## Work autonomously", lines)
+        body = "\n".join(section_body(lines, "## Work autonomously"))
+        for phrase in (
+            "When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, ask no question and seek no approval.",
+            "Never guess and never fall back to the lightest option.",
+            "Resolve each unknown from the user's intent and the project's context: who the product serves, what is at stake, and the domain.",
+            "Research the established practice for that context",
+            "`interphase:scout`",
+            "Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test.",
+            "Record each as an assumption naming the intent and context that decided it.",
+            "`Add file uploads`",
+            "a size limit and a file-type check",
+            "virus scanning, encryption at rest, an access audit log and a retention rule",
+        ):
+            self.assertIn(phrase, body)
+        for held_out in ("login", "coffee", "bank"):
+            self.assertNotIn(held_out, body.lower(), held_out)
+        self.assertNotIn("login architecture", read_questioning().lower())
+
+    def test_stopping_needs_no_read_back_in_the_brief_lane_or_autonomous_runs(self):
+        body = section_body(read_questioning().splitlines(), "## Know when to stop")
+        condition = "4. The user confirmed the read-back in phase 7."
+        exemption = "In the brief lane and in an autonomous run, condition 4 holds without a read-back."
+        self.assertIn(condition, body)
+        self.assertIn(exemption, body)
+        self.assertLess(body.index(condition), body.index(exemption))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: lane-add-button-label
+context:
+  scaffold_script: scaffold.sh
