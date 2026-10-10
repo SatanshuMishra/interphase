@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import pathlib
 import re
 import unittest
@@ -137,7 +138,8 @@ RUBRICS = {
         "a sign-in by email and password or by an emailed one-time link",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in or a CAPTCHA a Must",
+        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "adds no package outside the Python standard library",
         "the single coffee shop and its customers",
     ),
     "autonomy-dev-bank": (
@@ -153,7 +155,8 @@ RUBRICS = {
         "a sign-in by an emailed one-time link or by email and password",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in or a CAPTCHA a Must",
+        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "adds no package outside the Python standard library",
         "the neighbourhood book club and its members",
     ),
     "autonomy-dev-clinic": (
@@ -170,21 +173,26 @@ RUBRICS = {
         "a sign-in by email and password or by an emailed one-time link",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in or a CAPTCHA a Must",
+        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "adds no package outside the Python standard library",
         "the allotment society and its members",
     ),
     "autonomy-accounts-payroll": (
         "multi-factor authentication",
         "account lockout or rate limiting after failed attempts",
-        "protection against automated sign-in attempts, such as a CAPTCHA, device checks or limits per network address",
+        "protection against automated sign-in attempts in addition to that failed-attempt limit, such as a CAPTCHA or device checks",
         "a password reset that verifies identity through a second channel",
         "an idle session timeout",
-        "encryption of credentials and personal data in transit and at rest",
+        "passwords stored only as salted hashes, and personal and bank details encrypted in transit and at rest",
         "a fresh authentication before the bank account that pay goes to is changed",
         "a notice of each change sent through a second channel",
         "the staffing agency's payroll portal and its workers' pay and bank details",
     ),
 }
+
+HELDOUT_DOMAIN_WORDS = ("payroll", "allotment", "brightwater", "plot rota", "harbour lane", "staffing")
+
+FIXTURE_ABSENT_KEYS = {"payroll": ("workers.json", ("email", "phone"))}
 
 FIXTURE_FACTS = {
     "coffee-shop": (
@@ -279,7 +287,11 @@ def case_names(suite):
 
 
 def readme_text(script):
-    match = re.search(r"^cat > README\.md <<'EOF'\n(.*?)\nEOF$", script, re.MULTILINE | re.DOTALL)
+    return heredoc_text(script, "README.md")
+
+
+def heredoc_text(script, target):
+    match = re.search(r"^cat > " + re.escape(target) + r" <<'EOF'\n(.*?)\nEOF$", script, re.MULTILINE | re.DOTALL)
     return match.group(1) if match else ""
 
 
@@ -345,6 +357,12 @@ class EvalsBriefTest(unittest.TestCase):
                 readme = readme_text(script.read_text(encoding="utf-8"))
                 for fact in FIXTURE_FACTS.get(fixture, ()):
                     self.assertIn(fact, readme)
+                if fixture in FIXTURE_ABSENT_KEYS:
+                    data, absent = FIXTURE_ABSENT_KEYS[fixture]
+                    records = json.loads(heredoc_text(script.read_text(encoding="utf-8"), data))
+                    keys = {key.lower() for record in records for key in record}
+                    for word in absent:
+                        self.assertFalse([key for key in keys if word in key], word)
 
     def test_brief_heldout_cases_match_the_spec(self):
         helpers = load_helpers()
@@ -355,6 +373,14 @@ class EvalsBriefTest(unittest.TestCase):
                 request = self.assert_case(helpers, "evals-heldout", name, fixture, spec, stratum[0])
                 self.assertEqual(variation.request_digest(request), digest, request)
         self.assert_fixtures(variation, "evals-heldout", HELDOUT_CASES)
+
+    def test_heldout_domains_appear_nowhere_interphase_or_tuning_reads(self):
+        _, leak, _ = load_helpers()
+        for path in leak.scanned_files(repo_root()):
+            text = path.read_text(encoding="utf-8", errors="replace").lower()
+            for word in HELDOUT_DOMAIN_WORDS:
+                with self.subTest(path=path.name, word=word):
+                    self.assertNotIn(word, text)
 
     def test_brief_dev_cases_cover_every_stratum(self):
         self.assertEqual(strata(DEV_CASES), strata(HELDOUT_CASES))
