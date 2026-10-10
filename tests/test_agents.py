@@ -140,7 +140,7 @@ class AgentsTest(unittest.TestCase):
             "- Context: in an autonomous run, a requirement the product's context calls for in the requested work",
             "what the laws, standards or established practice of its domain require",
             "that the spec does not make a goal, however it is left out: a non-goal, a Won't, an open question, a later spec, a boundary, an assumption, a note left to the deployment or silence.",
-            "a requirement met outside the code with no acceptance criterion",
+            "Also, in an autonomous run, a requirement met outside the code with no acceptance criterion",
             "a part of it the code could enforce and test that is left outside the code",
             "In an autonomous run, what the product's context calls for in the requested work counts as asked for.",
         ):

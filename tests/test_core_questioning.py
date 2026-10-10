@@ -123,15 +123,15 @@ class QuestioningTest(unittest.TestCase):
         body = "\n".join(section_body(lines, "## Work autonomously"))
         for phrase in (
             "the standards for the capability itself, and the laws and standards that govern the domain and the data the requested work touches",
-            "List the threats that practice expects for what is at stake, and require a defence for each, in the layers that practice uses for that context rather than only the lightest one that meets a minimum standard.",
+            "List the threats that practice expects for what is at stake in the requested work, and require a defence for each in the layers that practice uses at those stakes: the established minimum where little is at stake, and never only that minimum where much is.",
             "Make every requirement the context calls for in the requested work a goal.",
             "Never cut one to keep Musts near 60 percent of the effort, and never record one as a non-goal, a Won't, an open question or work for a later spec.",
-            "Non-goals hold only what the context does not call for.",
+            "Non-goals hold only what the context does not call for in the requested work.",
             "Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit.",
             "a new dependency, a new stored field, an added service or a change to how it is deployed",
             "When only something outside the code can meet a requirement",
             "still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.",
-            "When a written rule of the project forbids what the context calls for, meet the requirement within the rule if the established practice allows it. Otherwise keep the requirement and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
+            "When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule if the established practice allows it. Otherwise keep the requirement and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.",
             "the spec requires what lets it, never a non-goal.",
         ):
             self.assertIn(phrase, body)

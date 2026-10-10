@@ -295,7 +295,7 @@ class CorePhasesTest(unittest.TestCase):
         risks = hand_off[unproven[0] + 1]
         self.assertTrue(risks.startswith("- In an autonomous run, list next"), risks)
         overriding = risks.find(
-            "every decision that overrides a line of an earlier decisions file or a written rule of the project"
+            "every decision that overrides a line of an earlier decisions file or a written rule or convention of the project"
         )
         others = risks.find("then every other decision made on the user's behalf")
         self.assertNotIn(-1, (overriding, others))

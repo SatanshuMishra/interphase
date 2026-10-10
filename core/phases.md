@@ -118,6 +118,6 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Set the record's `status` to `handed-off`.
 - Report the paths of the spec, the decisions file, the record, the items file and, for bugs, the reproduction file.
 - List every criterion marked unproven first, with its reason, as the top risks.
-- In an autonomous run, list next every decision that overrides a line of an earlier decisions file or a written rule of the project, then every other decision made on the user's behalf, as top risks.
+- In an autonomous run, list next every decision that overrides a line of an earlier decisions file or a written rule or convention of the project, then every other decision made on the user's behalf, as top risks.
 - Report the counts of Steps, unproven criteria, assumptions and open questions.
 - Stop. Do not suggest a tool to build it. Do not start building it.

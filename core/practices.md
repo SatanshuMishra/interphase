@@ -42,6 +42,6 @@ Write the spec's Reuse and change section as three lists: Reused as is, Kept sep
 
 When a project rule overrode one of the other four, add one line after the three lists that starts with Project rule followed: and names the rule and the file it is written in.
 
-When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement, and write the override to the decisions file as a decision made on the user's behalf.
+When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement.
 
 Never write a proof for each rule.

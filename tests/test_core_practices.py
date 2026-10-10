@@ -59,7 +59,7 @@ class CorePracticesTest(unittest.TestCase):
         record = section(read_practices(), "## Record the result")
         followed = record.index("starts with Project rule followed:")
         overridden = record.index(
-            "When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement, and write the override to the decisions file as a decision made on the user's behalf."
+            "When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement."
         )
         self.assertLess(followed, overridden)
 
