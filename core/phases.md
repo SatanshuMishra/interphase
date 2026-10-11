@@ -91,6 +91,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 - Copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md` to `docs/specs/<slug>.md`. In the brief lane, copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.
 - Fill every section except Acceptance criteria. Replace every `{{placeholder}}` outside it.
+- Fill the Review bar section: name each threat the change must withstand and its level of defence, taking them from the security needs settled in the interview and stated in the spec and, in an autonomous run, from the threats the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` lists, or say it has none beyond its acceptance criteria and why. Keep every threat it names defended somewhere in the spec, name the sections of the spec a reviewer may block on beyond the acceptance criteria, and name what is out of scope for review, at least weaknesses the code had before the change and hardening beyond the named threats. In the brief lane, write all of it in one or two lines.
 - Keep every numbered heading exactly as the template has it.
 - Give every requirement an acceptance criterion that can pass or fail.
 - Put every default into the Assumptions section.
