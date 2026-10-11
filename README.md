@@ -13,7 +13,7 @@ Each request follows one of four pathways:
 - **Prototype**: a mockup or design export to ship as a working product. interphase explores the mockup and finds what it fakes or leaves out.
 - **Project**: a new repository, or a new stack, build, CI or release for an existing one. interphase settles the stage, platforms, stack, test strategy, CI, release, licence and logging, and the first Step is a walking skeleton that runs end to end.
 
-Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and ends each spec with a short Reuse and change section: what it reuses as is, what it keeps separate, and what existing code it changes.
+Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, writes a short Reuse and change section (what it reuses as is, what it keeps separate, and what existing code it changes), and ends each spec with a Review bar section stating the threats the change must withstand, what a reviewer may block on and what is out of scope for review.
 
 interphase notices behaviour that varies from run to run without being told. That covers open-ended input such as speech or free text, model output, and results measured on a device. It specifies that behaviour as a population: the ways its input varies, a held-out set it drafts for you to approve, outcome grading, repeated runs and a pass rate.
 
