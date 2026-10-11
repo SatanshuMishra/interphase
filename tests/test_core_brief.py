@@ -54,6 +54,7 @@ SECTIONS = (
     "## 4. Acceptance criteria",
     "## 5. Assumptions",
     "## 6. Reuse and change",
+    "## 7. Review bar",
 )
 CHANGE = (
     "Current: WHEN the stock report is shown THEN the system lists each product with no total row.\n"
@@ -82,7 +83,10 @@ FILLED_BRIEF = (
     "## 6. Reuse and change\n\n"
     "Reused as is:\n\n- src/report.py stock_rows: the name sort the low-stock list follows.\n\n"
     "Kept separate:\n\n- None.\n\n"
-    "Changed:\n\n- src/report.py: adds the total row and sorts the low-stock list.\n"
+    "Changed:\n\n- src/report.py: adds the total row and sorts the low-stock list.\n\n"
+    "## 7. Review bar\n\n"
+    "No threats beyond the acceptance criteria: the change reorders and sums rows the report already shows.\n"
+    "A reviewer may block on the Unchanged statements; weaknesses the report had before the change are out of scope.\n"
 )
 TOTAL_ROW = "### 4.1 The stock report ends with a total row"
 LOW_STOCK_ORDER = "### 4.2 The low-stock list is sorted by name"

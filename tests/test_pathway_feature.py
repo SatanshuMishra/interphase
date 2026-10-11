@@ -30,6 +30,7 @@ TEMPLATE_HEADINGS = (
     "## 13. Verification",
     "## 14. Reuse and change",
     "## 15. Variation",
+    "## 16. Review bar",
 )
 
 NUMBERED = re.compile(r"^## \d+\. ")
@@ -99,7 +100,7 @@ class PathwayFeatureTest(unittest.TestCase):
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
         template_lines = tuple(TEMPLATE.read_text(encoding="utf-8").splitlines())
         numbered = tuple(line for line in template_lines if NUMBERED.match(line))
-        self.assertEqual(numbered[-1], "## 15. Variation")
+        self.assertEqual(numbered[-1], "## 16. Review bar")
         body = "\n".join(sections_by_heading(template_lines)["## 15. Variation"])
         self.assertIn("{{", body)
         self.assertIn("Not applicable: <reason>", body)

@@ -150,6 +150,17 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("core/templates/spec-brief.md", produces)
         self.assertIn("4.x", produces)
 
+    def test_readme_names_the_review_bar(self):
+        text = read_readme()
+        paragraph = next(
+            block for block in text.split("\n\n") if "Reuse and change" in block and "Review bar" in block
+        )
+        for phrase in ("Review bar", "threats", "block", "out of scope"):
+            self.assertIn(phrase, paragraph)
+        self.assertNotIn("ends each spec with a short Reuse and change section", text)
+        headings = tuple(line for line in text.splitlines() if line.startswith("## "))
+        self.assertEqual(headings, SECTION_HEADINGS)
+
     def test_readme_documents_the_project_pathway(self):
         text = read_readme()
         lines = text.splitlines()

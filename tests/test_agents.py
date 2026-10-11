@@ -151,6 +151,32 @@ class AgentsTest(unittest.TestCase):
         self.assertLess(body.index("- Tracking talk:"), body.index("counts as asked for"))
         self.assertLess(body.index("counts as asked for"), body.index("Report only issues"))
 
+    def test_spec_reviewer_checks_the_review_bar(self):
+        text = read_agent("agents/spec-reviewer.md")
+        _, body = split_frontmatter(text)
+        lines = body.splitlines()
+        context_index = next(
+            index for index, line in enumerate(lines) if line.startswith("- Context:")
+        )
+        review_bar = lines[context_index + 1]
+        self.assertTrue(review_bar.startswith("- Review bar:"))
+        for marker in (
+            "missing",
+            "empty",
+            "defends",
+            "leaves out",
+            "could check",
+            "before the change",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, review_bar)
+        self.assertEqual(
+            sum(1 for line in lines if line.startswith("- Review bar:")), 1
+        )
+        expected = EXPECTED["agents/spec-reviewer.md"]
+        frontmatter = parse_frontmatter(text)
+        self.assertEqual({key: frontmatter.get(key) for key in expected}, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

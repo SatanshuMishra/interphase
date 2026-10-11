@@ -36,6 +36,7 @@ TEMPLATE_HEADINGS = (
     "## 18. Open questions",
     "## 19. Reuse and change",
     "## 20. Variation",
+    "## 21. Review bar",
 )
 
 
@@ -112,7 +113,7 @@ class PrototypePathwayTest(unittest.TestCase):
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
         template_lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
         numbered = [line for line in template_lines if re.match(r"^## \d+\.", line)]
-        self.assertEqual("## 20. Variation", numbered[-1])
+        self.assertEqual("## 21. Review bar", numbered[-1])
         body = "\n".join(section_body(template_lines, "## 20. Variation"))
         self.assertIn("{{", body)
         self.assertIn("Not applicable: <reason>", body)

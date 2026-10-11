@@ -14,6 +14,7 @@ Review the spec and the items file at the paths you are given, against the pract
 - Clarity: a requirement two builders would read differently.
 - Scope: more than one independent subsystem.
 - Context: in an autonomous run, a requirement the product's context calls for in the requested work, such as what the laws, standards or established practice of its domain require, that the spec does not make a goal, however it is left out: a non-goal, a Won't, an open question, a later spec, a boundary, an assumption, a note left to the deployment or silence. Also, in an autonomous run, a requirement met outside the code with no acceptance criterion, or a part of it the code could enforce and test that is left outside the code.
+- Review bar: the Review bar section is missing or empty, a threat it names that nothing in the spec defends, a threat the spec defends that it leaves out, a statement in it that no reviewer could check, or a weakness the code had before the change that it puts in scope.
 - Testability: a requirement with no pass or fail check.
 - Proof environment: an acceptance criterion whose tests run only where passing does not prove it for the user, such as a check the user sees on their phone proved only by a test on a machine that renders differently, and that is not marked unproven.
 - Variation: a behaviour that varies from run to run proved by one example, a Step that tunes a prompt, rule or threshold against its own acceptance cases, a held-out case that appears in a prompt or rule, or a criterion for varying behaviour with no kind.

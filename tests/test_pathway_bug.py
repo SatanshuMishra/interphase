@@ -27,6 +27,7 @@ TEMPLATE_HEADINGS = (
     "## 13. Prevention",
     "## 14. Reuse and change",
     "## 15. Variation",
+    "## 16. Review bar",
 )
 
 
@@ -127,7 +128,7 @@ class PathwayBugTest(unittest.TestCase):
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
         lines = read("core/templates/spec-bug.md").splitlines()
         numbered = tuple(line for line in lines if re.match(r"^## \d+\. ", line))
-        self.assertEqual(numbered[-1], "## 15. Variation")
+        self.assertEqual(numbered[-1], "## 16. Review bar")
         body = "\n".join(dict(sections(lines))["## 15. Variation"])
         self.assertIn("{{", body)
         self.assertIn("Not applicable: <reason>", body)

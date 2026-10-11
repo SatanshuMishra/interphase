@@ -270,6 +270,28 @@ class CorePhasesTest(unittest.TestCase):
             copy[0],
         )
 
+    def test_phase_8_says_how_to_fill_the_review_bar(self):
+        lines = bullets(phase_body("## Phase 8: Write the spec and the Steps"))
+        fill = "- Fill every section except Acceptance criteria."
+        positions = tuple(index for index, line in enumerate(lines) if line.startswith(fill))
+        self.assertEqual(len(positions), 1)
+        following = lines[positions[0] + 1]
+        self.assertTrue(following.startswith("- Fill the Review bar section"), following)
+        for phrase in (
+            "threat",
+            "level of defence",
+            "interview",
+            "Work autonomously",
+            "core/questioning.md",
+            "defended",
+            "block",
+            "out of scope",
+            "before the change",
+            "brief lane",
+        ):
+            self.assertIn(phrase, following)
+        self.assertNotIn("mitosis", read_phases())
+
     def test_autonomous_runs_skip_approval_and_list_their_decisions_as_risks(self):
         rules = tuple(line for line in phase_body("## Rules").splitlines() if line[:1].isdigit())
         self.assertEqual(len(rules), 15)
