@@ -17,6 +17,15 @@ class TestManifest(unittest.TestCase):
         self.assertTrue(len(description) > 0)
         self.assertNotIn("mitosis", description.lower())
 
+    def test_manifest_version_is_newer_than_0_5_0(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        manifest_path = root / ".claude-plugin" / "plugin.json"
+        manifest = json.loads(manifest_path.read_text())
+        parts = manifest["version"].split(".")
+        self.assertEqual(len(parts), 3)
+        version = tuple(int(part) for part in parts)
+        self.assertGreater(version, (0, 5, 0))
+
 
 class TestMarketplace(unittest.TestCase):
     def test_marketplace_lists_interphase_from_the_root(self):
