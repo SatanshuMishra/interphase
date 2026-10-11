@@ -89,3 +89,11 @@ Date: {{date}}.
 ## 15. Variation
 
 {{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}
+
+## 16. Review bar
+
+{{The threats the change must withstand and the level of defence for each, each one defended somewhere in this spec; or that it has none beyond its acceptance criteria, and why.}}
+
+{{What a reviewer may block on beyond the acceptance criteria: the Expected and Unchanged statements of the Fix boundary.}}
+
+{{What is out of scope for review: at least weaknesses the code had before the change, and hardening beyond the named threats.}}

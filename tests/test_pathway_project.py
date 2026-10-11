@@ -38,6 +38,7 @@ TEMPLATE_HEADINGS = (
     "## 18. Verification",
     "## 19. Reuse and change",
     "## 20. Variation",
+    "## 21. Review bar",
 )
 
 FOUNDATIONS = (

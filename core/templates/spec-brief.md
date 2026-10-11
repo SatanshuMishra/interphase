@@ -31,3 +31,7 @@ Date: {{date}}.
 ## 6. Reuse and change
 
 {{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
+
+## 7. Review bar
+
+{{one or two lines: the threats the change must withstand, or that it has none beyond its acceptance criteria; what a reviewer may block on beyond the acceptance criteria, naming the Unchanged statements; and what is out of scope for review, at least weaknesses the code had before the change}}
