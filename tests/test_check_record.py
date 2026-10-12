@@ -11,10 +11,23 @@ SOURCE_TEXT = "def total_of(total):\n    return total\n"
 TEST_ENTRY = {
     "file": "tests/test_app.py",
     "name": "test_total",
-    "asserts": "the total adds up",
+    "given": "a total of 3",
+    "expect": "3 is returned",
     "env": "unit-tests",
     "step": "build-app",
 }
+PRESENT_ENTRY = {**TEST_ENTRY, "name": "test_present", "given": "a total of 4", "expect": "4 is returned"}
+PAYLOAD_DOMAIN = {
+    "name": "payload",
+    "over": "the payload field agent_id",
+    "classes": ["absent", "present"],
+    "fact": "f1",
+}
+PAYLOAD_ROWS = [{**TEST_ENTRY, "covers": ["payload: absent"]}, {**PRESENT_ENTRY, "covers": ["payload: present"]}]
+GIVE_WAY_ROWS = [
+    {**TEST_ENTRY, "covers": ["gives-way: older lines"]},
+    {**TEST_ENTRY, "name": "test_header", "covers": ["gives-way: the header"]},
+]
 VARYING_TEST_ENTRY = {**TEST_ENTRY, "cases": 60, "runs": 3, "pass_rate": 0.9}
 UNCLAIMED_CRITERION = {
     "number": "7.2",
@@ -88,7 +101,11 @@ def varying(record, kind, *tests):
     return change(record, "criteria", 0, varies=kind, tests=[VARYING_TEST_ENTRY] + list(tests))
 
 
-class CheckRecordTest(unittest.TestCase):
+def with_criterion(**fields):
+    return change(base_record(), "criteria", 0, **fields)
+
+
+class RecordFixture:
     def load(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         spec = importlib.util.spec_from_file_location("check_record", str(root / "scripts" / "check_record.py"))
@@ -124,6 +141,11 @@ class CheckRecordTest(unittest.TestCase):
                 os.chdir(previous)
         return code, out.getvalue(), err.getvalue()
 
+    def errors(self, record, complete):
+        return messages(self.check(record, complete), "error")
+
+
+class CheckRecordTest(RecordFixture, unittest.TestCase):
     def test_complete_record_passes(self):
         record = base_record()
         self.assertEqual(self.check(record, True), ())
@@ -350,6 +372,414 @@ class CheckRecordTest(unittest.TestCase):
         code, out, _ = self.run_main(["record.json"], "{not json")
         self.assertEqual(code, 1)
         self.assertTrue(any(line.startswith("error:") for line in out.splitlines()), out)
+
+
+class CaseTableRecordTest(RecordFixture, unittest.TestCase):
+    def test_record_without_domains_has_no_error(self):
+        record = base_record()
+        self.assertNotIn("domains", record["criteria"][0])
+        self.assertEqual(record["criteria"][0]["tests"][0]["given"], "a total of 3")
+        self.assertEqual(record["criteria"][0]["tests"][0]["expect"], "3 is returned")
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_domains_that_is_not_a_list_is_an_error(self):
+        errors = self.errors(with_criterion(domains="payload"), False)
+        self.assertIn("criterion 7.1 has domains that is not a non-empty list", errors)
+
+    def test_empty_domains_is_an_error(self):
+        errors = self.errors(with_criterion(domains=[]), False)
+        self.assertIn("criterion 7.1 has domains that is not a non-empty list", errors)
+
+    def test_domain_that_is_not_an_object_is_an_error(self):
+        errors = self.errors(with_criterion(domains=["payload"]), False)
+        self.assertIn("criterion 7.1 domain 1 is not an object", errors)
+
+    def test_domain_with_an_unknown_key_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "note": "checked by hand"}], tests=PAYLOAD_ROWS)
+        self.assertIn("criterion 7.1 domain 'payload' has unknown key 'note'", self.errors(record, False))
+
+    def test_domain_lacking_a_key_is_an_error(self):
+        domain = {"name": "payload", "over": "the payload field agent_id", "fact": "f1"}
+        errors = self.errors(with_criterion(domains=[domain]), False)
+        self.assertIn("criterion 7.1 domain 'payload' lacks required key 'classes'", errors)
+
+    def test_domain_name_that_is_not_a_string_is_an_error(self):
+        errors = self.errors(with_criterion(domains=[{**PAYLOAD_DOMAIN, "name": 3}]), False)
+        self.assertIn("criterion 7.1 domain 1 has a name that is not lowercase kebab-case", errors)
+
+    def test_domain_without_a_fact_is_accepted(self):
+        domain = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
+        record = with_criterion(domains=[domain], tests=PAYLOAD_ROWS)
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_domain_fact_that_is_not_a_string_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "fact": ["f1"]}], tests=PAYLOAD_ROWS)
+        errors = self.errors(record, False)
+        self.assertIn("criterion 7.1 domain 'payload' has fact that is not a non-empty string", errors)
+
+    def test_domain_name_that_is_not_kebab_case_is_an_error(self):
+        errors = self.errors(with_criterion(domains=[{**PAYLOAD_DOMAIN, "name": "Payload Field"}]), False)
+        self.assertIn("criterion 7.1 domain 'Payload Field' has a name that is not lowercase kebab-case", errors)
+
+    def test_domain_with_the_reserved_name_is_an_error(self):
+        errors = self.errors(with_criterion(domains=[{**PAYLOAD_DOMAIN, "name": "gives-way"}]), False)
+        self.assertIn("criterion 7.1 domain 'gives-way' uses the reserved name 'gives-way'", errors)
+
+    def test_domain_name_used_twice_is_an_error(self):
+        record = with_criterion(domains=[PAYLOAD_DOMAIN, PAYLOAD_DOMAIN], tests=PAYLOAD_ROWS)
+        self.assertIn("criterion 7.1 domain name 'payload' is duplicated", self.errors(record, False))
+
+    def test_domain_with_a_blank_over_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "over": ""}], tests=PAYLOAD_ROWS)
+        errors = self.errors(record, False)
+        self.assertIn("criterion 7.1 domain 'payload' has over that is not a non-empty string", errors)
+
+    def test_domain_with_one_class_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "classes": ["absent"]}], tests=PAYLOAD_ROWS)
+        self.assertIn(
+            "criterion 7.1 domain 'payload' has classes that is not a list of at least two non-empty strings",
+            self.errors(record, False),
+        )
+
+    def test_domain_with_a_blank_class_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "classes": ["absent", ""]}], tests=PAYLOAD_ROWS)
+        self.assertIn(
+            "criterion 7.1 domain 'payload' has classes that is not a list of at least two non-empty strings",
+            self.errors(record, False),
+        )
+
+    def test_domain_with_a_repeated_class_is_an_error(self):
+        domain = {**PAYLOAD_DOMAIN, "classes": ["absent", "absent", "present"]}
+        record = with_criterion(domains=[domain], tests=PAYLOAD_ROWS)
+        self.assertIn("criterion 7.1 domain 'payload' lists class 'absent' more than once", self.errors(record, False))
+
+    def test_domain_naming_an_unknown_fact_is_an_error(self):
+        record = with_criterion(domains=[{**PAYLOAD_DOMAIN, "fact": "f9"}], tests=PAYLOAD_ROWS)
+        self.assertIn("criterion 7.1 domain 'payload' names unknown fact 'f9'", self.errors(record, False))
+
+    def test_well_formed_domain_has_no_error(self):
+        record = with_criterion(domains=[PAYLOAD_DOMAIN], tests=PAYLOAD_ROWS)
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_gives_way_that_is_not_a_list_is_an_error(self):
+        errors = self.errors(with_criterion(gives_way="older lines"), False)
+        self.assertIn("criterion 7.1 has gives_way that is not a non-empty list of non-empty strings", errors)
+
+    def test_empty_gives_way_is_an_error(self):
+        errors = self.errors(with_criterion(gives_way=[]), False)
+        self.assertIn("criterion 7.1 has gives_way that is not a non-empty list of non-empty strings", errors)
+
+    def test_gives_way_with_a_blank_item_is_an_error(self):
+        errors = self.errors(with_criterion(gives_way=["older lines", ""]), False)
+        self.assertIn("criterion 7.1 has gives_way that is not a non-empty list of non-empty strings", errors)
+
+    def test_gives_way_with_a_repeated_item_is_an_error(self):
+        record = with_criterion(gives_way=["older lines", "older lines"], tests=GIVE_WAY_ROWS[:1])
+        self.assertIn("criterion 7.1 lists give-way item 'older lines' more than once", self.errors(record, False))
+
+    def test_well_formed_gives_way_has_no_error(self):
+        record = with_criterion(
+            text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
+            gives_way=["older lines", "the header"],
+            tests=GIVE_WAY_ROWS,
+        )
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_criterion_facts_that_is_not_a_list_is_an_error(self):
+        errors = self.errors(with_criterion(facts="f1"), False)
+        self.assertIn("criterion 7.1 has facts that is not a non-empty list of strings", errors)
+
+    def test_empty_criterion_facts_is_an_error(self):
+        errors = self.errors(with_criterion(facts=[]), False)
+        self.assertIn("criterion 7.1 has facts that is not a non-empty list of strings", errors)
+
+    def test_criterion_fact_with_an_unknown_id_is_an_error(self):
+        errors = self.errors(with_criterion(facts=["f9"]), False)
+        self.assertIn("criterion 7.1 names unknown fact 'f9'", errors)
+
+    def test_criterion_fact_listed_twice_is_an_error(self):
+        errors = self.errors(with_criterion(facts=["f1", "f1"]), False)
+        self.assertIn("criterion 7.1 lists fact 'f1' more than once", errors)
+
+    def test_well_formed_criterion_facts_have_no_error(self):
+        self.assertEqual(self.errors(with_criterion(facts=["f1"]), True), ())
+
+    def test_each_quantifier_word_needs_a_domain(self):
+        for word in ("every", "each", "any", "all", "whole", "always", "never", "whatever", "however", "whenever"):
+            with self.subTest(word=word):
+                record = with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep %s field" % word)
+                self.assertEqual(
+                    self.errors(record, True), ("criterion 7.1 says '%s' but declares no domains" % word,)
+                )
+
+    def test_quantifier_without_a_domain_warns_before_complete(self):
+        findings = self.check(with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep every field"), False)
+        self.assertIn("criterion 7.1 says 'every' but declares no domains", messages(findings, "warning"))
+        self.assertEqual(messages(findings, "error"), ())
+
+    def test_quantifier_with_a_domain_has_no_quantifier_finding(self):
+        record = with_criterion(
+            text="WHEN a line is shown THE SYSTEM SHALL keep every field",
+            domains=[PAYLOAD_DOMAIN],
+            tests=PAYLOAD_ROWS,
+        )
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_quantifier_in_capitals_is_matched(self):
+        record = with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep EVERY field")
+        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'every' but declares no domains",))
+
+    def test_quantifier_inside_a_longer_word_is_ignored(self):
+        text = "WHEN the company allows an overall view for everyone THE SYSTEM SHALL show anything listed"
+        self.assertEqual(self.check(with_criterion(text=text), True), ())
+        self.assertEqual(
+            self.errors(with_criterion(text=text + " for every user"), True),
+            ("criterion 7.1 says 'every' but declares no domains",),
+        )
+
+    def test_first_quantifier_word_is_named(self):
+        record = with_criterion(text="WHEN each line is shown THE SYSTEM SHALL keep every field")
+        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'each' but declares no domains",))
+
+    def test_unproven_quantified_criterion_needs_a_domain(self):
+        record = with_criterion(
+            text="WHEN a frame is drawn THE SYSTEM SHALL draw it on every screen",
+            where=["phone"],
+            tests=[],
+            unproven="needs the phone",
+        )
+        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'every' but declares no domains",))
+
+    def test_each_bound_phrase_needs_a_give_way_order(self):
+        phrases = (
+            "at most",
+            "no more than",
+            "up to",
+            "maximum",
+            "budget",
+            "limit",
+            "limits",
+            "cap",
+            "caps",
+            "exceed",
+            "exceeds",
+            "exceeding",
+        )
+        for phrase in phrases:
+            with self.subTest(phrase=phrase):
+                record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show %s 40 lines" % phrase)
+                self.assertEqual(
+                    self.errors(record, True),
+                    ("criterion 7.1 sets a bound with '%s' but lists nothing in gives_way" % phrase,),
+                )
+
+    def test_bound_without_give_way_warns_before_complete(self):
+        record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines")
+        findings = self.check(record, False)
+        self.assertIn(
+            "criterion 7.1 sets a bound with 'at most' but lists nothing in gives_way", messages(findings, "warning")
+        )
+        self.assertEqual(messages(findings, "error"), ())
+
+    def test_bound_with_give_way_has_no_bound_finding(self):
+        record = with_criterion(
+            text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
+            gives_way=["older lines", "the header"],
+            tests=GIVE_WAY_ROWS,
+        )
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_bound_phrase_in_capitals_and_across_lines_is_matched(self):
+        record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show AT\nMOST 40 lines")
+        self.assertEqual(
+            self.errors(record, True), ("criterion 7.1 sets a bound with 'at most' but lists nothing in gives_way",)
+        )
+
+    def test_bound_inside_a_longer_word_is_ignored(self):
+        text = "WHEN the capture of capital upstream data is shown THE SYSTEM SHALL maximise its use"
+        self.assertEqual(self.check(with_criterion(text=text), True), ())
+        self.assertEqual(
+            self.errors(with_criterion(text=text + " up to 3 times"), True),
+            ("criterion 7.1 sets a bound with 'up to' but lists nothing in gives_way",),
+        )
+
+    def test_row_without_covers_is_accepted(self):
+        record = base_record()
+        self.assertNotIn("covers", record["criteria"][0]["tests"][0])
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_covers_that_is_not_a_list_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": "payload: absent"}, PAYLOAD_ROWS[1]]
+        errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
+        self.assertIn(
+            "criterion 7.1 test 'test_total' has covers that is not a non-empty list of non-empty strings", errors
+        )
+
+    def test_empty_covers_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": []}, PAYLOAD_ROWS[1]]
+        errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
+        self.assertIn(
+            "criterion 7.1 test 'test_total' has covers that is not a non-empty list of non-empty strings", errors
+        )
+
+    def test_covers_entry_without_a_separator_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": ["payload absent"]}, PAYLOAD_ROWS[1]]
+        errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
+        self.assertIn(
+            "criterion 7.1 test 'test_total' covers 'payload absent', which is not '<domain>: <class>' or "
+            "'gives-way: <item>'",
+            errors,
+        )
+
+    def test_covers_naming_an_unknown_domain_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": ["cwd: subfolder"]}, PAYLOAD_ROWS[1]]
+        errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
+        self.assertIn("criterion 7.1 test 'test_total' covers unknown domain 'cwd'", errors)
+
+    def test_covers_naming_an_unknown_class_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": ["payload: truncated"]}, PAYLOAD_ROWS[1]]
+        errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
+        self.assertIn("criterion 7.1 test 'test_total' covers unknown class 'truncated' of domain 'payload'", errors)
+
+    def test_covers_naming_an_unknown_give_way_item_is_an_error(self):
+        tests = [{**TEST_ENTRY, "covers": ["gives-way: newest lines"]}, GIVE_WAY_ROWS[1]]
+        errors = self.errors(with_criterion(gives_way=["older lines", "the header"], tests=tests), False)
+        self.assertIn("criterion 7.1 test 'test_total' covers unknown give-way item 'newest lines'", errors)
+
+    def test_class_holding_a_colon_is_covered(self):
+        domain = {**PAYLOAD_DOMAIN, "classes": ["key: value", "absent"]}
+        tests = [{**TEST_ENTRY, "covers": ["payload: key: value"]}, {**PRESENT_ENTRY, "covers": ["payload: absent"]}]
+        self.assertEqual(self.errors(with_criterion(domains=[domain], tests=tests), True), ())
+
+    def test_uncovered_class_warns_before_complete(self):
+        record = with_criterion(domains=[PAYLOAD_DOMAIN], tests=[{**TEST_ENTRY, "covers": ["payload: absent"]}])
+        findings = self.check(record, False)
+        self.assertIn(
+            "criterion 7.1 has no test covering class 'present' of domain 'payload'", messages(findings, "warning")
+        )
+        self.assertEqual(messages(findings, "error"), ())
+
+    def test_uncovered_class_is_an_error_when_complete(self):
+        record = with_criterion(domains=[PAYLOAD_DOMAIN], tests=[{**TEST_ENTRY, "covers": ["payload: absent"]}])
+        self.assertIn(
+            "criterion 7.1 has no test covering class 'present' of domain 'payload'", self.errors(record, True)
+        )
+
+    def test_uncovered_give_way_item_is_an_error_when_complete(self):
+        record = with_criterion(
+            gives_way=["older lines", "the header"], tests=[{**TEST_ENTRY, "covers": ["gives-way: older lines"]}]
+        )
+        self.assertIn("criterion 7.1 has no test covering give-way item 'the header'", self.errors(record, True))
+
+    def test_unproven_criterion_needs_no_coverage(self):
+        record = with_criterion(domains=[PAYLOAD_DOMAIN], where=["phone"], tests=[], unproven="needs the phone")
+        self.assertEqual(self.check(record, True), ())
+
+    def test_row_without_given_is_an_error(self):
+        test = {
+            "file": "tests/test_app.py",
+            "name": "test_total",
+            "expect": "3 is returned",
+            "env": "unit-tests",
+            "step": "build-app",
+        }
+        self.assertIn(
+            "criterion 7.1 test 'test_total' is not an object with non-empty string file, name, given, expect, env "
+            "and step",
+            self.errors(with_criterion(tests=[test]), False),
+        )
+
+    def test_row_without_expect_is_an_error(self):
+        test = {
+            "file": "tests/test_app.py",
+            "name": "test_total",
+            "given": "a total of 3",
+            "env": "unit-tests",
+            "step": "build-app",
+        }
+        self.assertIn(
+            "criterion 7.1 test 'test_total' is not an object with non-empty string file, name, given, expect, env "
+            "and step",
+            self.errors(with_criterion(tests=[test]), False),
+        )
+
+    def test_row_with_asserts_is_an_error(self):
+        test = {**TEST_ENTRY, "asserts": "the total adds up"}
+        self.assertIn(
+            "criterion 7.1 test 'test_total' has unknown key 'asserts'",
+            self.errors(with_criterion(tests=[test]), False),
+        )
+
+    def test_row_with_given_and_expect_is_accepted(self):
+        test = {
+            "file": "tests/test_app.py",
+            "name": "test_total",
+            "given": "a total of 3",
+            "expect": "3 is returned",
+            "env": "unit-tests",
+            "step": "build-app",
+        }
+        self.assertEqual(self.errors(with_criterion(tests=[test]), True), ())
+
+    def test_outside_fact_cited_by_command_is_accepted(self):
+        record = change(base_record(), "facts", 1, outside=True)
+        self.assertEqual(record["facts"][1]["command"], "python3 -m unittest")
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_outside_fact_cited_by_location_is_an_error(self):
+        record = change(base_record(), "facts", 0, outside=True)
+        self.assertIn(
+            "fact 'f1' is marked outside but is not cited by command and output", self.errors(record, False)
+        )
+
+    def test_outside_fact_cited_by_url_is_an_error(self):
+        fact = {"id": "f3", "fact": "The format is documented", "url": "https://example.com/a", "outside": True}
+        record = append(base_record(), "facts", fact)
+        self.assertIn(
+            "fact 'f3' is marked outside but is not cited by command and output", self.errors(record, False)
+        )
+
+    def test_outside_that_is_not_a_boolean_is_an_error(self):
+        record = change(base_record(), "facts", 0, outside="yes")
+        self.assertIn("fact 'f1' has outside that is not true or false", self.errors(record, False))
+
+    def test_inside_fact_cited_by_location_is_accepted(self):
+        record = change(base_record(), "facts", 0, outside=False)
+        self.assertNotIn("outside", record["facts"][1])
+        self.assertEqual(self.errors(record, True), ())
+
+
+class AmendmentRecordTest(RecordFixture, unittest.TestCase):
+    def test_steps_with_and_without_amendment_are_accepted(self):
+        fix = {
+            "name": "fix-app",
+            "files": ["src/app.py"],
+            "criteria": ["7.1"],
+            "task": "Fix the app.",
+            "amendment": 1,
+            "after": ["build-app"],
+        }
+        record = append(base_record(), "steps", fix)
+        self.assertNotIn("amendment", record["steps"][0])
+        self.assertEqual(self.errors(record, True), ())
+
+    def test_amendment_zero_is_an_error(self):
+        record = change(base_record(), "steps", 0, amendment=0)
+        self.assertIn(
+            "step 'build-app' has amendment that is not an integer of at least 1", self.errors(record, False)
+        )
+
+    def test_amendment_true_is_an_error(self):
+        record = change(base_record(), "steps", 0, amendment=True)
+        self.assertIn(
+            "step 'build-app' has amendment that is not an integer of at least 1", self.errors(record, False)
+        )
+
+    def test_amendment_string_is_an_error(self):
+        record = change(base_record(), "steps", 0, amendment="1")
+        self.assertIn(
+            "step 'build-app' has amendment that is not an integer of at least 1", self.errors(record, False)
+        )
 
 
 if __name__ == "__main__":

@@ -26,7 +26,9 @@ NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(\d+(?:\.\d+)*)\.?[ \t]+(.*?)[ \t]*$")
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
-USAGE = "usage: python3 check_items.py ITEMS"
+USAGE = "usage: python3 check_items.py [--amendment] ITEMS"
+AMENDMENT = "--amendment"
+UNCLAIMED = ("acceptance criterion ", " is claimed by no step's spec_ref")
 SCRIPT_EXTENSIONS = (".js", ".jsx", ".mjs", ".ts", ".tsx")
 EXPORT_FILES = (
     ("__init__.py", (".py",)),
@@ -587,15 +589,35 @@ def check_file(path):
         return check_text(handle.read())
 
 
+def parse_arguments(argv):
+    flags = tuple(argument for argument in argv if argument == AMENDMENT)
+    paths = tuple(argument for argument in argv if argument != AMENDMENT)
+    if len(flags) > 1 or len(paths) != 1:
+        return None
+    return paths[0], bool(flags)
+
+
+def unclaimed(finding):
+    message = finding[2]
+    return message.startswith(UNCLAIMED[0]) and message.endswith(UNCLAIMED[1])
+
+
+def amendment_findings(findings):
+    return tuple(finding for finding in findings if not unclaimed(finding))
+
+
 def main(argv):
-    if len(argv) != 1:
+    arguments = parse_arguments(argv)
+    if arguments is None:
         print(USAGE, file=sys.stderr)
         return 2
+    path, amendment = arguments
     try:
-        findings = check_file(argv[0])
+        checked = check_file(path)
     except (OSError, UnicodeDecodeError) as exc:
-        print("error: cannot read %s: %s" % (argv[0], exc))
+        print("error: cannot read %s: %s" % (path, exc))
         return 2
+    findings = amendment_findings(checked) if amendment else checked
     for severity, _, message in findings:
         print("%s: %s" % (severity, message))
     return 1 if any(severity == "error" for severity, _, _ in findings) else 0

@@ -124,22 +124,20 @@ def conditions(text):
     )
 
 
-def criterion(number, title, text, name, step):
-    return {
-        "number": number,
-        "title": title,
-        "text": text,
-        "where": ["unit-tests"],
-        "tests": [
-            {
-                "file": "tests/test_report.py",
-                "name": name,
-                "asserts": title.lower(),
-                "env": "unit-tests",
-                "step": step,
-            }
-        ],
+def report_test(name, step, given, expect, *covers):
+    test = {
+        "file": "tests/test_report.py",
+        "name": name,
+        "given": given,
+        "expect": expect,
+        "env": "unit-tests",
+        "step": step,
     }
+    return {**test, "covers": list(covers)} if covers else test
+
+
+def criterion(number, title, text, tests, **extra):
+    return {"number": number, "title": title, "text": text, "where": ["unit-tests"], "tests": list(tests), **extra}
 
 
 def brief_record():
@@ -159,15 +157,42 @@ def brief_record():
                 "4.1",
                 "The stock report ends with a total row",
                 "WHEN the stock report is shown THE SYSTEM SHALL end it with a row holding the sum of all quantities.",
-                "test_total_row",
-                "total-row",
+                (
+                    report_test(
+                        "test_total_row",
+                        "total-row",
+                        "products with quantities 2 and 3",
+                        "the last row holds 5",
+                        "stock-rows: several products",
+                    ),
+                    report_test(
+                        "test_total_row_without_products",
+                        "total-row",
+                        "no products",
+                        "the last row holds 0",
+                        "stock-rows: no products",
+                    ),
+                ),
+                domains=[
+                    {
+                        "name": "stock-rows",
+                        "over": "the products the stock report lists",
+                        "classes": ["no products", "several products"],
+                    }
+                ],
             ),
             criterion(
                 "4.2",
                 "The low-stock list is sorted by name",
                 "WHEN the low-stock list is shown THE SYSTEM SHALL list products by name from A to Z.",
-                "test_low_stock_order",
-                "low-stock-order",
+                (
+                    report_test(
+                        "test_low_stock_order",
+                        "low-stock-order",
+                        "low-stock products Pears then Apples",
+                        "Apples is listed before Pears",
+                    ),
+                ),
             ),
         ],
         "steps": [
