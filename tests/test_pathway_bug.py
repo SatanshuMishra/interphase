@@ -135,5 +135,14 @@ class PathwayBugTest(unittest.TestCase):
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/variation.md", body)
 
 
+    def test_bug_playbook_cites_criteria_in_the_fix_boundary(self):
+        lines = read("core/pathways/bug.md").splitlines()
+        expected = '  - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>", citing the acceptance criterion that states it.'
+        unchanged = '  - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", citing the acceptance criterion that states it.'
+        self.assertIn(expected, lines)
+        self.assertIn(unchanged, lines)
+        self.assertEqual(lines.index(unchanged), lines.index(expected) + 1)
+
+
 if __name__ == "__main__":
     unittest.main()

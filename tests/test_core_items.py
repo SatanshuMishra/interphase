@@ -137,5 +137,47 @@ class CoreItemsTest(unittest.TestCase):
         self.assertNotIn("- Give a small request one Step.", designing)
 
 
+    def test_record_table_names_the_new_keys(self):
+        rows = section(read_guide(), "## Interview record").splitlines()
+        cells = {
+            "facts": "`id` (unique), `fact`, and one citation: `path` (repository-relative), `line` (from 1) and `quote` (text that appears in that line); or `url`; or `command` and `output` (what was run and what it showed); a fact about software outside the repository also carries `outside: true` and is cited by `command` and `output`",
+            "criteria": "`number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each one row, with `file`, `name`, `given`, `expect`, `env`, `step` and, when the criterion has `domains` or `gives_way`, `covers`), `domains` (each with `name`, `over`, `classes` and, when existing code reads the input, `fact`) for the inputs the behaviour reads, `gives_way` (what gives way first to last when a bound is reached), `facts` (the ids of the facts it rests on), `unproven` (the reason) only when no test the builder runs can prove it where it counts, and `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate`",
+            "steps": "`name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref`",
+        }
+        for key, cell in cells.items():
+            with self.subTest(key=key):
+                self.assertIn("| `" + key + "` | " + cell + " |", rows)
+
+    def test_items_guide_explains_case_tables(self):
+        paragraphs = section(read_guide(), "## Interview record").split("\n\n")
+        starts = tuple(
+            i for i, p in enumerate(paragraphs) if p.startswith("Give every criterion a test the builder runs")
+        )
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(
+            paragraphs[starts[0] + 1],
+            "A criterion is a case table. Each domain lists the classes of one input that the code tells apart and, when existing code reads the input, cites the fact that shows where. Each test is one row: `given` says the input, `expect` says the result, and `covers` names what the row covers, as `<domain>: <class>` or `gives-way: <item>`. The record check reports a class or give-way item no row covers, a criterion that says every, each, any, all, whole, always, never, whatever, however or whenever with no domain, and a bound with no `gives_way`.",
+        )
+
+    def test_task_rows_are_written_literally(self):
+        writing = section(read_guide(), "## Writing a task")
+        self.assertIn(
+            "The render script adds each acceptance test by file and name with what it is given and what it expects, and every acceptance criterion the Step proves, word for word, after the task you write.",
+            writing,
+        )
+        self.assertIn(
+            "Tell the builder to write every row into its test file literally, as the task gives it, and never to compute the rows from the code under test.",
+            writing,
+        )
+        self.assertNotIn("with what it asserts", writing)
+
+    def test_amendment_items_are_checked_with_the_option(self):
+        checking = section(read_guide(), "## Checking the result")
+        self.assertIn(
+            "Check an amendment items file with `python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py\" --amendment docs/specs/<slug>.amend-<n>.items.json`; it then does not report the criteria the amendment does not claim.",
+            checking,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

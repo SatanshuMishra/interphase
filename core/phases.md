@@ -22,6 +22,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 
 ## Phase 1: Intake
 
+- When the request names a spec in the spec folder whose record says `handed-off` and asks to add a case to it or fix a gap in it, follow the section Amend a handed-off spec instead of the phases below.
 - Run every command in these phases from the repository root, the folder `git rev-parse --show-toplevel` prints.
 - Record the request word for word. It becomes section 1 of the spec.
 - Choose a slug in lowercase kebab-case, at most 40 characters, drawn from the request. State it.
@@ -48,6 +49,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Learn where the user sees the result: the device, operating system, runtime, renderer, screen size and window chrome, and where the project's tests run. Record each as an environment in the record, marking whether the builder can run it.
 - Follow the `## Ground` section of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` for the pathway-specific investigation: feature research, bug reproduction, prototype exploration.
 - Read the code you need to understand yourself. Dispatch the `interphase:scout` agent only for outside documentation, or for a question whose answer is where something is in the code, with one self-contained question. Record each fact you keep in the record with its citation: the path, the line and the quoted text; the URL; or the command and what it showed.
+- Run every fact about software outside the repository, such as a tool's flags, an interface's reply or what a version accepts, and record it with `outside: true`, the command and what it showed. Documentation and memory are never the evidence for such a fact. When it cannot be run here, because it needs the user's device, a live service or a paid account, write it into the spec as an assumption instead.
 - When a finding needs something only the user can provide, such as their device, their presence or repeated measurement, ask for it once and carry on with every other phase. Never end a turn only to wait for it. If it is still unavailable when you write the spec, keep the finding and mark it unconfirmed.
 - Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - Treat every fact found here as a question not asked.
@@ -59,6 +61,8 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
 - Use the `## Questions` bank of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` as the checklist of what must be known.
 - Design the Steps as the interview goes. When a requirement is settled, write its acceptance criterion to the record, with the environments where passing proves it and the tests that prove it or the reason it is unproven, and give it an owning Step in the record: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Write each criterion as a case table. For every input the behaviour reads, add a domain: what varies, every class of it the code tells apart and, when existing code reads it, the fact that cites where. Give every class a row: one named test with what is given, what is expected and the classes it covers. A criterion that says every, each, any, all, whole, always, never, whatever, however or whenever needs a domain.
+- When a criterion sets a bound, such as at most, no more than, up to, a maximum, a budget, a limit, a cap or exceeding something, list in `gives_way` what gives way first to last when the bound is reached, and give every item a row.
 - Ask about the shape of the work in the same rounds as the other questions: what must ship together, what order matters and what could be thrown away. Look up the files, tests and export files each Step needs; ask only when the code is silent.
 - Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - After every question round, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json`. Fix every error before the next round.
@@ -70,6 +74,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Run a pre-mortem. Ask: "Imagine this shipped and you are unhappy with it. Why?"
 - Push back on scope using the section "Push back on scope" of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
 - Record at least one non-goal.
+- Check that every domain is closed. When the classes of an input cannot all be listed, because it is free text, a shell command, arbitrary configuration or anything else open-ended, recommend a design that makes the decision where every input can be listed, such as one entry point that receives them already parsed, and settle it as any other decision.
 
 ## Phase 6: Design the Steps
 
@@ -94,6 +99,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Fill the Review bar section: name each threat the change must withstand and its level of defence, taking them from the security needs settled in the interview and stated in the spec and, in an autonomous run, from the threats the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` lists, or say it has none beyond its acceptance criteria and why. Keep every threat it names defended somewhere in the spec, name the sections of the spec a reviewer may block on beyond the acceptance criteria, and name what is out of scope for review, at least weaknesses the code had before the change and hardening beyond the named threats. In the brief lane, write all of it in one or two lines.
 - Keep every numbered heading exactly as the template has it.
 - Give every requirement an acceptance criterion that can pass or fail.
+- Write each requirement once, in its acceptance criterion. Every line of Requirements, Edge cases, Expected and Unchanged cites the number of the criterion that states it, such as 7.3, and says no more than that criterion does.
 - Put every default into the Assumptions section.
 - Leave at most three open questions. Say for each why it is safe to leave open.
 - Write each Step's task into its entry in the record, following the section "Writing a task" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
@@ -122,3 +128,17 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - In an autonomous run, list next every decision that overrides a line of an earlier decisions file or a written rule or convention of the project, then every other decision made on the user's behalf, as top risks.
 - Report the counts of Steps, unproven criteria, assumptions and open questions.
 - Stop. Do not suggest a tool to build it. Do not start building it.
+
+## Amend a handed-off spec
+
+- Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.
+- Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.
+- When the record's tests carry `asserts`, rewrite each as `given` and `expect`, and add the domains and give-way orders the record check asks for.
+- Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
+- Add the missing classes, give-way items, facts and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
+- Give every new row's test to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
+- Save each decision to the decisions file, follow phases 5 and 6 for what changed, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`.
+- Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.
+- Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.
+- Dispatch the `interphase:spec-reviewer` agent as in phase 9, naming the criteria and the Step that changed, and get approval as in phase 9.
+- Hand off as in phase 10, and report the amendment items file in place of the items file.

@@ -102,7 +102,6 @@ class AgentsTest(unittest.TestCase):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in (
             "Review the spec and the items file",
-            "- Trace:",
             "- Task drift:",
             "- Task independence:",
             "- Build order:",
@@ -176,6 +175,41 @@ class AgentsTest(unittest.TestCase):
         expected = EXPECTED["agents/spec-reviewer.md"]
         frontmatter = parse_frontmatter(text)
         self.assertEqual({key: frontmatter.get(key) for key in expected}, expected)
+
+
+    def test_spec_reviewer_skips_what_scripts_check(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        paragraphs = body.split("\n\n")
+        starts = tuple(
+            i for i, p in enumerate(paragraphs) if p.startswith("Review the spec and the items file at the paths you are given")
+        )
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(
+            paragraphs[starts[0] + 1],
+            "The record check, the render script, the spec check and the items check have already passed. Never report what they check: placeholders, empty sections, unknown keys, uncited lines, uncovered classes and criteria no Step claims.",
+        )
+
+    def test_spec_reviewer_checks_closed_contracts(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        lines = body.splitlines()
+        positions = tuple(i for i, line in enumerate(lines) if line.startswith("- Clarity:"))
+        self.assertEqual(len(positions), 1)
+        start = positions[0] + 1
+        self.assertEqual(
+            lines[start:start + 4],
+            [
+                "- Missing class: an input the code reads, at a line a domain cites or that you find by searching the code, with a class no domain lists, such as an absent field, an empty value, a renamed file, a subfolder or a truncated value. Name the file and line.",
+                "- Give-way: a bound whose order of what gives way is missing or leaves a choice open.",
+                "- Outside fact: a claim about software outside the repository that no recorded command and output shows and the spec does not list as an assumption.",
+                "- Open domain: a domain whose classes cannot all be listed, such as free text or shell commands, that the design still decides on.",
+            ],
+        )
+
+    def test_spec_reviewer_drops_script_checked_categories(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        lines = body.splitlines()
+        self.assertEqual(tuple(line for line in lines if line.startswith("- Completeness:")), ())
+        self.assertEqual(tuple(line for line in lines if line.startswith("- Trace:")), ())
 
 
 if __name__ == "__main__":

@@ -47,4 +47,4 @@ Reproduce a bug in varying behaviour as its class. Generate variants of the fail
 
 ## In the record
 
-Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them as a Population line.
+Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs in cell.

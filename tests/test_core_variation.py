@@ -145,12 +145,21 @@ class CoreVariationTest(unittest.TestCase):
             "`runs`",
             "`pass_rate`",
             "check_record.py",
-            "Population line",
+            "Runs in cell",
         ):
             self.assertIn(needle, record, needle)
 
     def test_variation_names_no_consuming_tool(self):
         self.assertNotIn("mitosis", read_variation().lower())
+
+
+    def test_variation_guide_puts_population_in_the_table(self):
+        text = read_variation()
+        self.assertIn(
+            "Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs in cell.",
+            text.splitlines(),
+        )
+        self.assertNotIn("Population line", text)
 
 
 if __name__ == "__main__":
