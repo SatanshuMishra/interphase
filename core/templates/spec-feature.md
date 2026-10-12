@@ -32,9 +32,9 @@ Date: {{date}}.
 
 ## 6. Requirements
 
-{{numbered requirements, each with the rule and one concrete example}}
+{{one line per requirement: the behaviour in a few words and the number of the acceptance criterion that states it, such as 7.1}}
 
-{{non-functional needs: performance, security, privacy, compatibility, migration}}
+{{non-functional needs: performance, security, privacy, compatibility, migration, each citing the acceptance criterion that states it, such as 7.1}}
 
 ## 7. Acceptance criteria
 
@@ -46,7 +46,7 @@ Date: {{date}}.
 
 ## 8. Edge cases
 
-{{terms, ranges, ordering, output format, units, precision, empty and huge inputs, each with the expected behaviour}}
+{{one line per edge case: the case in a few words and the number of the acceptance criterion whose row covers it, such as 7.1}}
 
 ## 9. Code map
 

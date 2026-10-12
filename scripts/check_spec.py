@@ -13,6 +13,13 @@ VAGUE_WORDS = (
 )
 VAGUE = re.compile(r"\b(" + "|".join(re.escape(word) for word in VAGUE_WORDS) + r")\b", re.IGNORECASE)
 OPEN_QUESTIONS_LIMIT = 3
+CITED_SECTIONS = ("requirements", "edge cases")
+CITED_SUB_SECTIONS = ("expected", "unchanged")
+LEVEL_THREE = re.compile(r"^### (.+)$")
+UP_TO_LEVEL_THREE = re.compile(r"^#{1,3} ")
+HEADING = re.compile(r"^#{1,6}([ \t]|$)")
+CRITERION = re.compile(r"^### (\S+)[ \t]+\S")
+EXEMPT_PREFIXES = (" ", "\t", "Not applicable:")
 USAGE = "usage: check_spec.py --template TEMPLATE SPEC"
 
 
@@ -114,6 +121,68 @@ def unnumbered_criteria(lines, spec_headings):
     )
 
 
+def citation(number):
+    return re.compile(r"(?<![\d.])" + re.escape(number) + r"\.\d+(?!\d)(?!\.\d)")
+
+
+def criterion_numbers(lines, line_number):
+    matches = (CRITERION.match(line) for line in section_body(lines, line_number, level_two_lines(lines)))
+    return frozenset(match.group(1) for match in matches if match)
+
+
+def cited_bodies(lines, spec_headings):
+    boundaries = level_two_lines(lines)
+    sub_boundaries = tuple(
+        number for number, line in enumerate(lines, start=1) if UP_TO_LEVEL_THREE.match(line)
+    )
+    sections = tuple(
+        (number, heading_title(heading), section_body(lines, number, boundaries))
+        for number, heading in spec_headings
+        if heading_title(heading).lower() in CITED_SECTIONS
+    )
+    sub_headings = tuple(
+        (number, match.group(1).strip())
+        for number, match in ((number, LEVEL_THREE.match(line.rstrip())) for number, line in enumerate(lines, start=1))
+        if match
+    )
+    sub_sections = tuple(
+        (number, title, section_body(lines, number, sub_boundaries))
+        for number, title in sub_headings
+        if title.lower() in CITED_SUB_SECTIONS
+    )
+    return tuple(sorted(sections + sub_sections, key=lambda section: section[0]))
+
+
+def exempt(line):
+    return not line.strip() or bool(HEADING.match(line)) or line.startswith(EXEMPT_PREFIXES)
+
+
+def line_citations(number, title, cited, criteria):
+    if not cited:
+        return (("error", number, "line {}: {} line cites no acceptance criterion".format(number, title)),)
+    return tuple(
+        ("error", number, "line {}: {} line cites {}, which is not an acceptance criterion".format(number, title, cite))
+        for cite in dict.fromkeys(cited)
+        if cite not in criteria
+    )
+
+
+def uncited_lines(lines, spec_headings):
+    acceptance = acceptance_sections(spec_headings)
+    if len(acceptance) != 1:
+        return ()
+    line_number, number = acceptance[0]
+    criteria = criterion_numbers(lines, line_number)
+    pattern = citation(number)
+    return tuple(
+        finding
+        for start, title, body in cited_bodies(lines, spec_headings)
+        for offset, line in enumerate(body, start=start + 1)
+        if not exempt(line)
+        for finding in line_citations(offset, title, tuple(match.group(0) for match in pattern.finditer(line)), criteria)
+    )
+
+
 def vague_words(lines):
     return tuple(
         ("warning", number, "line {}: vague word {}".format(number, match.group(1)))
@@ -154,6 +223,7 @@ def check(template_text, spec_text):
         + unfinished_markers(spec_lines)
         + empty_sections(spec_lines, spec_headings)
         + unnumbered_criteria(spec_lines, spec_headings)
+        + uncited_lines(spec_lines, spec_headings)
         + vague_words(spec_lines)
         + open_questions(spec_lines)
     )

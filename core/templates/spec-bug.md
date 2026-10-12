@@ -54,11 +54,11 @@ Date: {{date}}.
 
 ### Expected
 
-{{WHEN <condition> THE SYSTEM SHALL <right behaviour>}}
+{{WHEN <condition> THE SYSTEM SHALL <right behaviour>, citing the acceptance criterion that states it, such as 10.1}}
 
 ### Unchanged
 
-{{WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>}}
+{{WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>, citing the acceptance criterion that states it, such as 10.2}}
 
 ## 10. Acceptance criteria
 

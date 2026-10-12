@@ -2,12 +2,14 @@ import contextlib
 import importlib.util
 import io
 import pathlib
+import re
 import tempfile
 import unittest
 
 TEMPLATE = "# Spec\n\n## 1. Request\n\n{{request}}\n\n## 2. Summary\n\n{{summary}}\n"
 COMPLETE = "# Spec\n\n## 1. Request\n\nAdd a login page.\n\n## 2. Summary\n\nThe page accepts a name and a password.\n"
 CRITERIA_TEMPLATE = "# Spec\n\n## 1. Request\n\n{{request}}\n\n## 2. Acceptance criteria\n\n### 2.1 {{name}}\n\n{{check}}\n"
+NO_SECTIONS = "# Spec\n"
 
 
 class CheckSpecTest(unittest.TestCase):
@@ -32,6 +34,17 @@ class CheckSpecTest(unittest.TestCase):
 
     def lines_with(self, lines, prefix, text):
         return [line for line in lines if line.startswith(prefix) and text in line]
+
+    def citations(self, lines):
+        return [line for line in lines if " line cites " in line]
+
+    def template_paragraphs(self, name, heading):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        lines = (root / "core" / "templates" / name).read_text(encoding="utf-8").splitlines()
+        start = lines.index(heading) + 1
+        ends = [number for number in range(start, len(lines)) if re.match(r"#{1,3} ", lines[number])]
+        body = lines[start:ends[0] if ends else len(lines)]
+        return [block.strip() for block in "\n".join(body).split("\n\n") if block.strip()]
 
     def test_check_spec_passes_a_complete_spec(self):
         code, lines = self.run_checker(COMPLETE)
@@ -149,6 +162,332 @@ class CheckSpecTest(unittest.TestCase):
         findings = module.check(TEMPLATE, "# Spec\n\n## 1. Request\n\nAdd a login page.\n")
         self.assertIsInstance(findings, tuple)
         self.assertIn(("error", 0, "missing section: ## 2. Summary"), findings)
+
+    def test_only_the_uncited_requirement_line_is_reported(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "Pathway: feature.\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call (7.1)\n"
+            "- Hooks log a call\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 8: Requirements line cites no acceptance criterion"])
+
+    def test_numbered_requirement_line_is_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "1. Hooks refuse a call\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: Requirements line cites no acceptance criterion"])
+
+    def test_paragraph_requirement_line_is_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "Hooks refuse a call.\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: Requirements line cites no acceptance criterion"])
+
+    def test_citing_a_missing_criterion_is_an_error(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call (7.9)\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            self.citations(lines),
+            ["error: line 5: Requirements line cites 7.9, which is not an acceptance criterion"],
+        )
+
+    def test_each_missing_number_is_reported(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call (7.1, 7.9, 7.8)\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            self.citations(lines),
+            [
+                "error: line 5: Requirements line cites 7.9, which is not an acceptance criterion",
+                "error: line 5: Requirements line cites 7.8, which is not an acceptance criterion",
+            ],
+        )
+
+    def test_longer_number_is_not_a_shorter_one(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call (7.10)\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            self.citations(lines),
+            ["error: line 5: Requirements line cites 7.10, which is not an acceptance criterion"],
+        )
+
+    def test_version_text_is_not_a_citation(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Release 0.7.0 ships the checker\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: Requirements line cites no acceptance criterion"])
+
+    def test_edge_case_lines_are_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+            "\n"
+            "## 8. Edge cases\n"
+            "\n"
+            "- An empty payload\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 11: Edge cases line cites no acceptance criterion"])
+
+    def test_expected_and_unchanged_lines_are_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "Pathway: bug.\n"
+            "\n"
+            "## 9. Fix boundary\n"
+            "\n"
+            "### Current\n"
+            "\n"
+            "WHEN a call fails THEN the system logs nothing\n"
+            "\n"
+            "### Expected\n"
+            "\n"
+            "WHEN a call fails THE SYSTEM SHALL log it\n"
+            "\n"
+            "### Unchanged\n"
+            "\n"
+            "WHEN a call passes THE SYSTEM SHALL CONTINUE TO log nothing\n"
+            "\n"
+            "## 10. Acceptance criteria\n"
+            "\n"
+            "### 10.1 A failed call is logged\n"
+            "\n"
+            "WHEN a call fails THE SYSTEM SHALL log it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            self.citations(lines),
+            [
+                "error: line 13: Expected line cites no acceptance criterion",
+                "error: line 17: Unchanged line cites no acceptance criterion",
+            ],
+        )
+
+    def test_sub_section_lines_are_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "### Functional\n"
+            "\n"
+            "- Hooks refuse a call (7.1)\n"
+            "\n"
+            "### Non-functional\n"
+            "\n"
+            "- Hooks answer within a second\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 11: Requirements line cites no acceptance criterion"])
+
+    def test_section_title_in_other_case_is_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. requirements\n"
+            "\n"
+            "- Hooks refuse a call\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: requirements line cites no acceptance criterion"])
+
+    def test_exempt_and_other_lines_are_not_checked(self):
+        spec = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call\n"
+            "  - sub item\n"
+            "\n"
+            "Not applicable: nothing to require\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+            "\n"
+            "## 10. Approach and alternatives\n"
+            "\n"
+            "- Hooks log a call\n"
+        )
+        code, lines = self.run_checker(spec, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: Requirements line cites no acceptance criterion"])
+
+    def test_spec_without_acceptance_section_has_no_citation_finding(self):
+        with_acceptance = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call\n"
+            "\n"
+            "## 7. Acceptance criteria\n"
+            "\n"
+            "### 7.1 Hooks refuse a call\n"
+            "\n"
+            "WHEN a hook reads a call THE SYSTEM SHALL refuse it.\n"
+        )
+        without_acceptance = (
+            "# Spec\n"
+            "\n"
+            "## 6. Requirements\n"
+            "\n"
+            "- Hooks refuse a call\n"
+        )
+        code, lines = self.run_checker(with_acceptance, NO_SECTIONS)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.citations(lines), ["error: line 5: Requirements line cites no acceptance criterion"])
+        code, lines = self.run_checker(without_acceptance, NO_SECTIONS)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.citations(lines), [])
+
+    def test_feature_template_asks_for_citations(self):
+        self.assertEqual(
+            self.template_paragraphs("spec-feature.md", "## 6. Requirements"),
+            [
+                "{{one line per requirement: the behaviour in a few words and the number of the acceptance criterion that states it, such as 7.1}}",
+                "{{non-functional needs: performance, security, privacy, compatibility, migration, each citing the acceptance criterion that states it, such as 7.1}}",
+            ],
+        )
+        self.assertEqual(
+            self.template_paragraphs("spec-feature.md", "## 8. Edge cases"),
+            ["{{one line per edge case: the case in a few words and the number of the acceptance criterion whose row covers it, such as 7.1}}"],
+        )
+
+    def test_project_template_asks_for_citations(self):
+        self.assertEqual(
+            self.template_paragraphs("spec-project.md", "## 12. Requirements"),
+            [
+                "{{one line per requirement: the behaviour in a few words and the number of the acceptance criterion that states it, such as 13.1}}",
+                "{{non-functional needs: performance, security, privacy, compatibility, migration, each citing the acceptance criterion that states it, such as 13.1}}",
+            ],
+        )
+        self.assertEqual(
+            self.template_paragraphs("spec-project.md", "## 14. Edge cases"),
+            ["{{one line per edge case: the case in a few words and the number of the acceptance criterion whose row covers it, such as 13.1}}"],
+        )
+
+    def test_bug_template_asks_for_citations(self):
+        self.assertEqual(
+            self.template_paragraphs("spec-bug.md", "### Expected"),
+            ["{{WHEN <condition> THE SYSTEM SHALL <right behaviour>, citing the acceptance criterion that states it, such as 10.1}}"],
+        )
+        self.assertEqual(
+            self.template_paragraphs("spec-bug.md", "### Unchanged"),
+            ["{{WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>, citing the acceptance criterion that states it, such as 10.2}}"],
+        )
 
 
 if __name__ == "__main__":
