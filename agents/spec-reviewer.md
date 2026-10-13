@@ -44,7 +44,7 @@ When you are given a diff file and the issues of the last review, this is a foll
 
 In an autonomous run, what the product's context calls for in the requested work counts as asked for.
 
-Report only issues that would cause the wrong thing to be built. Skip style and wording preferences.
+Report only issues that would cause the wrong thing to be built, and defects under Outside the change. Skip style and wording preferences.
 
 Output a `Status:` line first. It reads `Approved` or `Issues found`.
 

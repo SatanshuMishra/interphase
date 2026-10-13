@@ -257,6 +257,16 @@ class AgentsTest(unittest.TestCase):
         follow_up = "When you are given a diff file and the issues of the last review, this is a follow-up review. Check that the change fixes each of those issues. Report each earlier issue the change does not fix, and nothing else."
         self.assertIn(filing + "\n\n" + follow_up + "\n\n", body)
 
+    def test_spec_reviewer_judges_input_only_inside_the_boundary(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        for line in (
+            "Judge the input categories only inside the change's boundary: the behaviour the change adds or alters, and existing code it newly calls or newly routes input into. A defect in existing behaviour the change neither alters nor newly reaches is never an input issue; report it under Outside the change.",
+            "- Outside the change: a defect in existing behaviour the change neither alters nor newly reaches. It is for the user to know about, never blocks hand-off and never needs a criterion.",
+            "Report only issues that would cause the wrong thing to be built, and defects under Outside the change. Skip style and wording preferences.",
+        ):
+            with self.subTest(line=line[:24]):
+                self.assertIn(line + "\n", body)
+
     def test_spec_reviewer_files_input_gaps_under_input_categories(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         filing = "When an issue fits one of Missing input, Missing class, Stand-in, Source, Outside fact, Invalid input, Give-way or Open domain and another category too, file it under that input category. In an autonomous run, a decision made on the user's behalf never settles an issue under one of those eight categories. A fact in the record that shows, by path, line and quote or by command and output, that an issue lies outside the change or concerns a class that cannot reach the changed code does settle it: do not report it again."

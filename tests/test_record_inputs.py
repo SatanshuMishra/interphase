@@ -93,6 +93,7 @@ APP_TEXT = "def total_of(total):\n    return total\n"
 SOURCE_FILES = (("src/app.py", APP_TEXT),)
 BASE_SPEC = b"# The total shows\n"
 CHANGED_SPEC = b"# The total shows\nchanged\n"
+BRIEF_SPEC = b"# The total shows\n\nLane: brief.\n"
 DECISIONS_FILES = (("docs/specs/app.decisions.md", "# Decisions for the app\n\n- Keep the total's format open.\n"),)
 USAGE_LINE = "usage: python3 check_record.py [--complete | --digest] RECORD"
 DIGEST_RE = re.compile(r"[0-9a-f]{64}\n")
@@ -275,6 +276,17 @@ def repo_only_record():
 
 def with_reviews(record, reviews):
     return {**record, "reviews": list(reviews)}
+
+
+def follow_up_reviews(*earlier):
+    return [
+        {"status": "Issues found", "issues": list(earlier), "reviewed": open_digest()},
+        {"status": "Issues found", "issues": [CLOCK_ISSUE], "reviewed": base_digest()},
+    ]
+
+
+def held_record(reviews, held):
+    return handed_off({**with_reviews(base_record(), reviews), "open_issues": list(held)})
 
 
 def handed_off(record):
@@ -787,35 +799,86 @@ class RecordInputsTest(unittest.TestCase):
     def test_handed_off_record_with_an_empty_review_list_is_refused(self):
         self.assert_refused(handed_off(with_reviews(base_record(), [])), "record is handed off but has no review")
 
-    def test_handed_off_record_without_review_hands_off_when_nothing_needs_review(self):
-        self.assert_accepted(handed_off(repo_only_record()))
+    def test_handed_off_brief_without_review_hands_off_when_nothing_needs_review(self):
+        self.assert_accepted(handed_off(repo_only_record()), spec=BRIEF_SPEC)
+
+    def test_handed_off_full_spec_without_review_is_refused_when_nothing_needs_review(self):
+        self.assert_refused(handed_off(repo_only_record()), "record is handed off but has no review")
 
     def test_handed_off_record_without_review_is_refused_for_a_bound(self):
         record = with_criterion(repo_only_record(), gives_way=["older lines"], keeps=["the total"])
-        self.assert_refused(handed_off(record), "record is handed off but has no review")
+        self.assert_refused(handed_off(record), "record is handed off but has no review", spec=BRIEF_SPEC)
+
+    def test_handed_off_record_without_review_reports_criteria_and_domains_that_are_not_lists(self):
+        for record in (
+            {**repo_only_record(), "criteria": 5},
+            {**repo_only_record(), "criteria": True},
+            with_criterion(repo_only_record(), domains=5),
+            with_criterion(repo_only_record(), domains=True),
+        ):
+            with self.subTest(record=record["criteria"] if not isinstance(record["criteria"], list) else "domains"):
+                self.assertNotEqual(errors(self.check(handed_off(record), spec=BRIEF_SPEC)), ())
 
     def test_handed_off_record_without_review_is_refused_for_each_source_from_outside_the_code(self):
         for source in ("outside", "person", "stored", "sent"):
             with self.subTest(source=source):
                 record = with_payload(repo_only_record(), source=source)
                 self.assertIn(
-                    "record is handed off but has no review", errors(self.check(handed_off(record), complete=False))
+                    "record is handed off but has no review",
+                    errors(self.check(handed_off(record), complete=False, spec=BRIEF_SPEC)),
                 )
 
-    def test_input_issue_held_in_open_issues_hands_off(self):
-        reviews = [{"status": "Issues found", "issues": [CLOCK_ISSUE], "reviewed": base_digest()}]
-        record = {**with_reviews(base_record(), reviews), "open_issues": [CLOCK_ISSUE]}
-        self.assert_accepted(handed_off(record))
+    def test_input_issue_held_in_open_issues_hands_off_after_a_review_that_made_no_progress(self):
+        self.assert_accepted(held_record(follow_up_reviews(CLOCK_ISSUE), [CLOCK_ISSUE]))
 
-    def test_open_issues_hold_only_an_issue_copied_unchanged(self):
+    def test_open_issues_after_a_first_review_are_refused(self):
         reviews = [{"status": "Issues found", "issues": [CLOCK_ISSUE], "reviewed": base_digest()}]
-        edited = {**CLOCK_ISSUE, "text": CLOCK_ISSUE["text"] + " Settled."}
-        record = {**with_reviews(base_record(), reviews), "open_issues": [edited]}
-        self.assert_refused(
-            handed_off(record),
+        findings = errors(self.check(held_record(reviews, [CLOCK_ISSUE])))
+        self.assertIn(
+            "record holds open_issues but its last review is not a follow-up review of the record as it stands "
+            "that made no progress",
+            findings,
+        )
+        self.assertIn(
             "record is handed off but review 1 of the record as it stands reports Missing input: 'Step build-app, "
             "open input: it reads the clock.'",
+            findings,
         )
+
+    def test_open_issues_after_a_review_that_made_progress_are_refused(self):
+        findings = errors(self.check(held_record(follow_up_reviews(CLOCK_ISSUE, CLARITY), [CLOCK_ISSUE])))
+        self.assertIn(
+            "record holds open_issues but its last review is not a follow-up review of the record as it stands "
+            "that made no progress",
+            findings,
+        )
+        self.assertIn(
+            "record is handed off but review 2 of the record as it stands reports Missing input: 'Step build-app, "
+            "open input: it reads the clock.'",
+            findings,
+        )
+
+    def test_open_issues_hold_only_an_issue_copied_unchanged(self):
+        for held in (
+            {**CLOCK_ISSUE, "text": CLOCK_ISSUE["text"] + " Settled."},
+            {**CLOCK_ISSUE, "category": "Missing class"},
+        ):
+            with self.subTest(held=held):
+                findings = errors(self.check(held_record(follow_up_reviews(CLOCK_ISSUE), [held])))
+                self.assertIn("open_issues entry 1 is not an issue the last review reports", findings)
+                self.assertIn(
+                    "record is handed off but review 2 of the record as it stands reports Missing input: "
+                    "'Step build-app, open input: it reads the clock.'",
+                    findings,
+                )
+
+    def test_open_issues_entries_that_are_not_issues_are_refused(self):
+        for held in (1, "x", {"bogus": 1}, {**CLOCK_ISSUE, "extra": 1}):
+            with self.subTest(held=held):
+                self.assertIn(
+                    "open_issues entry 1 is not an object with exactly category and text",
+                    errors(self.check(held_record(follow_up_reviews(CLOCK_ISSUE), [held, CLOCK_ISSUE]))),
+                )
 
     def test_open_issues_that_is_not_a_list_is_refused(self):
         self.assert_refused({**base_record(), "open_issues": "none"}, "record has open_issues that is not a list")

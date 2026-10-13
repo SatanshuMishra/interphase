@@ -15,6 +15,7 @@ SPEC_SUFFIX = ".md"
 RECORD_KEYS = ("environments", "facts", "criteria", "steps")
 REVIEWS = "reviews"
 OPEN_ISSUES = "open_issues"
+BRIEF_LINE = b"Lane: brief."
 UNDIGESTED = (REVIEWS, "status", OPEN_ISSUES)
 STATUSES = ("in-progress", "handed-off")
 HANDED_OFF = "handed-off"
@@ -1220,12 +1221,12 @@ def check_reviews(record, current, reviewer):
     )
 
 
-def check_hand_off(record, current):
+def check_hand_off(record, current, spec):
     if not is_one_of(record.get("status"), (HANDED_OFF,)):
         return ()
     reviews = record.get(REVIEWS, [])
     if reviews == []:
-        return (error("record is handed off but has no review"),) if needs_review(record) else ()
+        return (error("record is handed off but has no review"),) if needs_review(record, spec) else ()
     if not isinstance(reviews, list) or current is None:
         return ()
     last = reviews[-1]
@@ -1239,6 +1240,7 @@ def check_hand_off(record, current):
         if isinstance(last, dict) and isinstance(last.get("reviewed"), str) and last["reviewed"] != current
         else ()
     )
+    stalled = made_no_progress(reviews, current)
     reported = tuple(
         error(
             "record is handed off but review %d of the record as it stands reports %s: %r"
@@ -1248,25 +1250,71 @@ def check_hand_off(record, current):
         if reads_current(review, current) and isinstance(review.get("issues"), list)
         for issue in review["issues"]
         if isinstance(issue, dict) and is_one_of(issue.get("category"), INPUT_CATEGORIES)
-        and not held_open(record, issue)
+        and not (stalled and held_open(record, issue))
     )
     return stale + reported
 
 
-def held_open(record, issue):
-    held = record.get(OPEN_ISSUES)
-    return isinstance(held, list) and any(
-        isinstance(item, dict) and item.get("category") == issue.get("category") and item.get("text") == issue.get("text")
-        for item in held
+def made_no_progress(reviews, current):
+    if not isinstance(reviews, list) or len(reviews) < 2:
+        return False
+    before, last = reviews[-2], reviews[-1]
+    return (
+        reads_current(last, current)
+        and isinstance(before, dict)
+        and isinstance(last.get("issues"), list)
+        and isinstance(before.get("issues"), list)
+        and len(last["issues"]) >= max(len(before["issues"]), 1)
     )
 
 
-def needs_review(record):
-    criteria = [c for c in record.get("criteria") or [] if isinstance(c, dict)]
-    return any(c.get("gives_way") for c in criteria) or any(
-        isinstance(d, dict) and d.get("source") in ("outside", "person", "stored", "sent")
-        for c in criteria
-        for d in c.get("domains") or []
+def same_issue(one, other):
+    return isinstance(one, dict) and isinstance(other, dict) and all(one.get(key) == other.get(key) for key in ISSUE_KEYS)
+
+
+def held_open(record, issue):
+    return any(same_issue(item, issue) for item in part(record, OPEN_ISSUES))
+
+
+def check_open_issues(record, current):
+    held = part(record, OPEN_ISSUES)
+    if not held:
+        return ()
+    shape = tuple(
+        error("open_issues entry %d is not an object with exactly category and text" % number)
+        for number, item in enumerate(held, 1)
+        if not isinstance(item, dict) or sorted(item) != sorted(ISSUE_KEYS)
+    )
+    reviews = record.get(REVIEWS)
+    if not made_no_progress(reviews, current):
+        return shape + (
+            error(
+                "record holds open_issues but its last review is not a follow-up review of the record as it stands "
+                "that made no progress"
+            ),
+        )
+    unreported = tuple(
+        error("open_issues entry %d is not an issue the last review reports" % number)
+        for number, item in enumerate(held, 1)
+        if isinstance(item, dict) and not any(same_issue(item, issue) for issue in reviews[-1]["issues"])
+    )
+    return shape + unreported
+
+
+def is_brief(spec):
+    return isinstance(spec, bytes) and any(line.strip() == BRIEF_LINE for line in spec.splitlines())
+
+
+def needs_review(record, spec):
+    criteria = tuple(c for c in part(record, "criteria") if isinstance(c, dict))
+    return (
+        not is_brief(spec)
+        or any(c.get("gives_way") for c in criteria)
+        or any(
+            isinstance(d, dict) and is_one_of(d.get("source"), INVALID_SOURCES)
+            for c in criteria
+            for d in (c["domains"] if isinstance(c.get("domains"), list) else ())
+        )
     )
 
 
@@ -1322,7 +1370,8 @@ def check_record(record, root, complete, spec, reviewer):
         + check_steps(steps, criteria, complete)
         + check_missing_parts(record, complete)
         + check_reviews(record, current, reviewer)
-        + check_hand_off(record, current)
+        + check_open_issues(record, current)
+        + check_hand_off(record, current, spec)
     )
 
 
