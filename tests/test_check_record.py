@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 SOURCE_TEXT = "def total_of(total):\n    return total\n"
+SPEC_BYTES = b"# The total adds up\n"
 TEST_ENTRY = {
     "file": "tests/test_app.py",
     "name": "test_total",
@@ -21,6 +22,8 @@ PAYLOAD_DOMAIN = {
     "name": "payload",
     "over": "the payload field agent_id",
     "classes": ["absent", "present"],
+    "source": "repo",
+    "closed": True,
     "fact": "f1",
 }
 PAYLOAD_ROWS = [{**TEST_ENTRY, "covers": ["payload: absent"]}, {**PRESENT_ENTRY, "covers": ["payload: present"]}]
@@ -28,6 +31,12 @@ GIVE_WAY_ROWS = [
     {**TEST_ENTRY, "covers": ["gives-way: older lines"]},
     {**TEST_ENTRY, "name": "test_header", "covers": ["gives-way: the header"]},
 ]
+KEEPS = ["the total"]
+WHOLE_ORDER_ROW = {
+    **TEST_ENTRY,
+    "name": "test_whole_order",
+    "covers": ["gives-way: older lines", "gives-way: the header", "keeps: the total"],
+}
 VARYING_TEST_ENTRY = {**TEST_ENTRY, "cases": 60, "runs": 3, "pass_rate": 0.9}
 UNCLAIMED_CRITERION = {
     "number": "7.2",
@@ -70,6 +79,7 @@ def base_record():
                 "name": "build-app",
                 "files": ["src/app.py", "tests/test_app.py"],
                 "criteria": ["7.1"],
+                "reads": [],
                 "task": "Build the app.",
             }
         ],
@@ -122,7 +132,7 @@ class RecordFixture:
         module = self.load()
         with tempfile.TemporaryDirectory() as folder:
             self.write_source(folder)
-            return module.check(json.dumps(record), folder, complete=complete)
+            return module.check(json.dumps(record), folder, complete=complete, spec=SPEC_BYTES)
 
     def run_main(self, argv, content=None):
         module = self.load()
@@ -266,10 +276,12 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
 
     def test_status_marks_the_run(self):
         base = base_record()
-        for status in ("in-progress", "handed-off"):
+        review = {"status": "Approved", "issues": [], "reviewed": self.load().digest(base, SPEC_BYTES)}
+        marked = (("in-progress", base), ("handed-off", {**base, "status": "handed-off", "reviews": [review]}))
+        for status, record in marked:
             for complete in (False, True):
                 with self.subTest(status=status, complete=complete):
-                    self.assertEqual(self.check({**base, "status": status}, complete), ())
+                    self.assertEqual(self.check(record, complete), ())
         absent = {key: value for key, value in base.items() if key != "status"}
         for complete in (False, True):
             for label, record in (("missing", absent), ("done", {**base, "status": "done"}), ("number", {**base, "status": 3})):
@@ -408,7 +420,14 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         self.assertIn("criterion 7.1 domain 1 has a name that is not lowercase kebab-case", errors)
 
     def test_domain_without_a_fact_is_accepted(self):
-        domain = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
+        domain = {
+            "name": "payload",
+            "over": "the payload field agent_id",
+            "classes": ["absent", "present"],
+            "source": "repo",
+            "closed": True,
+            "defined_by": "build-app",
+        }
         record = with_criterion(domains=[domain], tests=PAYLOAD_ROWS)
         self.assertEqual(self.errors(record, True), ())
 
@@ -481,7 +500,8 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         record = with_criterion(
             text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
             gives_way=["older lines", "the header"],
-            tests=GIVE_WAY_ROWS,
+            keeps=KEEPS,
+            tests=GIVE_WAY_ROWS + [WHOLE_ORDER_ROW],
         )
         self.assertEqual(self.errors(record, True), ())
 
@@ -585,7 +605,8 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         record = with_criterion(
             text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
             gives_way=["older lines", "the header"],
-            tests=GIVE_WAY_ROWS,
+            keeps=KEEPS,
+            tests=GIVE_WAY_ROWS + [WHOLE_ORDER_ROW],
         )
         self.assertEqual(self.errors(record, True), ())
 
@@ -626,8 +647,8 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         tests = [{**TEST_ENTRY, "covers": ["payload absent"]}, PAYLOAD_ROWS[1]]
         errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
         self.assertIn(
-            "criterion 7.1 test 'test_total' covers 'payload absent', which is not '<domain>: <class>' or "
-            "'gives-way: <item>'",
+            "criterion 7.1 test 'test_total' covers 'payload absent', which is not '<domain>: <class>', "
+            "'gives-way: <item>' or 'keeps: <item>'",
             errors,
         )
 
@@ -729,14 +750,16 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
     def test_outside_fact_cited_by_location_is_an_error(self):
         record = change(base_record(), "facts", 0, outside=True)
         self.assertIn(
-            "fact 'f1' is marked outside but is not cited by command and output", self.errors(record, False)
+            "fact 'f1' is marked outside but is not cited by command and output, or assumed",
+            self.errors(record, False),
         )
 
     def test_outside_fact_cited_by_url_is_an_error(self):
         fact = {"id": "f3", "fact": "The format is documented", "url": "https://example.com/a", "outside": True}
         record = append(base_record(), "facts", fact)
         self.assertIn(
-            "fact 'f3' is marked outside but is not cited by command and output", self.errors(record, False)
+            "fact 'f3' is marked outside but is not cited by command and output, or assumed",
+            self.errors(record, False),
         )
 
     def test_outside_that_is_not_a_boolean_is_an_error(self):
@@ -758,6 +781,7 @@ class AmendmentRecordTest(RecordFixture, unittest.TestCase):
             "task": "Fix the app.",
             "amendment": 1,
             "after": ["build-app"],
+            "reads": [],
         }
         record = append(base_record(), "steps", fix)
         self.assertNotIn("amendment", record["steps"][0])
