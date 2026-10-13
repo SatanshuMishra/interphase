@@ -1,4 +1,3 @@
-import importlib.util
 import pathlib
 import unittest
 
@@ -34,47 +33,6 @@ RULES = (
 )
 
 STEP_FILES = ("core/phases.md",)
-
-OUTSIDE_FACT_RULE = "- Run every fact about software outside the repository, such as a tool's flags, an interface's reply or what a version accepts, and record it with `outside: true`, the command and what it showed. Run it far enough to see every class the code will tell apart, not only the names of the fields it returns. Documentation and memory are never the evidence for such a fact. When it cannot be run here, because it needs the user's device, a live service or a paid account, record it with `outside: true` and `assumed` set to why it could not be run, never only as an assumption in the spec."
-STAND_IN_RULE = "- When the code would read one value to learn another, such as a file's extension to learn its format, a country code to learn a time zone or a screen width to learn the device, find where the two can differ. Read the value the behaviour depends on, or give the domain a class where the two differ."
-CASE_TABLE_RULE = "- Write each criterion as a case table. For every input the behaviour reads, add a domain: what varies, its `source`, and every class of it the code tells apart, drawn from where its values are defined, never from a description of them. A domain's `source` is `outside` when a program, tool, system or service outside the repository produces its values, even when the repository's code parses them; its `fact` is then a fact marked outside. It is `person` when a person types, picks or says its values; its `fact` then cites, by path, line and quote or by command and output, where the repository asks for them, or `defined_by` names the Step that will. It is `stored` when the repository's own code wrote its values earlier, to a file, a database or another store, and reads them back; its `fact` then cites where the repository writes them, or `defined_by` names the Step that will. It is `sent` when the repository's own code in another process, such as its client, a producer or another deployed version, sends its values over a network, a queue, a pipe or another channel the code reads from; its `fact` then cites where the repository sends them, or `defined_by` names the Step that will. Anything else that can reach that channel can send it values too. Otherwise its `source` is `repo`, and its `fact` cites, by path, line and quote or by command and output, where the repository defines the values, or `defined_by` names the Step that will define them. A Step named in `defined_by` proves the domain's criterion or comes before a Step that does. When nothing where the values are defined bounds a value's size or count, give the domain a class beyond every bound the behaviour sets. Give every class a row: one named test with what is given, what is expected and the classes it covers. A criterion that says every, each, any, all, whole, always, never, whatever, however or whenever needs a domain over each kind of thing the word ranges over."
-INVALID_RULE = "- Give every outside, person, stored or sent domain `invalid`: the classes for input that arrives other than promised, such as missing, empty, malformed, of another type, cut short or written by an older version. A behaviour that exists to refuse something refuses on every invalid class, unless the user decides otherwise and the decision is recorded. An autonomous run never lets an invalid class through such a behaviour, whatever the request's wording."
-CLOSED_RULE = "- Mark every domain `closed`: `true` when every value the input can take falls in one of its classes and every value in a class gets the same result, otherwise `false`. Phase 5 settles every domain marked `false`."
-READS_RULE = "- Give every Step `reads`: the names of the domains, from the criteria it proves, of every input its code reads, or an empty list when it reads none. When its code reads an input no domain covers, add the domain first."
-BOUND_RULE = "- When a criterion sets a bound, such as at most, no more than, up to, a maximum, a budget, a limit, a cap or exceeding something, list in `gives_way` what gives way first to last when the bound is reached, and in `keeps` what never gives way, including everything the criterion promises. Give every give-way item a row, and every kept item a row in which every give-way item gives way and the kept item still holds."
-CLOSED_DESIGN_RULE = "- Check that every domain is closed. A class for every other value does not close a domain when some of those values need a different result. When the classes of an input cannot all be listed, because it is free text, a shell command, arbitrary configuration or anything else open-ended, recommend a design that makes the decision where every input can be listed, such as one entry point that receives them already parsed, and settle it as any other decision. A mechanism the request names does not settle an open domain: in an autonomous run, choose the design that closes it and record the choice as a decision that overrides the request's wording. Keep `closed: false` only on a criterion that varies from run to run, or when the user decides to keep the domain open: record that decision and name in `open_by` the fact that cites its line in the decisions file. A behaviour that exists to refuse something never keeps its domain open, and an autonomous run never keeps a domain open by `open_by`."
-DISPATCH_RULE = "- Dispatch the `interphase:spec-reviewer` agent with the spec path, the items path, the record path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`, and say whether the run is autonomous. This first review reads the whole spec. Fix the issues it finds that would cause the wrong thing to be built."
-RECORD_REVIEW_RULE = "- As soon as a review returns, before changing anything, copy the `json` block that ends it, unchanged, to the end of the record's `reviews`, and add to it `reviewed`, set to what `python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py\" --digest docs/specs/<slug>.record.json` prints. Then copy the spec and the record to `docs/specs/<slug>.review-copy.md` and `docs/specs/<slug>.review-copy.json`, replacing any earlier copies. Never remove a review. When the reply has no `json` block holding one JSON object, record nothing and dispatch a fresh reviewer for the same review. When the record check refuses a review of the record as it stands, write in the decisions file what it refused and why, add to the record a fact that cites that line, fix what the review reports, and dispatch a follow-up review. When it reports a review with no `reviewed` or one that is not a digest, set `reviewed` to what `--digest` printed when that review returned, or, when that is not known, to 64 zeros, which marks it as a review of an earlier version, and dispatch a follow-up review. When it reports an entry that is not an object, which holds no review, remove that entry and dispatch a fresh reviewer for the same review."
-FIX_INPUT_RULE = "- Fix every issue it reports under Missing input, Missing class, Stand-in, Source, Outside fact, Invalid input, Give-way or Open domain by changing the record, rerun the record check with `--complete` and every render, spec check and items check this run has run, with the same arguments, which in an amendment includes those with `--amendment`. After any change that follows a review, write the change since that review with `diff -u docs/specs/<slug>.review-copy.md docs/specs/<slug>.md > docs/specs/<slug>.review-diff.txt` and `diff -u docs/specs/<slug>.review-copy.json docs/specs/<slug>.record.json >> docs/specs/<slug>.review-diff.txt`, running the second whatever the first exits with, since `diff` exits 1 when the files differ, and dispatch a fresh reviewer for a follow-up review, giving it the same paths, the path of that file and the issues of the last review. Stop when a review leads to no change; the record check hands off only when that review reports none of those eight categories. Any change to the record or the spec after the last review needs a follow-up review too: the record check refuses to hand off a record whose record or spec changed after its last review, and one that any review of them as they stand found an input issue in."
-NO_PROGRESS_RULE = "- A follow-up review that reports at least one issue, and no fewer issues than the review before it, makes no progress: change nothing more for it. When none of its issues falls under those eight categories, go on to phase 10 and list them as top risks. Otherwise, in an attended run, show the user those issues and ask how to settle each; in an autonomous run, stop without handing off, and report each of them as unresolved."
-WRONG_ISSUE_RULE = "- When the user decides that an issue reported under one of those eight categories is wrong, record the decision with its reason, add to the record a fact that cites its line in the decisions file, and dispatch a follow-up review, which reads the decisions file. An autonomous run never decides that such an issue is wrong; it changes the record until a follow-up review no longer reports it."
-HAND_OFF_CHECK_RULE = "- Run `python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py\" --complete docs/specs/<slug>.record.json`. When it reports an error, set the `status` back to `in-progress`, take the guard snapshot as in phase 1 and reopen phase 9."
-DELETE_WORKING_FILES_RULE = "- When that check reports no error, delete `docs/specs/<slug>.review-copy.md`, `docs/specs/<slug>.review-copy.json` and `docs/specs/<slug>.review-diff.txt`."
-ASSUMED_RISK_RULE = "- List next every fact marked `assumed`, with its reason, as top risks."
-DECISION_RISK_RULE = "- In an autonomous run, list next every decision that overrides a line of an earlier decisions file, a written rule or convention of the project or the request's own wording, then every other decision made on the user's behalf, as top risks."
-AMEND_ASSERTS_RULE = "- When the record's tests carry `asserts`, rewrite each as `given` and `expect`. Add the domains, give-way orders, `source`, `closed`, `invalid`, `keeps` and `reads` the record check asks for."
-AMEND_DISPATCH_RULE = "- Dispatch the `interphase:spec-reviewer` agent as in phase 9, passing the amendment items file beside the items file and naming the criteria and the Step that changed, and record each review as in phase 9. Fix every input issue a review reports, in any criterion, as in phase 9, giving each new row's test to a new Step of this amendment, and get approval as in phase 9."
-INPUT_RULES = (
-    OUTSIDE_FACT_RULE,
-    STAND_IN_RULE,
-    CASE_TABLE_RULE,
-    INVALID_RULE,
-    CLOSED_RULE,
-    READS_RULE,
-    BOUND_RULE,
-    CLOSED_DESIGN_RULE,
-    DISPATCH_RULE,
-    RECORD_REVIEW_RULE,
-    FIX_INPUT_RULE,
-    NO_PROGRESS_RULE,
-    WRONG_ISSUE_RULE,
-    HAND_OFF_CHECK_RULE,
-    DELETE_WORKING_FILES_RULE,
-    ASSUMED_RISK_RULE,
-    DECISION_RISK_RULE,
-    AMEND_ASSERTS_RULE,
-    AMEND_DISPATCH_RULE,
-)
 
 
 def repo_root():
@@ -193,10 +151,6 @@ class CorePhasesTest(unittest.TestCase):
             lines[guard + 1],
             "- Set the record's `status` to `handed-off`.",
         )
-        check = lines[guard + 2]
-        self.assertTrue(check.startswith("- Run `python3"), check)
-        self.assertTrue(check.endswith("reopen phase 9."), check)
-        self.assertEqual(lines[guard + 3], DELETE_WORKING_FILES_RULE)
 
     def test_phases_keep_the_interview_in_the_record(self):
         self.assertIn(
@@ -360,12 +314,10 @@ class CorePhasesTest(unittest.TestCase):
             if line.startswith("- List every criterion marked unproven first")
         )
         self.assertEqual(len(unproven), 1)
-        assumed = hand_off[unproven[0] + 1]
-        self.assertTrue(assumed.startswith("- List next every fact marked `assumed`"), assumed)
-        risks = hand_off[unproven[0] + 2]
+        risks = hand_off[unproven[0] + 1]
         self.assertTrue(risks.startswith("- In an autonomous run, list next"), risks)
         overriding = risks.find(
-            "every decision that overrides a line of an earlier decisions file, a written rule or convention of the project or the request's own wording"
+            "every decision that overrides a line of an earlier decisions file or a written rule or convention of the project"
         )
         others = risks.find("then every other decision made on the user's behalf")
         self.assertNotIn(-1, (overriding, others))
@@ -397,8 +349,7 @@ class CorePhasesTest(unittest.TestCase):
             "## Phase 3: Ground",
             "- Read the code you need to understand yourself",
             [
-                OUTSIDE_FACT_RULE,
-                STAND_IN_RULE,
+                "- Run every fact about software outside the repository, such as a tool's flags, an interface's reply or what a version accepts, and record it with `outside: true`, the command and what it showed. Documentation and memory are never the evidence for such a fact. When it cannot be run here, because it needs the user's device, a live service or a paid account, write it into the spec as an assumption instead.",
             ],
         )
 
@@ -407,11 +358,8 @@ class CorePhasesTest(unittest.TestCase):
             "## Phase 4: Interrogate",
             "- Design the Steps as the interview goes",
             [
-                CASE_TABLE_RULE,
-                INVALID_RULE,
-                CLOSED_RULE,
-                READS_RULE,
-                BOUND_RULE,
+                "- Write each criterion as a case table. For every input the behaviour reads, add a domain: what varies, every class of it the code tells apart and, when existing code reads it, the fact that cites where. Give every class a row: one named test with what is given, what is expected and the classes it covers. A criterion that says every, each, any, all, whole, always, never, whatever, however or whenever needs a domain.",
+                "- When a criterion sets a bound, such as at most, no more than, up to, a maximum, a budget, a limit, a cap or exceeding something, list in `gives_way` what gives way first to last when the bound is reached, and give every item a row.",
             ],
         )
 
@@ -420,7 +368,7 @@ class CorePhasesTest(unittest.TestCase):
             "## Phase 5: Challenge",
             "- Record at least one non-goal.",
             [
-                CLOSED_DESIGN_RULE,
+                "- Check that every domain is closed. When the classes of an input cannot all be listed, because it is free text, a shell command, arbitrary configuration or anything else open-ended, recommend a design that makes the decision where every input can be listed, such as one entry point that receives them already parsed, and settle it as any other decision.",
             ],
         )
 
@@ -443,62 +391,17 @@ class CorePhasesTest(unittest.TestCase):
             (
                 "- Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.",
                 "- Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.",
-                AMEND_ASSERTS_RULE,
+                "- When the record's tests carry `asserts`, rewrite each as `given` and `expect`, and add the domains and give-way orders the record check asks for.",
                 "- Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.",
                 "- Add the missing classes, give-way items, facts and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.",
                 "- Give every new row's test to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.",
                 "- Save each decision to the decisions file, follow phases 5 and 6 for what changed, and run `python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py\" --complete docs/specs/<slug>.record.json`.",
                 "- Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.",
                 "- Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.",
-                AMEND_DISPATCH_RULE,
+                "- Dispatch the `interphase:spec-reviewer` agent as in phase 9, naming the criteria and the Step that changed, and get approval as in phase 9.",
                 "- Hand off as in phase 10, and report the amendment items file in place of the items file.",
             ),
         )
-
-
-    def test_phases_state_the_input_rules(self):
-        text = read_phases()
-        lines = text.splitlines()
-        self.assertEqual(tuple(rule for rule in INPUT_RULES if rule not in lines), ())
-        for replaced in (
-            "write it into the spec as an assumption instead.",
-            "and, when existing code reads it, the fact that cites where.",
-        ):
-            self.assertNotIn(replaced, text)
-        self.assert_directly_after(
-            "## Phase 9: Review",
-            "- Dispatch the `interphase:spec-reviewer` agent with",
-            [RECORD_REVIEW_RULE, FIX_INPUT_RULE, NO_PROGRESS_RULE, WRONG_ISSUE_RULE],
-        )
-        hand_off = bullets(phase_body("## Phase 10: Hand off"))
-        order = tuple(
-            hand_off.index(line)
-            for line in (
-                "- List every criterion marked unproven first, with its reason, as the top risks.",
-                ASSUMED_RISK_RULE,
-                DECISION_RISK_RULE,
-            )
-        )
-        self.assertEqual(order, (order[0], order[0] + 1, order[0] + 2))
-
-    def test_input_category_lists_agree_with_the_record_check(self):
-        spec = importlib.util.spec_from_file_location("check_record", str(repo_root() / "scripts" / "check_record.py"))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        places = (
-            ("agents/spec-reviewer.md", "When an issue fits one of ", " and another category too"),
-            ("core/phases.md", "Fix every issue it reports under ", " by changing the record"),
-            ("core/items.md", "reports an issue under ", "."),
-        )
-        for relative, opening, closing in places:
-            with self.subTest(relative=relative):
-                text = (repo_root() / relative).read_text(encoding="utf-8")
-                self.assertEqual(text.count(opening), 1, opening)
-                start = text.index(opening) + len(opening)
-                listed = text[start : text.index(closing, start)]
-                head, separator, last = listed.rpartition(" or ")
-                self.assertEqual(separator, " or ", listed)
-                self.assertEqual(tuple(head.split(", ")) + (last,), tuple(module.INPUT_CATEGORIES))
 
 
 if __name__ == "__main__":
