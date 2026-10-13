@@ -1,6 +1,7 @@
 import contextlib
 import importlib.util
 import io
+import itertools
 import pathlib
 import re
 import tempfile
@@ -12,6 +13,8 @@ NUMBERED = re.compile(r"^## \d+\. ")
 PLACEHOLDER = re.compile(r"\{\{.*?\}\}")
 NAMED = {"{{title}}": "Shared task list", "{{date}}": "2026-10-10", "{{pathway}}": "feature"}
 FILLER = "Written answer"
+CITED_SECTIONS = ("requirements", "edge cases")
+CITED_SUB_SECTIONS = ("expected", "unchanged")
 
 THREATS = ("threats", "level of defence", "defended", "none beyond its acceptance criteria")
 OUT_OF_SCOPE = ("out of scope for review", "before the change", "hardening beyond the named threats")
@@ -150,6 +153,26 @@ def fill(text):
     return PLACEHOLDER.sub(lambda match: NAMED.get(match.group(0), FILLER), text)
 
 
+def section_titles(titles, line):
+    heading = re.match(r"^(#{1,3}) (?:\d+\. )?(.*)$", line)
+    if not heading:
+        return titles
+    title = heading.group(2).strip().lower()
+    return {1: ("", ""), 2: (title, ""), 3: (titles[0], title)}[len(heading.group(1))]
+
+
+def cite(text):
+    number = re.search(r"^### (\d+\.1) ", text, re.MULTILINE).group(1)
+    lines = text.splitlines()
+    titles = tuple(itertools.accumulate(lines, section_titles, initial=("", "")))[1:]
+    return "".join(
+        line + " ({})".format(number) + "\n"
+        if line.strip() and not line.startswith("#") and (two in CITED_SECTIONS or three in CITED_SUB_SECTIONS)
+        else line + "\n"
+        for line, (two, three) in zip(lines, titles)
+    )
+
+
 def without_section(text, heading):
     lines = text.splitlines()
     return "\n".join(lines[: lines.index(heading)]).rstrip("\n") + "\n"
@@ -195,7 +218,7 @@ class ReviewBarTest(unittest.TestCase):
         for name, (_, heading, _) in REVIEW_BARS.items():
             with self.subTest(template=name):
                 template_path = TEMPLATES / name
-                filled = fill(template_path.read_text(encoding="utf-8"))
+                filled = cite(fill(template_path.read_text(encoding="utf-8")))
                 lines = filled.splitlines()
                 self.assertEqual(lines[0], "# Shared task list")
                 self.assertIn("Date: 2026-10-10.", lines)

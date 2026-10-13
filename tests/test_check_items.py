@@ -12,16 +12,78 @@ SPEC_TEXT = (
     "## 3. Acceptance criteria\n\n### 3.1 Interface exists\n\nThe interface can be imported.\n\n"
     "### 3.2 Client calls it\n\nThe client calls the interface.\n"
 )
+AMENDMENT_SPEC_TEXT = (
+    "# Demo fix\n\n## 6. Requirements\n\nThe app returns the total it is given.\n\n"
+    "## 7. Acceptance criteria\n\n### 7.1 The total adds up\n\nThe total is unchanged.\n\n"
+    "### 7.2 A negative total is zero\n\nThe app returns zero for a negative total.\n"
+)
+AMENDED_RECORD = {
+    "status": "handed-off",
+    "environments": [{"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True}],
+    "facts": [],
+    "criteria": [
+        {
+            "number": "7.1",
+            "title": "The total adds up",
+            "text": "Given a total, when the app returns it, then it is unchanged.",
+            "where": ["unit-tests"],
+            "tests": [
+                {
+                    "file": "tests/test_app.py",
+                    "name": "test_total",
+                    "given": "a total of 3",
+                    "expect": "3 is returned",
+                    "env": "unit-tests",
+                    "step": "build-app",
+                }
+            ],
+        },
+        {
+            "number": "7.2",
+            "title": "A negative total is zero",
+            "text": "Given a negative total, when the app returns it, then it is zero.",
+            "where": ["unit-tests"],
+            "tests": [
+                {
+                    "file": "tests/test_fix.py",
+                    "name": "test_negative_total",
+                    "given": "a total of -3",
+                    "expect": "0 is returned",
+                    "env": "unit-tests",
+                    "step": "fix-app",
+                }
+            ],
+        },
+    ],
+    "steps": [
+        {
+            "name": "build-app",
+            "files": ["src/app.py", "tests/test_app.py"],
+            "criteria": ["7.1"],
+            "task": "Build the app.",
+        },
+        {
+            "name": "fix-app",
+            "files": ["src/app.py", "tests/test_fix.py"],
+            "criteria": ["7.2"],
+            "task": "Return zero for a negative total.",
+            "amendment": 1,
+            "after": ["build-app"],
+        },
+    ],
+}
 
 
-class CheckItemsTest(unittest.TestCase):
-    def load(self):
+class ScriptLoader:
+    def load(self, name="check_items"):
         root = pathlib.Path(__file__).resolve().parents[1]
-        spec = importlib.util.spec_from_file_location("check_items", str(root / "scripts" / "check_items.py"))
+        spec = importlib.util.spec_from_file_location(name, str(root / "scripts" / (name + ".py")))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
 
+
+class CheckItemsTest(ScriptLoader, unittest.TestCase):
     def steps(self, spec_path, sha):
         source = {"path": str(spec_path), "sha256": sha}
         return [
@@ -228,6 +290,77 @@ class CheckItemsTest(unittest.TestCase):
         code, errors, _ = self.run_check(raw="[{not json")
         self.assertEqual(code, 1)
         self.assertTrue(any("not valid JSON" in line for line in errors), errors)
+
+
+class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
+    def amendment_steps(self, spec_path, sha):
+        return [
+            {
+                "name": "fix-app",
+                "task": "Return zero for a negative total.",
+                "files": ["src/app.py", "tests/test_fix.py"],
+                "source": {"path": str(spec_path), "sha256": sha},
+                "acceptance": [{"file": "tests/test_fix.py", "test": "test_negative_total"}],
+                "spec_ref": ["7.2"],
+            }
+        ]
+
+    def run_amendment(self, arguments, change=lambda steps: steps):
+        module = self.load()
+        with tempfile.TemporaryDirectory() as tmp:
+            spec_path = pathlib.Path(tmp) / "demo.md"
+            spec_path.write_text(AMENDMENT_SPEC_TEXT, encoding="utf-8")
+            sha = hashlib.sha256(spec_path.read_bytes()).hexdigest()
+            items_path = pathlib.Path(tmp) / "demo.amend-1.items.json"
+            items_path.write_text(json.dumps(change(self.amendment_steps(spec_path, sha))), encoding="utf-8")
+            argv = [str(items_path) if argument == "ITEMS" else argument for argument in arguments]
+            out = io.StringIO()
+            err = io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = module.main(argv)
+        return code, out.getvalue().splitlines(), err.getvalue()
+
+    def test_amendment_option_skips_unclaimed_criteria(self):
+        code, lines, _ = self.run_amendment(["--amendment", "ITEMS"])
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(any("7.1" in line for line in lines), lines)
+
+    def test_amendment_option_after_the_path_is_accepted(self):
+        code, lines, _ = self.run_amendment(["ITEMS", "--amendment"])
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(any("7.1" in line for line in lines), lines)
+
+    def test_amendment_option_keeps_other_errors(self):
+        code, lines, _ = self.run_amendment(["--amendment", "ITEMS"], lambda steps: [dict(steps[0], name="Fix_App")])
+        self.assertEqual(code, 1, lines)
+        self.assertTrue(any(line.startswith("error: ") and "step 'Fix_App'" in line for line in lines), lines)
+
+    def test_rendered_amendment_passes_the_items_check(self):
+        render_record = self.load("render_record")
+        check_items = self.load()
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            record_path = base / "demo.record.json"
+            spec_path = base / "demo.md"
+            items_path = base / "demo.amend-1.items.json"
+            record_path.write_text(json.dumps(AMENDED_RECORD), encoding="utf-8")
+            spec_path.write_text(AMENDMENT_SPEC_TEXT, encoding="utf-8")
+            argv = ["--record", str(record_path), "--spec", str(spec_path), "--items", str(items_path)]
+            rendered = io.StringIO()
+            with contextlib.redirect_stdout(rendered), contextlib.redirect_stderr(rendered):
+                render_code = render_record.main(argv + ["--amendment", "1"])
+            checked = io.StringIO()
+            with contextlib.redirect_stdout(checked), contextlib.redirect_stderr(checked):
+                code = check_items.main(["--amendment", str(items_path)])
+        self.assertEqual(render_code, 0, rendered.getvalue())
+        lines = checked.getvalue().splitlines()
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(any(line.startswith("error: ") for line in lines), lines)
+
+    def test_amendment_option_twice_is_a_usage_error(self):
+        code, _, err = self.run_amendment(["--amendment", "--amendment", "ITEMS"])
+        self.assertEqual(code, 2)
+        self.assertEqual(err.splitlines(), ["usage: python3 check_items.py [--amendment] ITEMS"])
 
 
 if __name__ == "__main__":

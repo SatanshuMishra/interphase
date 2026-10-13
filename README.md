@@ -115,7 +115,7 @@ Check a spec against its template:
 python3 /path/to/interphase/scripts/check_spec.py --template /path/to/interphase/core/templates/spec-feature.md docs/specs/<slug>.md
 ```
 
-Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`.
+Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md` as the template for the other pathways. The checker reports missing or reordered sections, empty sections, leftover placeholders, vague words, and an Acceptance criteria section with no numbered criterion heading such as `### 7.1`. The spec checker also reports a line of Requirements, Edge cases, Expected or Unchanged that cites no acceptance criterion, or cites one the spec does not have.
 
 Check an items file:
 
@@ -133,7 +133,9 @@ python3 /path/to/interphase/scripts/check_record.py [--complete] docs/specs/<slu
 
 This checker confirms that every cited quote appears in its line, that every name in the record resolves, and that every acceptance criterion has a test the builder runs where passing proves it, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
 
-A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them as a Population line.
+A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs in cell.
+
+Each acceptance criterion is a case table. A criterion's `domains` list the classes of each input the code tells apart, its `gives_way` lists what gives way first to last when a bound is reached, and each of its tests is one row with `given`, `expect` and the classes it `covers`. The checker reports a class or give-way item no row covers, a criterion that says every, each, any, all, whole, always, never, whatever, however or whenever with no domain, a bound with no `gives_way`, and a fact marked `outside` that is not cited by a command and its output.
 
 Render the spec's acceptance criteria and the items file from a record:
 
@@ -142,6 +144,8 @@ python3 /path/to/interphase/scripts/render_record.py --record docs/specs/<slug>.
 ```
 
 It refuses a record that the checker rejects with `--complete`, and then writes nothing.
+
+To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.
 
 Run every command in this section from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in; a marketplace install puts it under `~/.claude/plugins/cache/interphase/interphase/<version>/`. Each checker prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
 

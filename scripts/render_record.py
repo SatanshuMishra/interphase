@@ -3,12 +3,18 @@ import importlib.util
 import json
 import os
 import pathlib
+import re
 import sys
 
-USAGE = "usage: python3 render_record.py --record RECORD --spec SPEC --items ITEMS"
+USAGE = "usage: python3 render_record.py --record RECORD --spec SPEC --items ITEMS [--amendment N]"
 OPTIONS = ("--items", "--record", "--spec")
+AMENDMENT = "--amendment"
+AMENDMENT_RE = re.compile(r"[1-9][0-9]*")
 PROVES = "Acceptance criteria this Step proves:"
 CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
+GIVE_WAY_HEAD = "When the bound is reached, these give way, first to last:"
+TABLE_HEAD = "| Test | Runs in | Given | Expected | Covers |\n|---|---|---|---|---|"
+LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 
 
 def load_sibling(name):
@@ -22,27 +28,72 @@ check_record = load_sibling("check_record")
 check_spec = load_sibling("check_spec")
 
 
-def population(test):
+def one_line(text):
+    return LINE_BREAK_RE.sub(" ", text)
+
+
+def cell(text):
+    return one_line(text).replace("|", "\\|")
+
+
+def runs_in(test, what):
     if not all(key in test for key in check_record.POPULATION_KEYS):
-        return ""
-    return " Population: %s cases, %s runs each, pass rate at least %s." % (
+        return what[test["env"]]
+    return "%s; %s cases, %s runs each, pass rate at least %s" % (
+        what[test["env"]],
         test["cases"],
         test["runs"],
         test["pass_rate"],
     )
 
 
-def criterion_block(criterion, what):
-    where = "Where passing proves it: %s." % "; ".join(what[name] for name in criterion["where"])
-    tests = tuple(
-        "- `%s` `%s`: %s Runs in: %s.%s"
-        % (test["file"], test["name"], test["asserts"], what[test["env"]], population(test))
-        for test in criterion["tests"]
+def row(test, what):
+    cells = (
+        "`%s` `%s`" % (test["file"], test["name"]),
+        runs_in(test, what),
+        test["given"],
+        test["expect"],
+        "; ".join(test.get(check_record.COVERS, ())) or "none",
     )
+    return "| %s |" % " | ".join(cell(text) for text in cells)
+
+
+def citation(fact):
+    if "url" in fact:
+        return fact["url"]
+    if "command" in fact:
+        return 'ran `%s`, which showed "%s"' % (fact["command"], fact["output"])
+    return '`%s`:%s, quoting "%s"' % (fact["path"], fact["line"], fact["quote"])
+
+
+def cited_facts(criterion):
+    domain_facts = tuple(domain["fact"] for domain in criterion.get("domains", ()) if "fact" in domain)
+    return check_record.unique(tuple(criterion.get("facts", ())) + domain_facts)
+
+
+def listed(head, lines):
+    return ("\n".join((head,) + lines),) if lines else ()
+
+
+def criterion_block(criterion, what, facts):
+    where = "Where passing proves it: %s." % "; ".join(what[name] for name in criterion["where"])
+    inputs = tuple(
+        "- %s (`%s`): %s" % (domain["over"], domain["name"], "; ".join(domain["classes"]))
+        for domain in criterion.get("domains", ())
+    )
+    order = tuple("%d. %s" % (position + 1, item) for position, item in enumerate(criterion.get("gives_way", ())))
+    cited = tuple(
+        one_line("- %s (%s)" % (facts[fact_id]["fact"], citation(facts[fact_id])))
+        for fact_id in cited_facts(criterion)
+    )
+    rows = tuple(row(test, what) for test in criterion["tests"])
     unproven = ("Unproven: " + criterion["unproven"],) if "unproven" in criterion else ()
     parts = (
         ("### %s %s" % (criterion["number"], criterion["title"]), criterion["text"], where)
-        + (("\n".join(tests),) if tests else ())
+        + listed("Inputs:", inputs)
+        + listed(GIVE_WAY_HEAD, order)
+        + listed("Facts:", cited)
+        + listed(TABLE_HEAD, rows)
         + unproven
     )
     return "\n\n".join(parts)
@@ -84,6 +135,12 @@ def number_errors(criteria, sections):
     )
 
 
+def amendment_errors(steps, amendment):
+    if amendment is None or steps:
+        return ()
+    return ("no step has amendment %d" % amendment,)
+
+
 def terminated(line):
     return line.splitlines()[0] != line
 
@@ -115,6 +172,20 @@ def acceptance(step, criteria):
     ]
 
 
+def within(step, names):
+    kept = [name for name in step.get("after", ()) if name in names]
+    rest = {key: value for key, value in step.items() if key != "after"}
+    return {**rest, "after": kept} if kept else rest
+
+
+def chosen_steps(steps, amendment):
+    if amendment is None:
+        return tuple(steps)
+    picked = tuple(step for step in steps if step.get("amendment") == amendment)
+    names = frozenset(step["name"] for step in picked)
+    return tuple(within(step, names) for step in picked)
+
+
 def carried(step, keys):
     return tuple((key, step[key]) for key in keys if key in step)
 
@@ -134,34 +205,45 @@ def item(step, criteria, blocks, source):
     )
 
 
-def render(record_text, spec_text, spec_path, root):
+def render(record_text, spec_text, spec_path, root, amendment=None):
     rejected = record_errors(record_text, root)
     if rejected:
         return (rejected, None, None)
     record = json.loads(record_text)
+    steps = chosen_steps(record["steps"], amendment)
     lines = tuple(spec_text.splitlines(keepends=True))
     sections = check_spec.acceptance_sections(check_spec.numbered_headings(lines))
-    errors = task_errors(record["steps"]) + section_errors(sections) + number_errors(record["criteria"], sections)
+    errors = (
+        task_errors(record["steps"])
+        + section_errors(sections)
+        + number_errors(record["criteria"], sections)
+        + amendment_errors(steps, amendment)
+    )
     if errors:
         return (errors, None, None)
     what = {environment["name"]: environment["what"] for environment in record["environments"]}
+    facts = {fact["id"]: fact for fact in record["facts"]}
     criteria = {criterion["number"]: criterion for criterion in record["criteria"]}
-    blocks = {number: criterion_block(criterion, what) for number, criterion in criteria.items()}
+    blocks = {number: criterion_block(criterion, what, facts) for number, criterion in criteria.items()}
     ordered = tuple(blocks[criterion["number"]] for criterion in record["criteria"])
     new_spec_text = replace_section(spec_text, lines, sections[0][0], ordered)
     source = {"path": spec_path, "sha256": hashlib.sha256(new_spec_text.encode("utf-8")).hexdigest()}
-    items = [item(step, criteria, blocks, source) for step in record["steps"]]
+    items = [item(step, criteria, blocks, source) for step in steps]
     return ((), new_spec_text, items)
 
 
 def parse_arguments(argv):
     pairs = tuple(zip(argv[0::2], argv[1::2]))
-    if len(argv) != 6 or tuple(sorted(option for option, _ in pairs)) != OPTIONS:
+    options = tuple(sorted(option for option, _ in pairs))
+    if len(argv) % 2 or options not in (OPTIONS, tuple(sorted(OPTIONS + (AMENDMENT,)))):
         return None
-    if any(value in OPTIONS for _, value in pairs):
+    if any(value in OPTIONS + (AMENDMENT,) for _, value in pairs):
         return None
     values = dict(pairs)
-    return values["--record"], values["--spec"], values["--items"]
+    amendment = values.get(AMENDMENT)
+    if amendment is not None and not AMENDMENT_RE.fullmatch(amendment):
+        return None
+    return values["--record"], values["--spec"], values["--items"], None if amendment is None else int(amendment)
 
 
 def read_text(path):
@@ -184,13 +266,15 @@ def main(argv):
     if arguments is None:
         print(USAGE, file=sys.stderr)
         return 2
-    record_path, spec_path, items_path = arguments
+    record_path, spec_path, items_path, amendment = arguments
     texts = tuple((path, read_text(path)) for path in (record_path, spec_path))
     unreadable = tuple(path for path, text in texts if text is None)
     if unreadable:
         print("\n".join("cannot read: " + path for path in unreadable), file=sys.stderr)
         return 2
-    errors, spec_text, items = render(texts[0][1], texts[1][1], os.path.abspath(spec_path), os.getcwd())
+    errors, spec_text, items = render(
+        texts[0][1], texts[1][1], os.path.abspath(spec_path), os.getcwd(), amendment
+    )
     if errors:
         print("\n".join("error: " + message for message in errors))
         return 1

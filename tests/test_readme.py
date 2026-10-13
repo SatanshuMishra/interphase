@@ -111,7 +111,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("pass rate", text)
         for key in ("varies", "cases", "runs", "pass_rate"):
             self.assertIn("`" + key + "`", text)
-        self.assertIn("Population line", text)
+        self.assertIn("Runs in cell", text)
 
     def test_readme_states_the_programming_guarantee(self):
         text = read_readme()
@@ -177,6 +177,50 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("walking skeleton", does)
         self.assertIn("/interphase:project", section("## Use"))
         self.assertIn("spec-project.md", section("## Check the output yourself"))
+
+
+    def check_output_section(self):
+        lines = read_readme().splitlines()
+        start = lines.index("## Check the output yourself") + 1
+        rest = lines[start:]
+        end = next((i for i, line in enumerate(rest) if line.startswith("## ")), len(rest))
+        return "\n".join(rest[:end])
+
+    def test_readme_puts_population_in_the_table(self):
+        section = self.check_output_section()
+        self.assertIn(
+            "A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs in cell.",
+            section.split("\n\n"),
+        )
+        self.assertNotIn("Population line", section)
+
+    def test_readme_explains_case_tables(self):
+        paragraphs = self.check_output_section().split("\n\n")
+        starts = tuple(i for i, p in enumerate(paragraphs) if p.startswith("A criterion marked `varies`"))
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(
+            paragraphs[starts[0] + 1],
+            "Each acceptance criterion is a case table. A criterion's `domains` list the classes of each input the code tells apart, its `gives_way` lists what gives way first to last when a bound is reached, and each of its tests is one row with `given`, `expect` and the classes it `covers`. The checker reports a class or give-way item no row covers, a criterion that says every, each, any, all, whole, always, never, whatever, however or whenever with no domain, a bound with no `gives_way`, and a fact marked `outside` that is not cited by a command and its output.",
+        )
+
+    def test_readme_explains_citations(self):
+        paragraphs = self.check_output_section().split("\n\n")
+        matching = tuple(p for p in paragraphs if p.startswith("Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md`"))
+        self.assertEqual(len(matching), 1)
+        self.assertTrue(
+            matching[0].endswith(
+                "The spec checker also reports a line of Requirements, Edge cases, Expected or Unchanged that cites no acceptance criterion, or cites one the spec does not have."
+            )
+        )
+
+    def test_readme_explains_amendments(self):
+        paragraphs = self.check_output_section().split("\n\n")
+        starts = tuple(i for i, p in enumerate(paragraphs) if p.startswith("It refuses a record that the checker rejects"))
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(
+            paragraphs[starts[0] + 1],
+            "To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.",
+        )
 
 
 if __name__ == "__main__":
