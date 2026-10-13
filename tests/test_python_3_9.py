@@ -42,6 +42,8 @@ class PythonThreeNineTest(unittest.TestCase):
         interpreter = python_3_9(default_candidates())
         if interpreter is None:
             self.skipTest("no Python 3.9 at /usr/bin/python3 or as python3.9 on PATH")
+        if reports_3_9(SYSTEM_PYTHON):
+            self.assertEqual(interpreter, SYSTEM_PYTHON)
         done = subprocess.run(
             [interpreter, "-m", "unittest"] + list(RECORD_TESTS),
             cwd=str(ROOT),
