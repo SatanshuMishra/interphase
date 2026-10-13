@@ -33,7 +33,7 @@ Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it
 
 `status` is `in-progress` from phase 1 and `handed-off` once phase 10 finishes. A record without `status` predates the field: the hook treats it as finished, and `check_record.py` reports it.
 
-The record check refuses a record whose `status` is `handed-off` unless its last review read the record and the spec as they stand, as its `reviewed` digest shows, and no review of the record as it stands reports an issue under Missing input, Missing class, Stand-in, Source, Outside fact, Invalid input, Give-way or Open domain.
+The record check refuses a record whose `status` is `handed-off` unless its last review read the record and the spec as they stand, as its `reviewed` digest shows, and no review of the record as it stands reports an issue under Missing input, Missing class, Stand-in, Source, Outside fact, Invalid input, Give-way or Open domain. An issue the record's `open_issues` holds does not count. A record with no review hands off only when it holds no domain whose `source` is `outside`, `person`, `stored` or `sent` and no criterion with `gives_way`. `open_issues` holds the issues a review that made no progress left open, each copied unchanged as an object with `category` and `text`.
 
 Give every criterion a test the builder runs in one of its `where` environments, or an `unproven` reason. For example, a frame-rate target seen only on the user's phone is unproven when the builder cannot run the phone; a colour check the project's tests can run with the phone's renderer is proven by that test. Never mark a criterion unproven to skip a test the builder could run.
 

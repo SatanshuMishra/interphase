@@ -14,7 +14,8 @@ RECORD_SUFFIX = ".record.json"
 SPEC_SUFFIX = ".md"
 RECORD_KEYS = ("environments", "facts", "criteria", "steps")
 REVIEWS = "reviews"
-UNDIGESTED = (REVIEWS, "status")
+OPEN_ISSUES = "open_issues"
+UNDIGESTED = (REVIEWS, "status", OPEN_ISSUES)
 STATUSES = ("in-progress", "handed-off")
 HANDED_OFF = "handed-off"
 MISSING_PARTS =("environments", "criteria", "steps")
@@ -183,7 +184,7 @@ def check_shape(record):
     unknown = tuple(
         error("record has unknown key %r" % key)
         for key in sorted(record)
-        if key not in RECORD_KEYS + ("status", REVIEWS)
+        if key not in RECORD_KEYS + ("status", REVIEWS, OPEN_ISSUES)
     )
     absent = tuple(error("record lacks key %r" % key) for key in RECORD_KEYS if key not in record)
     not_lists = tuple(
@@ -196,7 +197,12 @@ def check_shape(record):
         if REVIEWS in record and not isinstance(record[REVIEWS], list)
         else ()
     )
-    return unknown + absent + not_lists + check_status(record) + reviews
+    open_issues = (
+        (error("record has open_issues that is not a list"),)
+        if OPEN_ISSUES in record and not isinstance(record[OPEN_ISSUES], list)
+        else ()
+    )
+    return unknown + absent + not_lists + check_status(record) + reviews + open_issues
 
 
 def check_status(record):
@@ -1219,7 +1225,7 @@ def check_hand_off(record, current):
         return ()
     reviews = record.get(REVIEWS, [])
     if reviews == []:
-        return (error("record is handed off but has no review"),)
+        return (error("record is handed off but has no review"),) if needs_review(record) else ()
     if not isinstance(reviews, list) or current is None:
         return ()
     last = reviews[-1]
@@ -1242,8 +1248,26 @@ def check_hand_off(record, current):
         if reads_current(review, current) and isinstance(review.get("issues"), list)
         for issue in review["issues"]
         if isinstance(issue, dict) and is_one_of(issue.get("category"), INPUT_CATEGORIES)
+        and not held_open(record, issue)
     )
     return stale + reported
+
+
+def held_open(record, issue):
+    held = record.get(OPEN_ISSUES)
+    return isinstance(held, list) and any(
+        isinstance(item, dict) and item.get("category") == issue.get("category") and item.get("text") == issue.get("text")
+        for item in held
+    )
+
+
+def needs_review(record):
+    criteria = [c for c in record.get("criteria") or [] if isinstance(c, dict)]
+    return any(c.get("gives_way") for c in criteria) or any(
+        isinstance(d, dict) and d.get("source") in ("outside", "person", "stored", "sent")
+        for c in criteria
+        for d in c.get("domains") or []
+    )
 
 
 def parse(text):

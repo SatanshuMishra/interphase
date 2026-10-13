@@ -91,8 +91,10 @@ FILLED_BRIEF = (
 TOTAL_ROW = "### 4.1 The stock report ends with a total row"
 LOW_STOCK_ORDER = "### 4.2 The low-stock list is sorted by name"
 REVIEWER_SENTENCE = (
-    "Then dispatch the `interphase:spec-reviewer` agent, record each review and fix its input issues as phase 9 "
-    "of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, running the spec check against `spec-brief.md` each time."
+    "Then, when the record holds a domain whose `source` is `outside`, `person`, `stored` or `sent`, or a criterion "
+    "with `gives_way`, dispatch the `interphase:spec-reviewer` agent, record each review and settle its input issues "
+    "as phase 9 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, running the spec check against `spec-brief.md` each "
+    "time; otherwise do not dispatch it."
 )
 PHASE_9 = (
     '- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template '

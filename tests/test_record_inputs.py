@@ -103,6 +103,7 @@ APPROVED = {"status": "Approved", "issues": []}
 CLARITY = {"category": "Clarity", "text": "7.1 reads two ways."}
 OPEN_DOMAIN = {"category": "Open domain", "text": "7.1 payload takes any total the service sends."}
 GATE = {"category": "Gate", "text": "7.1 lets every total through."}
+CLOCK_ISSUE = {"category": "Missing input", "text": "Step build-app, open input: it reads the clock."}
 URL_FACT = {"id": "f5", "fact": "The total's format is documented", "url": "https://example.com/total"}
 DECISION_FACT = {
     "id": "f6",
@@ -134,6 +135,7 @@ REVIEWER_CATEGORIES = (
     "Task drift",
     "Task independence",
     "Build order",
+    "Outside the change",
     "Tracking talk",
 )
 INPUT_CATEGORIES = (
@@ -254,6 +256,21 @@ def replacing_fact(record, fact):
 
 def with_parts(record, criteria, steps):
     return {**record, "criteria": record["criteria"] + list(criteria), "steps": record["steps"] + list(steps)}
+
+
+def repo_only_record():
+    record = with_payload(
+        base_record(), dropped=("invalid",), source="repo", fact="f1", classes=["a number", "zero"]
+    )
+    return with_criterion(
+        record,
+        dropped=("gives_way", "keeps"),
+        text="WHEN the app is given a total THE SYSTEM SHALL show that total.",
+        tests=[
+            app_test("test_total", "a total of 3", "3 is shown", ["payload: a number"]),
+            app_test("test_zero_total", "a total of 0", "0 is shown", ["payload: zero"]),
+        ],
+    )
 
 
 def with_reviews(record, reviews):
@@ -769,6 +786,44 @@ class RecordInputsTest(unittest.TestCase):
 
     def test_handed_off_record_with_an_empty_review_list_is_refused(self):
         self.assert_refused(handed_off(with_reviews(base_record(), [])), "record is handed off but has no review")
+
+    def test_handed_off_record_without_review_hands_off_when_nothing_needs_review(self):
+        self.assert_accepted(handed_off(repo_only_record()))
+
+    def test_handed_off_record_without_review_is_refused_for_a_bound(self):
+        record = with_criterion(repo_only_record(), gives_way=["older lines"], keeps=["the total"])
+        self.assert_refused(handed_off(record), "record is handed off but has no review")
+
+    def test_handed_off_record_without_review_is_refused_for_each_source_from_outside_the_code(self):
+        for source in ("outside", "person", "stored", "sent"):
+            with self.subTest(source=source):
+                record = with_payload(repo_only_record(), source=source)
+                self.assertIn(
+                    "record is handed off but has no review", errors(self.check(handed_off(record), complete=False))
+                )
+
+    def test_input_issue_held_in_open_issues_hands_off(self):
+        reviews = [{"status": "Issues found", "issues": [CLOCK_ISSUE], "reviewed": base_digest()}]
+        record = {**with_reviews(base_record(), reviews), "open_issues": [CLOCK_ISSUE]}
+        self.assert_accepted(handed_off(record))
+
+    def test_open_issues_hold_only_an_issue_copied_unchanged(self):
+        reviews = [{"status": "Issues found", "issues": [CLOCK_ISSUE], "reviewed": base_digest()}]
+        edited = {**CLOCK_ISSUE, "text": CLOCK_ISSUE["text"] + " Settled."}
+        record = {**with_reviews(base_record(), reviews), "open_issues": [edited]}
+        self.assert_refused(
+            handed_off(record),
+            "record is handed off but review 1 of the record as it stands reports Missing input: 'Step build-app, "
+            "open input: it reads the clock.'",
+        )
+
+    def test_open_issues_that_is_not_a_list_is_refused(self):
+        self.assert_refused({**base_record(), "open_issues": "none"}, "record has open_issues that is not a list")
+
+    def test_open_issues_leave_the_digest_unchanged(self):
+        module = load_check_record()
+        held = {**base_record(), "open_issues": [CLOCK_ISSUE]}
+        self.assertEqual(module.digest(held, BASE_SPEC), base_digest())
 
     def test_last_review_without_input_issues_hands_off(self):
         reviews = [
