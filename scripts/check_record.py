@@ -721,7 +721,7 @@ def check_defined_by(tag, domain, number, steps, graph):
         return (error("%s has defined_by that is not a non-empty string" % tag),)
     source = (
         ()
-        if is_one_of(domain.get("source"), DEFINED_SOURCES)
+        if "source" not in domain or is_one_of(domain["source"], DEFINED_SOURCES)
         else (error("%s has defined_by but its source is not repo, person, stored or sent" % tag),)
     )
     return check_definer(tag, name, number, steps, graph) + source

@@ -1135,6 +1135,12 @@ class RecordInputsTest(unittest.TestCase):
                 self.assertEqual(errors(loose), ())
                 self.assertIn(message, errors(self.check(record)))
 
+    def test_missing_source_beside_defined_by_warns_until_complete(self):
+        record = with_payload(base_record(), dropped=("source", "fact", "invalid"), defined_by="build-app")
+        message = DOMAIN + " does not say where its values come from; give source repo, outside, person, stored or sent"
+        self.assertEqual(self.check(record, complete=False), (("warning", message),))
+        self.assertEqual(self.check(record), (("error", message),))
+
     def test_criterion_without_inputs_or_bound_needs_no_new_fields(self):
         criterion = {
             "number": "7.1",
