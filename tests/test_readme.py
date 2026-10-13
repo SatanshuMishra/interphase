@@ -37,6 +37,14 @@ SECTION_HEADINGS = (
     "## License",
 )
 
+BRIEF_SENTENCE = "with no read-back; the spec reviewer still checks it, and it hands off only after a review that reports no input issue."
+TOP_RISKS_SENTENCE = "At hand-off it lists as top risks every criterion it could not prove, then every fact about outside software it could not run, then its own decisions: first any that override an earlier decision, one of your project's written rules or conventions or your request's own wording, then the rest."
+RECORD_USAGE = "python3 /path/to/interphase/scripts/check_record.py [--complete | --digest] docs/specs/<slug>.record.json"
+DIGEST_PARAGRAPH = "`--digest` prints the digest of the record and of the spec beside it that a spec review records in `reviews`. A record written by an earlier interphase fails this checker until it is amended: it lacks the fields below, and once handed off it holds no review."
+EXIT_CODES = "and `2` for a usage error or a file it cannot read, and, for `check_record.py --digest`, a record it cannot parse or digest or one with no spec beside it."
+WORKING_FILES_ROW = "| `<slug>.review-copy.md`, `<slug>.review-copy.json`, `<slug>.review-diff.txt` | Working files for the spec review: the spec and the record as the last review read them, and what changed since. They are deleted when the run ends. |"
+CASE_TABLE_PARAGRAPH = "Each acceptance criterion is a case table. A criterion's `domains` list the classes of each input the code tells apart, each with its `source` (`repo`, `outside`, `person`, `stored` or `sent`), whether it is `closed`, and for an outside, person, stored or sent domain its `invalid` classes; its `gives_way` lists what gives way first to last when a bound is reached and its `keeps` what never gives way; and each of its tests is one row with `given`, `expect` and the classes it `covers`. Each Step lists in `reads` the domains of the inputs its code reads, and the record keeps each spec review in `reviews`, with the digest of the record it read. The checker reports a class, give-way item or kept item no row covers, a kept item with no row that also covers every give-way item, a criterion that says every, each, any, all, whole, always, never, whatever, however or whenever with no domain, a bound with no `gives_way` or no `keeps`, a domain with no `source` or `closed`, an outside domain with no fact marked outside, an outside, person, stored or sent domain with no `invalid` class, an open domain in a criterion that does not vary from run to run unless the user's recorded decision keeps it open, a Step with no `reads`, a fact marked `outside` that is cited neither by a command and its output nor by `assumed`, and a handed-off record whose last review read an earlier version of it or of its spec, or that a review of them as they stand found an input issue in."
+
 
 def read_readme():
     root = pathlib.Path(__file__).resolve().parents[1]
@@ -136,7 +144,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("all six conditions hold", does)
         self.assertIn("one Step per item", does)
         self.assertIn("one approval of the written brief", does)
-        self.assertIn("no read-back and no reviewer agent", does)
+        self.assertIn(BRIEF_SENTENCE, does)
         self.assertIn("switches to the full pathway", does)
         use = section("## Use")
         self.assertIn("work autonomously", use)
@@ -145,7 +153,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("top risks", use)
         self.assertIn("first any that override an earlier decision", use)
         self.assertIn("never trims what the context calls for", use)
-        self.assertIn("or one of your project's written rules", use)
+        self.assertIn("one of your project's written rules or conventions or your request's own wording", use)
         produces = section("## What it produces")
         self.assertIn("core/templates/spec-brief.md", produces)
         self.assertIn("4.x", produces)
@@ -200,7 +208,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertEqual(len(starts), 1)
         self.assertEqual(
             paragraphs[starts[0] + 1],
-            "Each acceptance criterion is a case table. A criterion's `domains` list the classes of each input the code tells apart, its `gives_way` lists what gives way first to last when a bound is reached, and each of its tests is one row with `given`, `expect` and the classes it `covers`. The checker reports a class or give-way item no row covers, a criterion that says every, each, any, all, whole, always, never, whatever, however or whenever with no domain, a bound with no `gives_way`, and a fact marked `outside` that is not cited by a command and its output.",
+            CASE_TABLE_PARAGRAPH,
         )
 
     def test_readme_explains_citations(self):
@@ -221,6 +229,25 @@ class ReadmeTest(unittest.TestCase):
             paragraphs[starts[0] + 1],
             "To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.",
         )
+
+
+    def test_readme_describes_the_input_fields(self):
+        text = read_readme()
+        lines = text.splitlines()
+        self.assertIn(BRIEF_SENTENCE, text)
+        self.assertNotIn("no read-back and no reviewer agent", text)
+        self.assertIn(TOP_RISKS_SENTENCE, text)
+        self.assertIn(RECORD_USAGE, lines)
+        self.assertIn(EXIT_CODES, text)
+        guard = lines.index("| `<slug>.guard.json` | A working file for the guard. It is deleted when the run ends. |")
+        self.assertEqual(lines[guard + 1], WORKING_FILES_ROW)
+        paragraphs = self.check_output_section().split("\n\n")
+        checker = tuple(
+            i for i, p in enumerate(paragraphs) if p.startswith("This checker confirms that every cited quote appears in its line")
+        )
+        self.assertEqual(len(checker), 1)
+        self.assertEqual(paragraphs[checker[0] + 1], DIGEST_PARAGRAPH)
+        self.assertIn(CASE_TABLE_PARAGRAPH, paragraphs)
 
 
 if __name__ == "__main__":

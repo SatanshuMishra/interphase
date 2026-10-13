@@ -47,13 +47,52 @@ ROW = {
     "env": "unit-tests",
     "step": "build-app",
 }
-PAYLOAD = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
+PAYLOAD = {
+    "name": "payload",
+    "over": "the payload field agent_id",
+    "classes": ["absent", "present"],
+    "source": "repo",
+    "closed": True,
+    "defined_by": "build-app",
+}
 PAYLOAD_ROWS = [
     {**ROW, "covers": ["payload: absent"]},
     {**ROW, "name": "test_present", "given": "a total of 4", "expect": "4 is returned", "covers": ["payload: present"]},
 ]
 SUITE_FACT = {"id": "f2", "fact": "The suite passes", "command": "python3 -m unittest", "output": "OK"}
 DOCUMENTED_FACT = {"id": "f3", "fact": "The format is documented", "url": "https://example.com/a"}
+REPLY_FACT = {
+    "id": "f5",
+    "fact": "The service replies with a total",
+    "command": "curl -s https://service.example/total",
+    "output": "{\"total\": 3}",
+    "outside": True,
+}
+PHONE_FACT = {
+    "id": "f4",
+    "fact": "The phone sends a reading every second",
+    "assumed": "needs the user's phone",
+    "outside": True,
+}
+REPLY = {
+    "name": "reply",
+    "over": "the total the service sends",
+    "source": "outside",
+    "closed": True,
+    "fact": "f5",
+    "classes": ["a number", "a missing total"],
+    "invalid": ["a missing total"],
+}
+REPLY_ROWS = [
+    {**ROW, "covers": ["reply: a number"]},
+    {
+        **ROW,
+        "name": "test_missing",
+        "given": "no total",
+        "expect": "the reply is refused",
+        "covers": ["reply: a missing total"],
+    },
+]
 ITEM_FIELDS = frozenset(
     (
         "name",
@@ -111,6 +150,7 @@ def record():
                 "name": "build-app",
                 "files": ["src/app.py", "tests/test_app.py"],
                 "criteria": ["7.1"],
+                "reads": [],
                 "task": "Build the app.",
                 "msp": "first",
             },
@@ -118,6 +158,7 @@ def record():
                 "name": "tune-app",
                 "files": ["src/tune.py"],
                 "criteria": ["7.2"],
+                "reads": [],
                 "task": "Tune the app for the phone.",
             },
         ],
@@ -163,6 +204,7 @@ def amended(source):
         "task": "Tune the app for the phone.",
         "amendment": 1,
         "after": ["build-app"],
+        "reads": [],
     }
     return {**source, "steps": source["steps"][:1] + [fix]}
 
@@ -370,13 +412,70 @@ class CaseTableRenderTest(RenderFixture, unittest.TestCase):
 
     def test_domains_render_as_inputs(self):
         block = self.block_of(first_criterion(record(), domains=[PAYLOAD], tests=PAYLOAD_ROWS), "7.1")
-        self.assertIn("\n\nInputs:\n- the payload field agent_id (`payload`): absent; present\n\n", block)
+        self.assertIn(
+            "\n\nInputs:\n- the payload field agent_id (`payload`, repo source, closed): absent; present\n\n", block
+        )
+        self.assertNotIn("These never give way:", block)
+
+    def test_outside_domain_renders_its_invalid_classes(self):
+        source = with_facts(first_criterion(record(), domains=[REPLY], tests=REPLY_ROWS), REPLY_FACT)
+        self.assertIn(
+            "- the total the service sends (`reply`, outside source, closed): a number; a missing total (invalid)",
+            self.block_of(source, "7.1"),
+        )
+
+    def test_person_domain_renders_its_source(self):
+        domain = {**PAYLOAD, "source": "person", "invalid": ["absent"]}
+        self.assertIn(
+            "- the payload field agent_id (`payload`, person source, closed): absent (invalid); present",
+            self.block_of(first_criterion(record(), domains=[domain], tests=PAYLOAD_ROWS), "7.1"),
+        )
+
+    def test_stored_domain_renders_its_source(self):
+        domain = {**PAYLOAD, "source": "stored", "invalid": ["absent"]}
+        self.assertIn(
+            "- the payload field agent_id (`payload`, stored source, closed): absent (invalid); present",
+            self.block_of(first_criterion(record(), domains=[domain], tests=PAYLOAD_ROWS), "7.1"),
+        )
+
+    def test_sent_domain_renders_its_source(self):
+        domain = {**PAYLOAD, "source": "sent", "invalid": ["absent"]}
+        self.assertIn(
+            "- the payload field agent_id (`payload`, sent source, closed): absent (invalid); present",
+            self.block_of(first_criterion(record(), domains=[domain], tests=PAYLOAD_ROWS), "7.1"),
+        )
+
+    def test_open_domain_renders_as_open(self):
+        tests = [{**row, "cases": 60, "runs": 3, "pass_rate": 0.9} for row in PAYLOAD_ROWS]
+        domain = {**PAYLOAD, "closed": False}
+        source = first_criterion(record(), varies="input", domains=[domain], tests=tests)
+        self.assertIn(
+            "- the payload field agent_id (`payload`, repo source, open): absent; present",
+            self.block_of(source, "7.1"),
+        )
 
     def test_gives_way_renders_as_a_numbered_order(self):
-        tests = [{**ROW, "covers": ["gives-way: older lines", "gives-way: the header"]}]
-        block = self.block_of(first_criterion(record(), gives_way=["older lines", "the header"], tests=tests), "7.1")
+        tests = [{**ROW, "covers": ["gives-way: older lines", "gives-way: the header", "keeps: the total"]}]
+        source = first_criterion(record(), gives_way=["older lines", "the header"], keeps=["the total"], tests=tests)
+        block = self.block_of(source, "7.1")
         self.assertIn(
             "\n\nWhen the bound is reached, these give way, first to last:\n1. older lines\n2. the header\n\n", block
+        )
+
+    def test_keeps_render_after_the_order(self):
+        tests = [{**ROW, "covers": ["gives-way: older lines", "gives-way: the header", "keeps: the total"]}]
+        source = first_criterion(record(), gives_way=["older lines", "the header"], keeps=["the total"], tests=tests)
+        self.assertIn(
+            "\n\nWhen the bound is reached, these give way, first to last:\n1. older lines\n2. the header\n\n"
+            "These never give way:\n- the total\n\n",
+            self.block_of(source, "7.1"),
+        )
+
+    def test_assumed_fact_renders_its_reason(self):
+        source = with_facts(first_criterion(record(), facts=["f4"]), PHONE_FACT)
+        self.assertIn(
+            "\n\nFacts:\n- The phone sends a reading every second (assumed, not run: needs the user's phone)\n\n",
+            self.block_of(source, "7.1"),
         )
 
     def test_facts_render_with_their_citations(self):
@@ -441,13 +540,14 @@ class CaseTableRenderTest(RenderFixture, unittest.TestCase):
     def test_unproven_block_has_no_table(self):
         source = record()
         criteria = source["criteria"]
-        block = self.block_of({**source, "criteria": [criteria[0], {**criteria[1], "domains": [PAYLOAD]}]}, "7.2")
+        domain = {**PAYLOAD, "defined_by": "tune-app"}
+        block = self.block_of({**source, "criteria": [criteria[0], {**criteria[1], "domains": [domain]}]}, "7.2")
         self.assertEqual(
             block,
             "### 7.2 The total shows on the phone\n\n"
             "The total appears on the phone within a second" + ELLIPSIS + "\n\n"
             "Where passing proves it: Galaxy Note10+, Android 12, Impeller renderer.\n\n"
-            "Inputs:\n- the payload field agent_id (`payload`): absent; present\n\n"
+            "Inputs:\n- the payload field agent_id (`payload`, repo source, closed): absent; present\n\n"
             "Unproven: needs the phone",
         )
         self.assertNotIn("| Test |", block)
@@ -458,7 +558,7 @@ class CaseTableRenderTest(RenderFixture, unittest.TestCase):
             spec_text, items_text = self.rendered(folder, first_criterion(record(), domains=[PAYLOAD], tests=tests))
         block = spec_block(spec_text, "7.1")
         task = {step["name"]: step["task"] for step in json.loads(items_text)}["build-app"]
-        inputs = "Inputs:\n- the payload field agent_id (`payload`): absent; present"
+        inputs = "Inputs:\n- the payload field agent_id (`payload`, repo source, closed): absent; present"
         table = (
             "| Test | Runs in | Given | Expected | Covers |\n"
             "|---|---|---|---|---|\n"
@@ -536,6 +636,7 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
             "task": "Describe the fix.",
             "amendment": 1,
             "after": ["build-app", "fix-app"],
+            "reads": [],
         }
         source = amended(record())
         with tempfile.TemporaryDirectory() as folder:
