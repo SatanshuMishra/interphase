@@ -60,6 +60,7 @@ AMENDED_RECORD = {
             "name": "build-app",
             "files": ["src/app.py", "tests/test_app.py"],
             "criteria": ["7.1"],
+            "reads": [],
             "task": "Build the app.",
         },
         {
@@ -69,6 +70,7 @@ AMENDED_RECORD = {
             "task": "Return zero for a negative total.",
             "amendment": 1,
             "after": ["build-app"],
+            "reads": [],
         },
     ],
 }
@@ -338,12 +340,15 @@ class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
     def test_rendered_amendment_passes_the_items_check(self):
         render_record = self.load("render_record")
         check_items = self.load()
+        check_record = self.load("check_record")
+        reviewed = check_record.digest(AMENDED_RECORD, AMENDMENT_SPEC_TEXT.encode("utf-8"))
+        record = {**AMENDED_RECORD, "reviews": [{"status": "Approved", "issues": [], "reviewed": reviewed}]}
         with tempfile.TemporaryDirectory() as tmp:
             base = pathlib.Path(tmp)
             record_path = base / "demo.record.json"
             spec_path = base / "demo.md"
             items_path = base / "demo.amend-1.items.json"
-            record_path.write_text(json.dumps(AMENDED_RECORD), encoding="utf-8")
+            record_path.write_text(json.dumps(record), encoding="utf-8")
             spec_path.write_text(AMENDMENT_SPEC_TEXT, encoding="utf-8")
             argv = ["--record", str(record_path), "--spec", str(spec_path), "--items", str(items_path)]
             rendered = io.StringIO()
