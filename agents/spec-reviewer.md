@@ -14,7 +14,7 @@ The record check, the render script, the spec check and the items check have alr
 
 - Consistency: contradictions between sections.
 - Clarity: a requirement two builders would read differently.
-- Missing class: an input that carries real risk, one a person enters or one that comes from software outside the repository, a file, a network or a store the code reads back, read at a line a domain cites or that you find by searching the code, with a class that a real path can deliver and no domain lists, such as an absent field, an empty value, a renamed file, a subfolder or a truncated value. Name the file and line.
+- Missing class: an input that carries real risk, one a person enters, one that comes from software outside the repository, a file, a network or a store the code reads back, or one where a wrong result loses, corrupts or exposes data, read at a line a domain cites or that you find by searching the code, with a class that a real path can deliver and no domain lists, such as an absent field, an empty value, a renamed file, a subfolder or a truncated value. Name the file and line.
 - Give-way: a bound whose order of what gives way is missing or leaves a choice open.
 - Outside fact: a claim about software outside the repository that no recorded command and output shows and the spec does not list as an assumption.
 - Open domain: a domain whose classes cannot all be listed, such as free text or shell commands, that the design still decides on.

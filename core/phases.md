@@ -134,6 +134,7 @@ The goal is not a perfect spec. It is that the user's intent is met. A missed in
 - Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.
 - Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.
 - When the record's tests carry `asserts`, rewrite each as `given` and `expect`, and add the domains and give-way orders the record check asks for.
+- When the record carries keys an earlier release wrote, remove them: the record's `reviews` and `open_issues`, a domain's `source`, `closed`, `invalid`, `defined_by` and `open_by`, a criterion's `keeps`, and a Step's `reads`. Delete every `keeps: <item>` entry from a test's `covers`, and remove `covers` from a test it leaves empty. Replace each fact's `assumed` with a citation by command and output, or move that fact to the spec's Assumptions and remove its id from every criterion and domain that names it.
 - Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
 - Add the missing classes, give-way items, facts and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
 - Give every new row's test to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.

@@ -549,7 +549,7 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
             gives_way=["older lines", "the header"],
             tests=GIVE_WAY_ROWS,
         )
-        self.assertEqual(self.errors(record, True), ())
+        self.assertEqual(self.check(record, True), ())
 
     def test_bound_phrase_in_capitals_and_across_lines_is_matched(self):
         record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show AT\nMOST 40 lines")
