@@ -284,22 +284,6 @@ class ResumeContextTest(unittest.TestCase):
             ],
         )
 
-    def test_review_working_files_are_not_runs(self):
-        module = self.load()
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp).resolve()
-            folder = self.specs(root)
-            self.write(folder, "x.record.json", record())
-            self.write(folder, "x.review-copy.md", "# X\n")
-            self.write(folder, "x.review-copy.json", record())
-            self.write(folder, "x.review-diff.txt", "--- docs/specs/x.review-copy.md\n+++ docs/specs/x.md\n")
-            code, output = self.session(module, root)
-        self.assertEqual(code, 0)
-        self.assertEqual(
-            tuple(line for line in output.splitlines() if line.startswith(HEADING)),
-            (HEADING + "x",),
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

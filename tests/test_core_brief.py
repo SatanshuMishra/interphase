@@ -90,20 +90,6 @@ FILLED_BRIEF = (
 )
 TOTAL_ROW = "### 4.1 The stock report ends with a total row"
 LOW_STOCK_ORDER = "### 4.2 The low-stock list is sorted by name"
-REVIEWER_SENTENCE = (
-    "Then, when the record holds a domain whose `source` is `outside`, `person`, `stored` or `sent`, or a criterion "
-    "with `gives_way`, dispatch the `interphase:spec-reviewer` agent, record each review and settle its input issues "
-    "as phase 9 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, running the spec check against `spec-brief.md` each "
-    "time; otherwise do not dispatch it."
-)
-PHASE_9 = (
-    '- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template '
-    '"${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md`, '
-    '`python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json` and '
-    '`python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. '
-    + REVIEWER_SENTENCE
-    + " Ask for one approval of the written brief and its Steps."
-)
 
 
 def load(relative):
@@ -192,9 +178,6 @@ def brief_record():
                         "name": "stock-rows",
                         "over": "the products the stock report lists",
                         "classes": ["no products", "several products"],
-                        "source": "repo",
-                        "closed": True,
-                        "defined_by": "total-row",
                     }
                 ],
             ),
@@ -217,14 +200,12 @@ def brief_record():
                 "name": "total-row",
                 "files": ["src/report.py", "tests/test_report.py"],
                 "criteria": ["4.1"],
-                "reads": ["stock-rows"],
                 "task": "End the stock report with a row holding the sum of all quantities.",
             },
             {
                 "name": "low-stock-order",
                 "files": ["src/report.py", "tests/test_report.py"],
                 "criteria": ["4.2"],
-                "reads": [],
                 "task": "Sort the low-stock list by product name, as stock_rows sorts the stock report.",
                 "after": ["total-row"],
             },
@@ -271,7 +252,7 @@ class CoreBriefTest(unittest.TestCase):
         ):
             self.assertIn(needle, switch, needle)
 
-    def test_brief_skips_read_back_but_runs_the_checkers(self):
+    def test_brief_skips_read_back_and_reviewer_but_runs_the_checkers(self):
         changes = section(read(BRIEF), "## What changes")
         self.assertIn("Every other phase and rule applies unchanged.", changes)
         expected = (
@@ -288,7 +269,7 @@ class CoreBriefTest(unittest.TestCase):
                     '/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md"',
                     '/scripts/check_record.py" --complete docs/specs/<slug>.record.json',
                     '/scripts/check_items.py" docs/specs/<slug>.items.json',
-                    REVIEWER_SENTENCE,
+                    "Do not dispatch the `interphase:spec-reviewer` agent.",
                     "Ask for one approval of the written brief",
                 ),
             ),
@@ -298,11 +279,6 @@ class CoreBriefTest(unittest.TestCase):
             self.assertTrue(line, prefix)
             for needle in needles:
                 self.assertIn(needle, line, needle)
-
-    def test_brief_dispatches_the_spec_reviewer(self):
-        text = read(BRIEF)
-        self.assertEqual(bullet(section(text, "## What changes"), "- Phase 9:"), PHASE_9)
-        self.assertNotIn("Do not dispatch the `interphase:spec-reviewer` agent.", text)
 
     def test_brief_template_has_its_sections(self):
         lines = read(TEMPLATE).splitlines()
