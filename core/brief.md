@@ -39,7 +39,7 @@ In the brief lane, only these phases change. Every other phase and rule applies 
 - Phase 6: design one Step per item.
 - Phase 7: skip the read-back.
 - Phase 8: copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.
-- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md`, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json` and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. Then, when the record holds a domain whose `source` is `outside`, `person`, `stored` or `sent`, or a criterion with `gives_way`, dispatch the `interphase:spec-reviewer` agent, record each review and settle its input issues as phase 9 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, running the spec check against `spec-brief.md` each time; otherwise do not dispatch it. Ask for one approval of the written brief and its Steps.
+- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md`, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json` and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. Do not dispatch the `interphase:spec-reviewer` agent. Ask for one approval of the written brief and its Steps.
 
 ## Numbering
 

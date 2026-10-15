@@ -13,8 +13,6 @@ AMENDMENT_RE = re.compile(r"[1-9][0-9]*")
 PROVES = "Acceptance criteria this Step proves:"
 CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
 GIVE_WAY_HEAD = "When the bound is reached, these give way, first to last:"
-KEEPS_HEAD = "These never give way:"
-INVALID_MARK = " (invalid)"
 TABLE_HEAD = "| Test | Runs in | Given | Expected | Covers |\n|---|---|---|---|---|"
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 
@@ -65,24 +63,7 @@ def citation(fact):
         return fact["url"]
     if "command" in fact:
         return 'ran `%s`, which showed "%s"' % (fact["command"], fact["output"])
-    if "assumed" in fact:
-        return "assumed, not run: " + fact["assumed"]
     return '`%s`:%s, quoting "%s"' % (fact["path"], fact["line"], fact["quote"])
-
-
-def class_text(name, invalid):
-    return name + INVALID_MARK if name in invalid else name
-
-
-def input_line(domain):
-    invalid = tuple(domain.get("invalid", ()))
-    return "- %s (`%s`, %s source, %s): %s" % (
-        domain["over"],
-        domain["name"],
-        domain["source"],
-        "closed" if domain["closed"] else "open",
-        "; ".join(class_text(name, invalid) for name in domain["classes"]),
-    )
 
 
 def cited_facts(criterion):
@@ -96,9 +77,11 @@ def listed(head, lines):
 
 def criterion_block(criterion, what, facts):
     where = "Where passing proves it: %s." % "; ".join(what[name] for name in criterion["where"])
-    inputs = tuple(input_line(domain) for domain in criterion.get("domains", ()))
+    inputs = tuple(
+        "- %s (`%s`): %s" % (domain["over"], domain["name"], "; ".join(domain["classes"]))
+        for domain in criterion.get("domains", ())
+    )
     order = tuple("%d. %s" % (position + 1, item) for position, item in enumerate(criterion.get("gives_way", ())))
-    kept = tuple("- %s" % item for item in criterion.get("keeps", ()))
     cited = tuple(
         one_line("- %s (%s)" % (facts[fact_id]["fact"], citation(facts[fact_id])))
         for fact_id in cited_facts(criterion)
@@ -109,7 +92,6 @@ def criterion_block(criterion, what, facts):
         ("### %s %s" % (criterion["number"], criterion["title"]), criterion["text"], where)
         + listed("Inputs:", inputs)
         + listed(GIVE_WAY_HEAD, order)
-        + listed(KEEPS_HEAD, kept)
         + listed("Facts:", cited)
         + listed(TABLE_HEAD, rows)
         + unproven
@@ -117,10 +99,10 @@ def criterion_block(criterion, what, facts):
     return "\n\n".join(parts)
 
 
-def record_errors(record_text, root, spec):
+def record_errors(record_text, root):
     return tuple(
         message
-        for severity, message in check_record.check(record_text, root, complete=True, spec=spec)
+        for severity, message in check_record.check(record_text, root, complete=True)
         if severity == "error"
     )
 
@@ -224,7 +206,7 @@ def item(step, criteria, blocks, source):
 
 
 def render(record_text, spec_text, spec_path, root, amendment=None):
-    rejected = record_errors(record_text, root, spec_text.encode("utf-8"))
+    rejected = record_errors(record_text, root)
     if rejected:
         return (rejected, None, None)
     record = json.loads(record_text)

@@ -8,7 +8,6 @@ import tempfile
 import unittest
 
 SOURCE_TEXT = "def total_of(total):\n    return total\n"
-SPEC_BYTES = b"# The total adds up\n"
 TEST_ENTRY = {
     "file": "tests/test_app.py",
     "name": "test_total",
@@ -22,8 +21,6 @@ PAYLOAD_DOMAIN = {
     "name": "payload",
     "over": "the payload field agent_id",
     "classes": ["absent", "present"],
-    "source": "repo",
-    "closed": True,
     "fact": "f1",
 }
 PAYLOAD_ROWS = [{**TEST_ENTRY, "covers": ["payload: absent"]}, {**PRESENT_ENTRY, "covers": ["payload: present"]}]
@@ -31,12 +28,6 @@ GIVE_WAY_ROWS = [
     {**TEST_ENTRY, "covers": ["gives-way: older lines"]},
     {**TEST_ENTRY, "name": "test_header", "covers": ["gives-way: the header"]},
 ]
-KEEPS = ["the total"]
-WHOLE_ORDER_ROW = {
-    **TEST_ENTRY,
-    "name": "test_whole_order",
-    "covers": ["gives-way: older lines", "gives-way: the header", "keeps: the total"],
-}
 VARYING_TEST_ENTRY = {**TEST_ENTRY, "cases": 60, "runs": 3, "pass_rate": 0.9}
 UNCLAIMED_CRITERION = {
     "number": "7.2",
@@ -79,7 +70,6 @@ def base_record():
                 "name": "build-app",
                 "files": ["src/app.py", "tests/test_app.py"],
                 "criteria": ["7.1"],
-                "reads": [],
                 "task": "Build the app.",
             }
         ],
@@ -132,7 +122,7 @@ class RecordFixture:
         module = self.load()
         with tempfile.TemporaryDirectory() as folder:
             self.write_source(folder)
-            return module.check(json.dumps(record), folder, complete=complete, spec=SPEC_BYTES)
+            return module.check(json.dumps(record), folder, complete=complete)
 
     def run_main(self, argv, content=None):
         module = self.load()
@@ -276,12 +266,10 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
 
     def test_status_marks_the_run(self):
         base = base_record()
-        review = {"status": "Approved", "issues": [], "reviewed": self.load().digest(base, SPEC_BYTES)}
-        marked = (("in-progress", base), ("handed-off", {**base, "status": "handed-off", "reviews": [review]}))
-        for status, record in marked:
+        for status in ("in-progress", "handed-off"):
             for complete in (False, True):
                 with self.subTest(status=status, complete=complete):
-                    self.assertEqual(self.check(record, complete), ())
+                    self.assertEqual(self.check({**base, "status": status}, complete), ())
         absent = {key: value for key, value in base.items() if key != "status"}
         for complete in (False, True):
             for label, record in (("missing", absent), ("done", {**base, "status": "done"}), ("number", {**base, "status": 3})):
@@ -420,14 +408,7 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         self.assertIn("criterion 7.1 domain 1 has a name that is not lowercase kebab-case", errors)
 
     def test_domain_without_a_fact_is_accepted(self):
-        domain = {
-            "name": "payload",
-            "over": "the payload field agent_id",
-            "classes": ["absent", "present"],
-            "source": "repo",
-            "closed": True,
-            "defined_by": "build-app",
-        }
+        domain = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
         record = with_criterion(domains=[domain], tests=PAYLOAD_ROWS)
         self.assertEqual(self.errors(record, True), ())
 
@@ -500,8 +481,7 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         record = with_criterion(
             text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
             gives_way=["older lines", "the header"],
-            keeps=KEEPS,
-            tests=GIVE_WAY_ROWS + [WHOLE_ORDER_ROW],
+            tests=GIVE_WAY_ROWS,
         )
         self.assertEqual(self.errors(record, True), ())
 
@@ -524,53 +504,13 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
     def test_well_formed_criterion_facts_have_no_error(self):
         self.assertEqual(self.errors(with_criterion(facts=["f1"]), True), ())
 
-    def test_each_quantifier_word_needs_a_domain(self):
+    def test_quantifier_word_needs_no_domain(self):
         for word in ("every", "each", "any", "all", "whole", "always", "never", "whatever", "however", "whenever"):
             with self.subTest(word=word):
                 record = with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep %s field" % word)
-                self.assertEqual(
-                    self.errors(record, True), ("criterion 7.1 says '%s' but declares no domains" % word,)
-                )
+                self.assertEqual(self.check(record, True), ())
 
-    def test_quantifier_without_a_domain_warns_before_complete(self):
-        findings = self.check(with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep every field"), False)
-        self.assertIn("criterion 7.1 says 'every' but declares no domains", messages(findings, "warning"))
-        self.assertEqual(messages(findings, "error"), ())
-
-    def test_quantifier_with_a_domain_has_no_quantifier_finding(self):
-        record = with_criterion(
-            text="WHEN a line is shown THE SYSTEM SHALL keep every field",
-            domains=[PAYLOAD_DOMAIN],
-            tests=PAYLOAD_ROWS,
-        )
-        self.assertEqual(self.errors(record, True), ())
-
-    def test_quantifier_in_capitals_is_matched(self):
-        record = with_criterion(text="WHEN a line is shown THE SYSTEM SHALL keep EVERY field")
-        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'every' but declares no domains",))
-
-    def test_quantifier_inside_a_longer_word_is_ignored(self):
-        text = "WHEN the company allows an overall view for everyone THE SYSTEM SHALL show anything listed"
-        self.assertEqual(self.check(with_criterion(text=text), True), ())
-        self.assertEqual(
-            self.errors(with_criterion(text=text + " for every user"), True),
-            ("criterion 7.1 says 'every' but declares no domains",),
-        )
-
-    def test_first_quantifier_word_is_named(self):
-        record = with_criterion(text="WHEN each line is shown THE SYSTEM SHALL keep every field")
-        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'each' but declares no domains",))
-
-    def test_unproven_quantified_criterion_needs_a_domain(self):
-        record = with_criterion(
-            text="WHEN a frame is drawn THE SYSTEM SHALL draw it on every screen",
-            where=["phone"],
-            tests=[],
-            unproven="needs the phone",
-        )
-        self.assertEqual(self.errors(record, True), ("criterion 7.1 says 'every' but declares no domains",))
-
-    def test_each_bound_phrase_needs_a_give_way_order(self):
+    def test_each_bound_phrase_warns_without_a_give_way_order(self):
         phrases = (
             "at most",
             "no more than",
@@ -588,14 +528,16 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         for phrase in phrases:
             with self.subTest(phrase=phrase):
                 record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show %s 40 lines" % phrase)
+                findings = self.check(record, True)
                 self.assertEqual(
-                    self.errors(record, True),
+                    messages(findings, "warning"),
                     ("criterion 7.1 sets a bound with '%s' but lists nothing in gives_way" % phrase,),
                 )
+                self.assertEqual(messages(findings, "error"), ())
 
-    def test_bound_without_give_way_warns_before_complete(self):
+    def test_bound_without_give_way_warns_when_complete_too(self):
         record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines")
-        findings = self.check(record, False)
+        findings = self.check(record, True)
         self.assertIn(
             "criterion 7.1 sets a bound with 'at most' but lists nothing in gives_way", messages(findings, "warning")
         )
@@ -605,22 +547,21 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         record = with_criterion(
             text="WHEN the log is shown THE SYSTEM SHALL show at most 40 lines",
             gives_way=["older lines", "the header"],
-            keeps=KEEPS,
-            tests=GIVE_WAY_ROWS + [WHOLE_ORDER_ROW],
+            tests=GIVE_WAY_ROWS,
         )
         self.assertEqual(self.errors(record, True), ())
 
     def test_bound_phrase_in_capitals_and_across_lines_is_matched(self):
         record = with_criterion(text="WHEN the log is shown THE SYSTEM SHALL show AT\nMOST 40 lines")
         self.assertEqual(
-            self.errors(record, True), ("criterion 7.1 sets a bound with 'at most' but lists nothing in gives_way",)
+            messages(self.check(record, True), "warning"), ("criterion 7.1 sets a bound with 'at most' but lists nothing in gives_way",)
         )
 
     def test_bound_inside_a_longer_word_is_ignored(self):
         text = "WHEN the capture of capital upstream data is shown THE SYSTEM SHALL maximise its use"
         self.assertEqual(self.check(with_criterion(text=text), True), ())
         self.assertEqual(
-            self.errors(with_criterion(text=text + " up to 3 times"), True),
+            messages(self.check(with_criterion(text=text + " up to 3 times"), True), "warning"),
             ("criterion 7.1 sets a bound with 'up to' but lists nothing in gives_way",),
         )
 
@@ -647,8 +588,8 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         tests = [{**TEST_ENTRY, "covers": ["payload absent"]}, PAYLOAD_ROWS[1]]
         errors = self.errors(with_criterion(domains=[PAYLOAD_DOMAIN], tests=tests), False)
         self.assertIn(
-            "criterion 7.1 test 'test_total' covers 'payload absent', which is not '<domain>: <class>', "
-            "'gives-way: <item>' or 'keeps: <item>'",
+            "criterion 7.1 test 'test_total' covers 'payload absent', which is not '<domain>: <class>' or "
+            "'gives-way: <item>'",
             errors,
         )
 
@@ -750,16 +691,14 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
     def test_outside_fact_cited_by_location_is_an_error(self):
         record = change(base_record(), "facts", 0, outside=True)
         self.assertIn(
-            "fact 'f1' is marked outside but is not cited by command and output, or assumed",
-            self.errors(record, False),
+            "fact 'f1' is marked outside but is not cited by command and output", self.errors(record, False)
         )
 
     def test_outside_fact_cited_by_url_is_an_error(self):
         fact = {"id": "f3", "fact": "The format is documented", "url": "https://example.com/a", "outside": True}
         record = append(base_record(), "facts", fact)
         self.assertIn(
-            "fact 'f3' is marked outside but is not cited by command and output, or assumed",
-            self.errors(record, False),
+            "fact 'f3' is marked outside but is not cited by command and output", self.errors(record, False)
         )
 
     def test_outside_that_is_not_a_boolean_is_an_error(self):
@@ -781,7 +720,6 @@ class AmendmentRecordTest(RecordFixture, unittest.TestCase):
             "task": "Fix the app.",
             "amendment": 1,
             "after": ["build-app"],
-            "reads": [],
         }
         record = append(base_record(), "steps", fix)
         self.assertNotIn("amendment", record["steps"][0])
