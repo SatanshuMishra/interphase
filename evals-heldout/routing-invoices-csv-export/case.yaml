@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: routing-invoices-csv-export
-context:
-  scaffold_script: scaffold.sh

@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: reviewbar-dev-button-label
-context:
-  scaffold_script: scaffold.sh

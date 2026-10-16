@@ -3,7 +3,10 @@ docs/specs/
 graphify-out/
 .serena/
 
-evals/**/results/
+evals/
+evals-dev/
+evals-heldout/
+tests/test_evals*.py
 
 __pycache__/
 *.py[cod]

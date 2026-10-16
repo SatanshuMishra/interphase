@@ -33,7 +33,7 @@ SECTION_HEADINGS = (
     "## What it produces",
     "## Check the output yourself",
     "## Requirements",
-    "## Tests and evals",
+    "## Tests",
     "## License",
 )
 

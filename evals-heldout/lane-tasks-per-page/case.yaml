@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: lane-tasks-per-page
-context:
-  scaffold_script: scaffold.sh

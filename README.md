@@ -160,18 +160,12 @@ Run every command in this section from the root of the repository that holds `do
 - Python 3.9 or later.
 - git.
 
-## Tests and evals
+## Tests
 
 Run the tests from the plugin's folder:
 
 ```
 python3 -m unittest discover tests
-```
-
-Run the evals, which check that each pathway starts from the right kind of request:
-
-```
-claude plugin eval .
 ```
 
 ## License
