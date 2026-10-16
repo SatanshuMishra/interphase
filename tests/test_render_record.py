@@ -9,42 +9,57 @@ import tempfile
 import unittest
 
 ELLIPSIS = "…"
-SOURCE_TEXT = "def total_of(total):\n    return total\n"
 REQUEST = (
     "# Demo feature\n\n"
-    "## 1. Request\n\nAdd a total to the app.\n\n"
-    "## 6. Requirements\n\nR1. The app returns the total it is given.\n\n"
+    "## 1. Problem\n\nAdd a total to the app.\n\n"
+    "## 4. Decisions\n\nThe app returns the total it is given.\n\n"
 )
-CRITERIA = (
-    "## 7. Acceptance criteria\n\n"
-    "### 7.1 {{short name of the first criterion}}\n\n"
-    "{{Given a starting state, when an action happens, then an observable result.}}\n\n"
+SEAMS_SECTION = (
+    "## 5. Test seams\n\n"
+    "{{written by the render script from the record: the agreed seams, then one numbered heading per acceptance "
+    "criterion}}\n\n"
 )
-EDGES = "## 8. Edge cases\n\nAn empty list totals zero.\n"
-SPEC_TEXT = REQUEST + CRITERIA + EDGES
-NO_CRITERIA_SPEC = REQUEST + EDGES
-TWO_CRITERIA_SPEC = REQUEST + CRITERIA + CRITERIA.replace("## 7.", "## 9.") + EDGES
+TAIL = "## 6. Out of scope\n\nCurrency conversion.\n"
+SPEC_TEXT = REQUEST + SEAMS_SECTION + TAIL
+NO_SEAMS_SPEC = REQUEST + TAIL
+OLD_SECTION_SPEC = REQUEST + "## 5. Acceptance criteria\n\n### 5.1 {{name}}\n\n" + TAIL
+TWO_SEAMS_SPEC = REQUEST + SEAMS_SECTION + SEAMS_SECTION.replace("## 5.", "## 9.") + TAIL
 RECORD_PATH = "docs/specs/demo.record.json"
 SPEC_PATH = "docs/specs/demo.md"
 ITEMS_PATH = "docs/specs/demo.items.json"
 ARGV = ("--record", RECORD_PATH, "--spec", SPEC_PATH, "--items", ITEMS_PATH)
-BLOCK_7_1_HEAD = (
-    "### 7.1 The total adds up\n\n"
-    "Given a total, when the app returns it, then it is unchanged.\n\n"
-    "Where passing proves it: python3 -m unittest on macOS.\n\n"
-    "| Test | Runs in | Given | Expected | Covers |\n"
-    "|---|---|---|---|---|\n"
+UNIT_SEAM_LINE = (
+    "- `unit-tests`: the total_of function in src/app.py. Catches: a wrong total. "
+    "Misses: how the total is drawn on screen."
 )
-BLOCK_7_1 = (
-    BLOCK_7_1_HEAD
-    + "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a total of 3 | 3 is returned | none |"
+PHONE_SEAM_LINE = (
+    "- `phone-screen`: the total drawn on a Galaxy Note10+. Catches: a total drawn late. "
+    "Misses: a wrong total. The builder cannot run it."
 )
+SEAMS_LIST = "Seams:\n" + UNIT_SEAM_LINE + "\n" + PHONE_SEAM_LINE
+UNIT_SEAM_TEXT = "Seam: `unit-tests`, the total_of function in src/app.py."
+PHONE_SEAM_TEXT = "Seam: `phone-screen`, the total drawn on a Galaxy Note10+."
+BLOCK_5_1_HEAD = (
+    "### 5.1 The total adds up\n\n"
+    "Given a total, when the app returns it, then it is unchanged.\n\n" + UNIT_SEAM_TEXT + "\n\n"
+)
+PLAIN_HEAD = "| Test | Given | Expected |\n|---|---|---|\n"
+TOTAL_ROW = "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned |"
+BLOCK_5_1 = BLOCK_5_1_HEAD + PLAIN_HEAD + TOTAL_ROW
+BLOCK_5_2 = (
+    "### 5.2 The total shows on the phone\n\n"
+    "The total appears on the phone within a second" + ELLIPSIS + "\n\n" + PHONE_SEAM_TEXT + "\n\n"
+    "Unproven: needs the phone"
+)
+RENDERED_SPEC = (
+    REQUEST + "## 5. Test seams\n\n" + SEAMS_LIST + "\n\n" + BLOCK_5_1 + "\n\n" + BLOCK_5_2 + "\n\n" + TAIL
+)
+PROVES = "Acceptance criteria this Step proves:"
 ROW = {
     "file": "tests/test_app.py",
     "name": "test_total",
     "given": "a total of 3",
     "expect": "3 is returned",
-    "env": "unit-tests",
     "step": "build-app",
 }
 PAYLOAD = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
@@ -52,8 +67,7 @@ PAYLOAD_ROWS = [
     {**ROW, "covers": ["payload: absent"]},
     {**ROW, "name": "test_present", "given": "a total of 4", "expect": "4 is returned", "covers": ["payload: present"]},
 ]
-SUITE_FACT = {"id": "f2", "fact": "The suite passes", "command": "python3 -m unittest", "output": "OK"}
-DOCUMENTED_FACT = {"id": "f3", "fact": "The format is documented", "url": "https://example.com/a"}
+PAYLOAD_CASES = "- the payload field agent_id (`payload`): absent; present"
 ITEM_FIELDS = frozenset(
     (
         "name",
@@ -76,32 +90,35 @@ ITEM_FIELDS = frozenset(
 def record():
     return {
         "status": "in-progress",
-        "environments": [
-            {"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True},
-            {"name": "phone", "what": "Galaxy Note10+, Android 12, Impeller renderer", "builder_runs": False},
-        ],
-        "facts": [
+        "seams": [
             {
-                "id": "f1",
-                "fact": "The app returns the total it is given",
-                "path": "src/app.py",
-                "line": 2,
-                "quote": "return total",
-            }
+                "name": "unit-tests",
+                "interface": "the total_of function in src/app.py",
+                "catches": "a wrong total",
+                "misses": "how the total is drawn on screen",
+                "builder_runs": True,
+            },
+            {
+                "name": "phone-screen",
+                "interface": "the total drawn on a Galaxy Note10+",
+                "catches": "a total drawn late",
+                "misses": "a wrong total",
+                "builder_runs": False,
+            },
         ],
         "criteria": [
             {
-                "number": "7.1",
+                "number": "5.1",
                 "title": "The total adds up",
                 "text": "Given a total, when the app returns it, then it is unchanged.",
-                "where": ["unit-tests"],
+                "seam": "unit-tests",
                 "tests": [dict(ROW)],
             },
             {
-                "number": "7.2",
+                "number": "5.2",
                 "title": "The total shows on the phone",
                 "text": "The total appears on the phone within a second" + ELLIPSIS,
-                "where": ["phone"],
+                "seam": "phone-screen",
                 "tests": [],
                 "unproven": "needs the phone",
             },
@@ -110,14 +127,14 @@ def record():
             {
                 "name": "build-app",
                 "files": ["src/app.py", "tests/test_app.py"],
-                "criteria": ["7.1"],
+                "criteria": ["5.1"],
                 "task": "Build the app.",
                 "msp": "first",
             },
             {
                 "name": "tune-app",
                 "files": ["src/tune.py"],
-                "criteria": ["7.2"],
+                "criteria": ["5.2"],
                 "task": "Tune the app for the phone.",
             },
         ],
@@ -151,15 +168,25 @@ def first_criterion(source, **fields):
     return {**source, "criteria": [{**criteria[0], **fields}] + criteria[1:]}
 
 
-def with_facts(source, *facts):
-    return {**source, "facts": source["facts"] + list(facts)}
+def second_criterion(source, **fields):
+    criteria = source["criteria"]
+    return {**source, "criteria": criteria[:1] + [{**criteria[1], **fields}]}
+
+
+def first_seam(source, **fields):
+    seams = source["seams"]
+    return {**source, "seams": [{**seams[0], **fields}] + seams[1:]}
+
+
+def tabled(source, kind, tests=PAYLOAD_ROWS, **fields):
+    return first_criterion(source, case_table=kind, domains=[PAYLOAD], tests=tests, **fields)
 
 
 def amended(source):
     fix = {
         "name": "fix-app",
         "files": ["src/tune.py"],
-        "criteria": ["7.2"],
+        "criteria": ["5.2"],
         "task": "Tune the app for the phone.",
         "amendment": 1,
         "after": ["build-app"],
@@ -169,7 +196,7 @@ def amended(source):
 
 def split_section(text):
     lines = text.splitlines()
-    start = lines.index("## 7. Acceptance criteria")
+    start = lines.index("## 5. Test seams")
     end = next((position for position in range(start + 1, len(lines)) if lines[position].startswith("## ")), len(lines))
     return lines[: start + 1], lines[start + 1 : end], lines[end:]
 
@@ -200,8 +227,6 @@ class RenderFixture:
 
     def write_fixture(self, folder, source, spec_text):
         base = pathlib.Path(folder)
-        (base / "src").mkdir()
-        (base / "src" / "app.py").write_text(SOURCE_TEXT, encoding="utf-8")
         (base / "docs" / "specs").mkdir(parents=True)
         (base / RECORD_PATH).write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
         (base / SPEC_PATH).write_text(spec_text, encoding="utf-8")
@@ -232,9 +257,32 @@ class RenderFixture:
             spec_text, _ = self.rendered(folder, source)
         return spec_block(spec_text, number)
 
+    def tasks_of(self, source):
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, source)
+        return {step["name"]: step["task"] for step in json.loads(items_text)}
+
+    def refused(self, source, spec_text):
+        with tempfile.TemporaryDirectory() as folder:
+            self.write_fixture(folder, source, spec_text)
+            base = pathlib.Path(folder)
+            (base / ITEMS_PATH).write_text("[]", encoding="utf-8")
+            code, out, _ = self.run_main(folder)
+            spec_after = (base / SPEC_PATH).read_bytes().decode("utf-8")
+            items_after = (base / ITEMS_PATH).read_bytes().decode("utf-8")
+        self.assertEqual(code, 1)
+        self.assertEqual(spec_after, spec_text)
+        self.assertEqual(items_after, "[]")
+        return out
+
 
 class RenderRecordTest(RenderFixture, unittest.TestCase):
-    def test_render_replaces_only_the_acceptance_section(self):
+    def test_render_writes_the_whole_test_seams_section(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, _ = self.rendered(folder, record())
+        self.assertEqual(spec_text, RENDERED_SPEC)
+
+    def test_render_replaces_only_the_test_seams_section(self):
         with tempfile.TemporaryDirectory() as folder:
             spec_text, _ = self.rendered(folder, record())
         before, _, after = split_section(SPEC_TEXT)
@@ -242,11 +290,19 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         self.assertEqual(new_before, before)
         self.assertEqual(new_after, after)
         body = "\n".join(section)
-        self.assertIn("### 7.1 ", body)
-        self.assertIn("### 7.2 ", body)
-        self.assertLess(body.index("### 7.1 "), body.index("### 7.2 "))
-        self.assertIn("Unproven: needs the phone", body)
+        self.assertLess(body.index("Seams:"), body.index("### 5.1 "))
+        self.assertLess(body.index("### 5.1 "), body.index("### 5.2 "))
         self.assertNotIn("{{", body)
+
+    def test_render_function_takes_no_root(self):
+        module = self.load("render_record")
+        errors, spec_text, items = module.render(json.dumps(record()), SPEC_TEXT, "/specs/demo.md")
+        self.assertEqual(errors, ())
+        self.assertEqual(spec_text, RENDERED_SPEC)
+        self.assertEqual(
+            items[0]["source"],
+            {"path": "/specs/demo.md", "sha256": hashlib.sha256(RENDERED_SPEC.encode("utf-8")).hexdigest()},
+        )
 
     def test_rendered_items_pass_the_items_check(self):
         items_module = self.load("check_items")
@@ -265,39 +321,45 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 self.assertEqual(step["source"]["sha256"], hashlib.sha256(spec_bytes).hexdigest())
         steps = {step["name"]: step for step in items}
         self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
-        self.assertEqual(steps["build-app"]["spec_ref"], ["7.1"])
+        self.assertEqual(steps["build-app"]["spec_ref"], ["5.1"])
         self.assertEqual(steps["tune-app"]["acceptance"], [])
-        self.assertEqual(steps["tune-app"]["spec_ref"], ["7.2"])
+        self.assertEqual(steps["tune-app"]["spec_ref"], ["5.2"])
         self.assertEqual(steps["build-app"]["msp"], "first")
         self.assertIn(ELLIPSIS, items_text)
 
-    def test_each_task_carries_its_criteria_word_for_word(self):
-        source = record()
-        with tempfile.TemporaryDirectory() as folder:
-            spec_text, items_text = self.rendered(folder, source)
-        self.assertEqual(spec_block(spec_text, "7.1"), BLOCK_7_1)
-        tasks = {step["name"]: step["task"] for step in json.loads(items_text)}
-        for step in source["steps"]:
-            with self.subTest(step=step["name"]):
-                task = tasks[step["name"]]
-                self.assertTrue(task.startswith(step["task"]))
-                self.assertIn("Acceptance criteria this Step proves:", task)
-                for number in step["criteria"]:
-                    self.assertIn(spec_block(spec_text, number), task)
+    def test_each_task_carries_its_criteria_and_seam_word_for_word(self):
+        tasks = self.tasks_of(record())
+        self.assertEqual(tasks["build-app"], "Build the app.\n\n" + PROVES + "\n\n" + BLOCK_5_1)
+        self.assertEqual(tasks["tune-app"], "Tune the app for the phone.\n\n" + PROVES + "\n\n" + BLOCK_5_2)
+        self.assertIn(UNIT_SEAM_TEXT, tasks["build-app"])
+        self.assertIn(PHONE_SEAM_TEXT, tasks["tune-app"])
+        for task in tasks.values():
+            with self.subTest(task=task):
+                self.assertNotIn("Seams:", task)
+
+    def test_task_of_a_step_proving_two_criteria_carries_both_blocks(self):
+        source = replace_step(record(), 0, {**record()["steps"][0], "criteria": ["5.1", "5.2"]})
+        source = {**source, "steps": source["steps"][:1]}
+        tasks = self.tasks_of(source)
+        self.assertEqual(
+            tasks["build-app"], "Build the app.\n\n" + PROVES + "\n\n" + BLOCK_5_1 + "\n\n" + BLOCK_5_2
+        )
 
     def test_population_is_written_into_spec_and_task(self):
         for pass_rate, shown in ((0.9, "0.9"), (1, "1")):
-            row = (
-                "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS; 60 cases, 3 runs each, "
-                "pass rate at least %s | a total of 3 | 3 is returned | none |" % shown
+            expected = (
+                BLOCK_5_1_HEAD
+                + "| Test | Given | Expected | Runs |\n"
+                + "|---|---|---|---|\n"
+                + "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned "
+                + "| 60 cases, 3 runs each, pass rate at least %s |" % shown
             )
             with self.subTest(pass_rate=pass_rate), tempfile.TemporaryDirectory() as folder:
                 spec_text, items_text = self.rendered(folder, varying(record(), pass_rate))
-                block = spec_block(spec_text, "7.1")
-                self.assertEqual(block, BLOCK_7_1_HEAD + row)
+                self.assertEqual(spec_block(spec_text, "5.1"), expected)
                 tasks = {step["name"]: step["task"] for step in json.loads(items_text)}
-                self.assertIn(block, tasks["build-app"])
-                self.assertNotIn("60 cases, 3 runs each", spec_block(spec_text, "7.2"))
+                self.assertIn(expected, tasks["build-app"])
+                self.assertNotIn("60 cases, 3 runs each", spec_block(spec_text, "5.2"))
                 self.assertNotIn("60 cases, 3 runs each", tasks["tune-app"])
 
     def test_items_format_is_unchanged_by_population(self):
@@ -315,30 +377,71 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                     self.assertEqual(sorted(entry), ["file", "test"])
         steps = {step["name"]: step for step in items}
         self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
-        self.assertIn(
-            "| python3 -m unittest on macOS; 60 cases, 3 runs each, pass rate at least 0.9 |",
-            steps["build-app"]["task"],
-        )
+        self.assertIn("| 60 cases, 3 runs each, pass rate at least 0.9 |", steps["build-app"]["task"])
 
     def test_render_refuses_what_the_complete_check_rejects(self):
         cases = (
-            ("a step has no task", without_task(record()), SPEC_TEXT),
-            ("the spec has no Acceptance criteria section", record(), NO_CRITERIA_SPEC),
-            ("the spec has two Acceptance criteria sections", record(), TWO_CRITERIA_SPEC),
-            ("a criterion number is outside the section", renumbered(record()), SPEC_TEXT),
+            ("a step has no task", without_task(record()), SPEC_TEXT, "error: step build-app has no task\n"),
+            ("the spec has no Test seams section", record(), NO_SEAMS_SPEC, "error: spec has no Test seams section\n"),
+            (
+                "the spec has only an Acceptance criteria section",
+                record(),
+                OLD_SECTION_SPEC,
+                "error: spec has no Test seams section\n",
+            ),
+            ("the spec has two Test seams sections", record(), TWO_SEAMS_SPEC, "error: spec has 2 Test seams sections\n"),
+            (
+                "a criterion number is outside the section",
+                renumbered(record()),
+                SPEC_TEXT,
+                "error: criterion 8.2 is outside Test seams section 5; its number must start with '5.'\n",
+            ),
+            (
+                "a seam no criterion uses",
+                {**record(), "seams": record()["seams"] + [{**record()["seams"][0], "name": "tablet"}]},
+                SPEC_TEXT,
+                "error: seam 'tablet' is used by no criterion\n",
+            ),
+            (
+                "a criterion has an unproven reason that is not text",
+                second_criterion(record(), unproven=None),
+                SPEC_TEXT,
+                "error: criterion 5.2 has unproven that is not a non-empty string\n",
+            ),
         )
-        for label, source, spec_text in cases:
-            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
-                self.write_fixture(folder, source, spec_text)
-                base = pathlib.Path(folder)
-                (base / ITEMS_PATH).write_text("[]", encoding="utf-8")
-                spec_before = (base / SPEC_PATH).read_bytes()
-                items_before = (base / ITEMS_PATH).read_bytes()
-                code, out, _ = self.run_main(folder)
-                self.assertEqual(code, 1)
-                self.assertTrue(any(line.startswith("error:") for line in out.splitlines()), out)
-                self.assertEqual((base / SPEC_PATH).read_bytes(), spec_before)
-                self.assertEqual((base / ITEMS_PATH).read_bytes(), items_before)
+        for label, source, spec_text, expected in cases:
+            with self.subTest(label):
+                self.assertEqual(self.refused(source, spec_text), expected)
+
+    def test_render_refuses_a_proof_rule_breach(self):
+        criteria = record()["criteria"]
+        source = {**record(), "criteria": criteria[:1] + [{key: value for key, value in criteria[1].items() if key != "unproven"}]}
+        self.assertEqual(
+            self.refused(source, SPEC_TEXT),
+            "error: criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
+        )
+
+    def test_render_refuses_a_step_assumption_without_a_known_intent_line(self):
+        intent_spec = SPEC_TEXT.replace("## 4. Decisions", "## 2. Intent\n\n- I1 Goal: show the total.\n\n## 4. Decisions")
+        cases = (
+            (
+                "Totals use whole numbers.",
+                "error: step build-app has an assumption that cites no intent line; end it with (relies on I<n>): Totals use whole numbers.\n",
+            ),
+            (
+                "Totals use whole numbers (relies on I9).",
+                "error: step build-app has an assumption that relies on I9, which is not an intent line of the spec: "
+                "Totals use whole numbers (relies on I9).\n",
+            ),
+        )
+        for text, expected in cases:
+            with self.subTest(text):
+                step = {**record()["steps"][0], "assumptions": [text]}
+                self.assertEqual(self.refused(replace_step(record(), 0, step), intent_spec), expected)
+        cited = {**record()["steps"][0], "assumptions": ["Totals use whole numbers (relies on I1)."]}
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, replace_step(record(), 0, cited), intent_spec)
+        self.assertEqual(json.loads(items_text)[0]["assumptions"], ["Totals use whole numbers (relies on I1)."])
 
     def test_rendering_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -352,124 +455,158 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         self.assertEqual(second[1], first[1])
 
 
-class CaseTableRenderTest(RenderFixture, unittest.TestCase):
-    def test_block_without_domains_has_no_inputs_or_order(self):
-        block = self.block_of(record(), "7.1")
-        self.assertEqual(
-            block,
-            "### 7.1 The total adds up\n\n"
-            "Given a total, when the app returns it, then it is unchanged.\n\n"
-            "Where passing proves it: python3 -m unittest on macOS.\n\n"
-            "| Test | Runs in | Given | Expected | Covers |\n"
-            "|---|---|---|---|---|\n"
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a total of 3 | 3 is returned | none |",
+class SeamRenderTest(RenderFixture, unittest.TestCase):
+    def test_seams_list_has_one_line_per_seam_in_record_order(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, _ = self.rendered(folder, record())
+        _, section, _ = split_section(spec_text)
+        self.assertEqual(section[:4], ["", "Seams:", UNIT_SEAM_LINE, PHONE_SEAM_LINE])
+
+    def test_only_an_unrunnable_seam_says_the_builder_cannot_run_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, _ = self.rendered(folder, record())
+        self.assertEqual(spec_text.count("The builder cannot run it."), 1)
+        self.assertIn(PHONE_SEAM_LINE + "\n", spec_text)
+
+    def test_seam_line_does_not_double_a_closing_full_stop(self):
+        source = first_seam(
+            record(),
+            interface="the total_of function in src/app.py.",
+            catches="a wrong total.",
+            misses="how the total is drawn on screen.",
         )
-        for absent in ("Inputs:", "When the bound is reached", "Facts:"):
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, _ = self.rendered(folder, source)
+        self.assertIn(UNIT_SEAM_LINE + "\n", spec_text)
+        self.assertEqual(spec_block(spec_text, "5.1"), BLOCK_5_1)
+
+    def test_seam_line_joins_line_breaks(self):
+        source = first_seam(record(), interface="the total_of function\nin src/app.py", catches="a wrong\r\ntotal")
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, _ = self.rendered(folder, source)
+        self.assertIn(UNIT_SEAM_LINE + "\n", spec_text)
+        self.assertIn("\n\n" + UNIT_SEAM_TEXT + "\n\n", spec_text)
+
+    def test_each_block_names_its_seam_and_interface(self):
+        self.assertIn("\n\n" + UNIT_SEAM_TEXT + "\n\n", self.block_of(record(), "5.1"))
+        self.assertIn("\n\n" + PHONE_SEAM_TEXT + "\n\n", self.block_of(record(), "5.2"))
+
+    def test_two_criteria_at_one_seam_each_name_it(self):
+        criteria = record()["criteria"]
+        shown = {
+            "number": "5.3",
+            "title": "The total is shown",
+            "text": "The app shows the total.",
+            "seam": "unit-tests",
+            "tests": [{**ROW, "name": "test_total_is_shown"}],
+        }
+        source = {**record(), "criteria": criteria + [shown]}
+        source = replace_step(source, 0, {**source["steps"][0], "criteria": ["5.1", "5.3"]})
+        with tempfile.TemporaryDirectory() as folder:
+            spec_text, items_text = self.rendered(folder, source)
+        self.assertEqual(
+            spec_block(spec_text, "5.3"),
+            "### 5.3 The total is shown\n\nThe app shows the total.\n\n" + UNIT_SEAM_TEXT + "\n\n" + PLAIN_HEAD
+            + "| `tests/test_app.py` `test_total_is_shown` | a total of 3 | 3 is returned |",
+        )
+        task = {step["name"]: step["task"] for step in json.loads(items_text)}["build-app"]
+        self.assertEqual(task.count(UNIT_SEAM_TEXT), 2)
+
+
+class CaseTableRenderTest(RenderFixture, unittest.TestCase):
+    def test_plain_block_has_three_columns_and_no_cases(self):
+        block = self.block_of(record(), "5.1")
+        self.assertEqual(block, BLOCK_5_1)
+        for absent in ("Cases for", "Covers", "Runs", "Runs in", "Where passing proves it", "Facts:", "Inputs:"):
             with self.subTest(absent=absent):
                 self.assertNotIn(absent, block)
 
-    def test_domains_render_as_inputs(self):
-        block = self.block_of(first_criterion(record(), domains=[PAYLOAD], tests=PAYLOAD_ROWS), "7.1")
-        self.assertIn("\n\nInputs:\n- the payload field agent_id (`payload`): absent; present\n\n", block)
+    def test_security_case_table_renders_cases_and_covers(self):
+        self.assertEqual(
+            self.block_of(tabled(record(), "security"), "5.1"),
+            BLOCK_5_1_HEAD
+            + "Cases for a security need:\n" + PAYLOAD_CASES + "\n\n"
+            + "| Test | Given | Expected | Covers |\n"
+            + "|---|---|---|---|\n"
+            + "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned | payload: absent |\n"
+            + "| `tests/test_app.py` `test_present` | a total of 4 | 4 is returned | payload: present |",
+        )
 
-    def test_gives_way_renders_as_a_numbered_order(self):
-        tests = [{**ROW, "covers": ["gives-way: older lines", "gives-way: the header"]}]
-        block = self.block_of(first_criterion(record(), gives_way=["older lines", "the header"], tests=tests), "7.1")
+    def test_refusal_case_table_renders_its_own_heading(self):
+        block = self.block_of(tabled(record(), "refusal"), "5.1")
+        self.assertIn("\n\nCases for a refusal:\n" + PAYLOAD_CASES + "\n\n", block)
+        self.assertNotIn("security", block)
+
+    def test_each_domain_renders_one_case_line(self):
+        cwd = {"name": "cwd", "over": "the working folder", "classes": ["root", "subfolder", "outside"]}
+        tests = [
+            {**PAYLOAD_ROWS[0], "covers": ["payload: absent", "cwd: root"]},
+            {**PAYLOAD_ROWS[1], "covers": ["payload: present", "cwd: subfolder", "cwd: outside"]},
+        ]
+        block = self.block_of(first_criterion(tabled(record(), "security", tests), domains=[PAYLOAD, cwd]), "5.1")
         self.assertIn(
-            "\n\nWhen the bound is reached, these give way, first to last:\n1. older lines\n2. the header\n\n", block
-        )
-
-    def test_facts_render_with_their_citations(self):
-        source = with_facts(
-            first_criterion(record(), facts=["f1"], domains=[{**PAYLOAD, "fact": "f2"}], tests=PAYLOAD_ROWS),
-            SUITE_FACT,
-        )
-        self.assertIn(
-            "\n\nFacts:\n"
-            '- The app returns the total it is given (`src/app.py`:2, quoting "return total")\n'
-            '- The suite passes (ran `python3 -m unittest`, which showed "OK")\n\n',
-            self.block_of(source, "7.1"),
-        )
-
-    def test_fact_cited_by_url_renders_the_url(self):
-        source = with_facts(first_criterion(record(), facts=["f3"]), DOCUMENTED_FACT)
-        self.assertIn(
-            "\n\nFacts:\n- The format is documented (https://example.com/a)\n\n", self.block_of(source, "7.1")
-        )
-
-    def test_fact_named_twice_renders_once(self):
-        source = with_facts(
-            first_criterion(record(), facts=["f2"], domains=[{**PAYLOAD, "fact": "f2"}], tests=PAYLOAD_ROWS),
-            SUITE_FACT,
-        )
-        block = self.block_of(source, "7.1")
-        self.assertIn('\n\nFacts:\n- The suite passes (ran `python3 -m unittest`, which showed "OK")\n\n', block)
-        self.assertEqual(block.count("- The suite passes ("), 1)
-
-    def test_rows_render_as_a_table(self):
-        block = self.block_of(first_criterion(record(), domains=[PAYLOAD], tests=PAYLOAD_ROWS), "7.1")
-        self.assertIn(
-            "| Test | Runs in | Given | Expected | Covers |\n"
-            "|---|---|---|---|---|\n"
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a total of 3 | 3 is returned "
-            "| payload: absent |\n"
-            "| `tests/test_app.py` `test_present` | python3 -m unittest on macOS | a total of 4 | 4 is returned "
-            "| payload: present |",
+            "\n\nCases for a security need:\n" + PAYLOAD_CASES + "\n- the working folder (`cwd`): root; subfolder; outside\n\n",
             block,
         )
+        self.assertIn("| payload: present; cwd: subfolder; cwd: outside |", block)
 
-    def test_row_without_covers_shows_none(self):
+    def test_row_without_covers_in_a_case_table_shows_none(self):
+        tests = [{**ROW, "name": "test_plain"}] + PAYLOAD_ROWS
         self.assertIn(
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a total of 3 | 3 is returned | none |",
-            self.block_of(record(), "7.1"),
+            "| `tests/test_app.py` `test_plain` | a total of 3 | 3 is returned | none |",
+            self.block_of(tabled(record(), "security", tests), "5.1"),
+        )
+
+    def test_varying_case_table_has_covers_and_runs(self):
+        tests = [{**row, "cases": 20, "runs": 2, "pass_rate": 0.95} for row in PAYLOAD_ROWS]
+        block = self.block_of(tabled(record(), "refusal", tests, varies="input"), "5.1")
+        self.assertIn(
+            "| Test | Given | Expected | Covers | Runs |\n"
+            "|---|---|---|---|---|\n"
+            "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned | payload: absent "
+            "| 20 cases, 2 runs each, pass rate at least 0.95 |\n",
+            block,
         )
 
     def test_cells_escape_pipes_and_line_breaks(self):
-        block = self.block_of(first_criterion(record(), tests=[{**ROW, "given": "a | b\nc"}]), "7.1")
-        self.assertIn(
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a \\| b c | 3 is returned | none |",
-            block,
-        )
-
-    def test_varying_row_shows_its_population(self):
-        self.assertIn(
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS; 60 cases, 3 runs each, "
-            "pass rate at least 0.9 | a total of 3 | 3 is returned | none |",
-            self.block_of(varying(record(), 0.9), "7.1"),
-        )
+        block = self.block_of(first_criterion(record(), tests=[{**ROW, "given": "a | b\nc"}]), "5.1")
+        self.assertIn("| `tests/test_app.py` `test_total` | a \\| b c | 3 is returned |", block)
 
     def test_unproven_block_has_no_table(self):
-        source = record()
-        criteria = source["criteria"]
-        block = self.block_of({**source, "criteria": [criteria[0], {**criteria[1], "domains": [PAYLOAD]}]}, "7.2")
+        source = second_criterion(record(), case_table="refusal", domains=[PAYLOAD])
+        block = self.block_of(source, "5.2")
         self.assertEqual(
             block,
-            "### 7.2 The total shows on the phone\n\n"
+            "### 5.2 The total shows on the phone\n\n"
             "The total appears on the phone within a second" + ELLIPSIS + "\n\n"
-            "Where passing proves it: Galaxy Note10+, Android 12, Impeller renderer.\n\n"
-            "Inputs:\n- the payload field agent_id (`payload`): absent; present\n\n"
-            "Unproven: needs the phone",
+            + PHONE_SEAM_TEXT + "\n\n"
+            + "Cases for a refusal:\n" + PAYLOAD_CASES + "\n\n"
+            + "Unproven: needs the phone",
         )
         self.assertNotIn("| Test |", block)
+
+    def test_unproven_block_at_a_runnable_seam_has_no_table(self):
+        source = first_criterion(record(), tests=[], unproven="the rate comes from a live exchange")
+        self.assertEqual(
+            self.block_of(source, "5.1"),
+            BLOCK_5_1_HEAD + "Unproven: the rate comes from a live exchange",
+        )
 
     def test_task_carries_the_case_table(self):
         tests = [{**ROW, "covers": ["payload: absent", "payload: present"]}]
         with tempfile.TemporaryDirectory() as folder:
-            spec_text, items_text = self.rendered(folder, first_criterion(record(), domains=[PAYLOAD], tests=tests))
-        block = spec_block(spec_text, "7.1")
+            spec_text, items_text = self.rendered(folder, tabled(record(), "security", tests))
+        block = spec_block(spec_text, "5.1")
         task = {step["name"]: step["task"] for step in json.loads(items_text)}["build-app"]
-        inputs = "Inputs:\n- the payload field agent_id (`payload`): absent; present"
-        table = (
-            "| Test | Runs in | Given | Expected | Covers |\n"
-            "|---|---|---|---|---|\n"
-            "| `tests/test_app.py` `test_total` | python3 -m unittest on macOS | a total of 3 | 3 is returned "
-            "| payload: absent; payload: present |"
+        self.assertEqual(
+            block,
+            BLOCK_5_1_HEAD
+            + "Cases for a security need:\n" + PAYLOAD_CASES + "\n\n"
+            + "| Test | Given | Expected | Covers |\n"
+            + "|---|---|---|---|\n"
+            + "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned | payload: absent; payload: present |",
         )
-        for part in (inputs, table):
-            with self.subTest(part=part):
-                self.assertIn(part, block)
-                self.assertIn(part, task)
-        self.assertIn(block, task)
+        self.assertEqual(task, "Build the app.\n\n" + PROVES + "\n\n" + block)
 
 
 class AmendmentRenderTest(RenderFixture, unittest.TestCase):
@@ -483,10 +620,7 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
             amended_spec, _ = self.rendered(folder, amended(record()), argv=ARGV + ("--amendment", "1"))
         with tempfile.TemporaryDirectory() as folder:
             whole_spec, _ = self.rendered(folder, amended(record()))
-        _, section, _ = split_section(amended_spec)
-        body = "\n".join(section)
-        self.assertIn("### 7.1 The total adds up", body)
-        self.assertIn("### 7.2 The total shows on the phone", body)
+        self.assertEqual(amended_spec, RENDERED_SPEC)
         self.assertEqual(amended_spec, whole_spec)
 
     def test_amendment_no_step_carries_is_refused(self):
@@ -532,7 +666,7 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
         docs = {
             "name": "fix-docs",
             "files": ["docs/fix.md"],
-            "criteria": ["7.2"],
+            "criteria": ["5.2"],
             "task": "Describe the fix.",
             "amendment": 1,
             "after": ["build-app", "fix-app"],

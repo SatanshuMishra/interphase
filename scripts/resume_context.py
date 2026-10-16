@@ -85,10 +85,10 @@ def joined(value):
 
 def criterion_line(criterion):
     reason = text_of(criterion.get("unproven"))
-    return "- {} {} (where: {}){}".format(
+    return "- {} {} (seam: {}){}".format(
         text_of(criterion.get("number")),
         text_of(criterion.get("title")),
-        joined(criterion.get("where")),
+        text_of(criterion.get("seam")),
         " Unproven: " + reason if reason else "",
     )
 

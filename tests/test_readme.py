@@ -111,7 +111,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("pass rate", text)
         for key in ("varies", "cases", "runs", "pass_rate"):
             self.assertIn("`" + key + "`", text)
-        self.assertIn("Runs in cell", text)
+        self.assertIn("Runs cell", text)
 
     def test_readme_states_the_programming_guarantee(self):
         text = read_readme()
@@ -135,29 +135,38 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("brief lane", does)
         self.assertIn("all six conditions hold", does)
         self.assertIn("one Step per item", does)
-        self.assertIn("one approval of the written brief", does)
-        self.assertIn("no read-back and no reviewer agent", does)
+        self.assertIn("one short read-back to approve and no reviewer agent", does)
         self.assertIn("switches to the full pathway", does)
         use = section("## Use")
         self.assertIn("work autonomously", use)
-        self.assertIn("resolves each ambiguity from your intent and your project's context", use)
+        self.assertIn("it holds no interview", use)
+        self.assertIn("resolves each ambiguity from that intent and the usual practice for that context", use)
+        self.assertIn("names the intent line it relied on", use)
+        self.assertIn("numbered plain-text rounds", use)
+        self.assertIn("The only multiple-choice prompt is the last one", use)
         self.assertIn("records every choice as an assumption", use)
         self.assertIn("top risks", use)
         self.assertIn("first any that override an earlier decision", use)
         self.assertIn("never trims what the context calls for", use)
-        self.assertIn("or one of your project's written rules", use)
+        self.assertIn("a decision record or one of your project's written rules", use)
         produces = section("## What it produces")
         self.assertIn("core/templates/spec-brief.md", produces)
-        self.assertIn("4.x", produces)
+        self.assertIn("5.x", produces)
 
-    def test_readme_names_the_review_bar(self):
+    def test_readme_describes_the_interview_glossary_and_slim_spec(self):
         text = read_readme()
-        paragraph = next(
-            block for block in text.split("\n\n") if "Reuse and change" in block and "Review bar" in block
-        )
-        for phrase in ("Review bar", "threats", "block", "out of scope"):
-            self.assertIn(phrase, paragraph)
-        self.assertNotIn("ends each spec with a short Reuse and change section", text)
+        for phrase in (
+            "It opens with your intent (the goal, why you want it, and what success looks like)",
+            "It asks only what the code, the docs and your earlier decisions cannot answer, and only when a different answer would change what gets built.",
+            "any gap it finds later is filled with a reasoned guess from your recorded intent, listed as an assumption.",
+            "Every spec has the same six sections: the problem, your intent, user stories (for a bug, the reproduction and cause; for a brief, the evidence), the decisions, the agreed test seams with the acceptance tests at each, and what is out of scope.",
+            "Only behaviour that is security-sensitive or exists to refuse something gets a full table of input cases.",
+            "`GLOSSARY.md`",
+            "`docs/adr/`",
+            "A spec is disposable once its change merges",
+        ):
+            self.assertIn(phrase, text)
+        self.assertNotIn("Review bar", text)
         headings = tuple(line for line in text.splitlines() if line.startswith("## "))
         self.assertEqual(headings, SECTION_HEADINGS)
 
@@ -189,7 +198,7 @@ class ReadmeTest(unittest.TestCase):
     def test_readme_puts_population_in_the_table(self):
         section = self.check_output_section()
         self.assertIn(
-            "A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs in cell.",
+            "A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs cell.",
             section.split("\n\n"),
         )
         self.assertNotIn("Population line", section)
@@ -200,16 +209,16 @@ class ReadmeTest(unittest.TestCase):
         self.assertEqual(len(starts), 1)
         self.assertEqual(
             paragraphs[starts[0] + 1],
-            "An acceptance criterion over an input that carries real risk, such as one a person enters or one that comes from outside the repository, is a case table; any other criterion is a few rows with no domains. A criterion's `domains` list the classes of each input the code tells apart, its `gives_way` lists what gives way first to last when a bound is reached, and each of its tests is one row with `given`, `expect` and the classes it `covers`. The checker reports a class or give-way item no row covers and a fact marked `outside` that is not cited by a command and its output, and warns about a bound with no `gives_way`.",
+            "A criterion for security-sensitive behaviour, or for behaviour that exists to refuse something, is a case table: its `case_table` is `security` or `refusal`, its `domains` list the classes of each input the code tells apart, and each of its tests is one row with `given`, `expect` and the classes it `covers`. Any other criterion is a few rows with no domains. The checker reports a class no row covers, domains on a criterion with no `case_table`, and a `case_table` with no domains.",
         )
 
-    def test_readme_explains_citations(self):
+    def test_readme_explains_the_intent_checks(self):
         paragraphs = self.check_output_section().split("\n\n")
         matching = tuple(p for p in paragraphs if p.startswith("Use `spec-bug.md`, `spec-prototype.md` or `spec-project.md`"))
         self.assertEqual(len(matching), 1)
         self.assertTrue(
             matching[0].endswith(
-                "The spec checker also reports a line of Requirements, Edge cases, Expected or Unchanged that cites no acceptance criterion, or cites one the spec does not have."
+                "an Intent section with no `- I1` line, and an assumption that cites no intent line or one the Intent section does not have."
             )
         )
 

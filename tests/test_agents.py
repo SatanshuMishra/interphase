@@ -12,7 +12,7 @@ EXPECTED = {
     },
     "agents/spec-reviewer.md": {
         "name": "spec-reviewer",
-        "description": "Use when a written interphase spec and its Steps need a fresh-eyes review before the user is asked to approve them.",
+        "description": "Use when a written interphase spec and its Steps need one fresh-eyes review before hand-off.",
         "tools": "Read, Grep, Glob",
         "model": "opus",
         "effort": "high",
@@ -78,12 +78,9 @@ class AgentsTest(unittest.TestCase):
         self.assertIn("followed by the exact text of that line, quoted", body)
         self.assertNotIn("Cite each fact with a `path:line` reference or a URL.", body)
 
-    def test_spec_reviewer_checks_proof_environments(self):
+    def test_spec_reviewer_checks_proof(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
-        self.assertIn(
-            "- Proof environment: an acceptance criterion whose tests run only where passing does not prove it for the user",
-            body,
-        )
+        self.assertIn("- Proof: a criterion whose tests run only where passing does not prove it for the user", body)
 
     def test_reviewer_checks_variation(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
@@ -96,7 +93,7 @@ class AgentsTest(unittest.TestCase):
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
-        self.assertLess(body.index("- Proof environment:"), body.index("- Variation:"))
+        self.assertLess(body.index("- Proof:"), body.index("- Variation:"))
         self.assertLess(body.index("- Variation:"), body.index("- Boundary:"))
 
     def test_spec_reviewer_checks_the_steps(self):
@@ -125,7 +122,7 @@ class AgentsTest(unittest.TestCase):
             "- Design:",
             "copies logic that already exists",
             "bends existing code to fit a new use",
-            "builds more than the request or a recorded decision asks for",
+            "builds more than the intent or a recorded decision asks for",
             "against the practices file and the decisions file whose paths you are also given",
             "neither the request, a recorded decision nor the practices file asks for",
             "Skip style and wording preferences.",
@@ -134,15 +131,17 @@ class AgentsTest(unittest.TestCase):
                 self.assertIn(marker, body)
 
 
-    def test_spec_reviewer_checks_autonomous_runs_against_their_context(self):
+    def test_spec_reviewer_reviews_once(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        self.assertIn("You review once; nobody reviews the fixes after you, so report every real issue now.", body)
+
+    def test_spec_reviewer_checks_unattended_runs_against_their_context(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in (
-            "- Context: in an autonomous run, a requirement the product's context calls for in the requested work",
+            "- Context: in an unattended run, a requirement the product's context calls for in the requested work",
             "what the laws, standards or established practice of its domain require",
-            "that the spec does not make a goal, however it is left out: a non-goal, a Won't, an open question, a later spec, a boundary, an assumption, a note left to the deployment or silence.",
-            "Also, in an autonomous run, a requirement met outside the code with no acceptance criterion",
-            "a part of it the code could enforce and test that is left outside the code",
-            "In an autonomous run, what the product's context calls for in the requested work counts as asked for.",
+            "that the spec does not make a requirement, however it is left out: Out of scope, an assumption, a note left to the deployment or silence.",
+            "In an unattended run, what the product's context calls for in the requested work counts as asked for.",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
@@ -151,60 +150,43 @@ class AgentsTest(unittest.TestCase):
         self.assertLess(body.index("- Tracking talk:"), body.index("counts as asked for"))
         self.assertLess(body.index("counts as asked for"), body.index("Report only issues"))
 
-    def test_spec_reviewer_checks_the_review_bar(self):
-        text = read_agent("agents/spec-reviewer.md")
-        _, body = split_frontmatter(text)
-        lines = body.splitlines()
-        context_index = next(
-            index for index, line in enumerate(lines) if line.startswith("- Context:")
-        )
-        review_bar = lines[context_index + 1]
-        self.assertTrue(review_bar.startswith("- Review bar:"))
+    def test_spec_reviewer_checks_intent_glossary_and_seams(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
         for marker in (
-            "missing",
-            "empty",
-            "defends",
-            "leaves out",
-            "could check",
-            "before the change",
+            "- Intent: a decision, criterion or Step that does not serve the intent lines",
+            "- Assumption: an assumption that cites an intent line which does not support it",
+            "- Domain language: a term used against its glossary definition",
+            "a decision that reverses an ADR without saying it supersedes it",
+            "- Seams: an acceptance test at a seam the spec does not list",
+            "or more seams than the change needs.",
+            "against the project's `GLOSSARY.md` and the ADRs in `docs/adr/` when they exist.",
         ):
             with self.subTest(marker=marker):
-                self.assertIn(marker, review_bar)
-        self.assertEqual(
-            sum(1 for line in lines if line.startswith("- Review bar:")), 1
-        )
-        expected = EXPECTED["agents/spec-reviewer.md"]
-        frontmatter = parse_frontmatter(text)
-        self.assertEqual({key: frontmatter.get(key) for key in expected}, expected)
-
+                self.assertIn(marker, body)
+        self.assertNotIn("Review bar", body)
 
     def test_spec_reviewer_skips_what_scripts_check(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
-        paragraphs = body.split("\n\n")
-        starts = tuple(
-            i for i, p in enumerate(paragraphs) if p.startswith("Review the spec and the items file at the paths you are given")
-        )
-        self.assertEqual(len(starts), 1)
-        self.assertEqual(
-            paragraphs[starts[0] + 1],
-            "The record check, the render script, the spec check and the items check have already passed. Never report what they check: placeholders, empty sections, unknown keys, uncited lines, uncovered classes and criteria no Step claims.",
+        self.assertIn(
+            "The record check, the render script, the spec check and the items check have already passed. Never report what they check: placeholders, empty sections, unknown keys, uncovered classes, assumptions that cite no intent line and criteria no Step claims.",
+            body,
         )
 
-    def test_spec_reviewer_checks_closed_contracts(self):
+    def test_spec_reviewer_keeps_case_tables_to_security_and_refusal(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
-        lines = body.splitlines()
-        positions = tuple(i for i, line in enumerate(lines) if line.startswith("- Clarity:"))
-        self.assertEqual(len(positions), 1)
-        start = positions[0] + 1
-        self.assertEqual(
-            lines[start:start + 4],
-            [
-                "- Missing class: an input that carries real risk, one a person enters, one that comes from software outside the repository, a file, a network or a store the code reads back, or one where a wrong result loses, corrupts or exposes data, read at a line a domain cites or that you find by searching the code, with a class that a real path can deliver and no domain lists, such as an absent field, an empty value, a renamed file, a subfolder or a truncated value. Name the file and line.",
-                "- Give-way: a bound whose order of what gives way is missing or leaves a choice open.",
-                "- Outside fact: a claim about software outside the repository that no recorded command and output shows and the spec does not list as an assumption.",
-                "- Open domain: a domain whose classes cannot all be listed, such as free text or shell commands, that the design still decides on.",
-            ],
+        line = next(line for line in body.splitlines() if line.startswith("- Case table:"))
+        for marker in (
+            "behaviour that is security-sensitive or exists to refuse something with no case table",
+            "a case table on any other behaviour",
+            "a case table missing a class a real path delivers",
+            "Name the file and line.",
+        ):
+            self.assertIn(marker, line)
+        self.assertIn(
+            "- Outside fact: a claim about software outside the repository that no recorded command and output shows and the spec does not list as an assumption.",
+            body,
         )
+        self.assertNotIn("- Give-way:", body)
 
     def test_spec_reviewer_accepts_a_sound_spec(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))

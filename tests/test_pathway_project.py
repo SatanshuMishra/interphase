@@ -1,13 +1,11 @@
 import importlib.util
 import pathlib
-import re
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PLAYBOOK = ROOT / "core" / "pathways" / "project.md"
 TEMPLATE = ROOT / "core" / "templates" / "spec-project.md"
 SKILL = ROOT / "skills" / "project" / "SKILL.md"
-FEATURE_TEMPLATE = ROOT / "core" / "templates" / "spec-feature.md"
 
 PLAYBOOK_HEADINGS = (
     "## Ground",
@@ -17,29 +15,6 @@ PLAYBOOK_HEADINGS = (
     "## Steps",
 )
 
-TEMPLATE_HEADINGS = (
-    "## 1. Request",
-    "## 2. Problem and why now",
-    "## 3. Users and stories",
-    "## 4. Stage and definition of done",
-    "## 5. Goals and non-goals",
-    "## 6. Platforms and environments",
-    "## 7. Stack and alternatives",
-    "## 8. Repository and tooling",
-    "## 9. Test strategy",
-    "## 10. Delivery",
-    "## 11. Operations",
-    "## 12. Requirements",
-    "## 13. Acceptance criteria",
-    "## 14. Edge cases",
-    "## 15. Walking skeleton and slices",
-    "## 16. Assumptions",
-    "## 17. Open questions",
-    "## 18. Verification",
-    "## 19. Reuse and change",
-    "## 20. Variation",
-    "## 21. Review bar",
-)
 
 FOUNDATIONS = (
     ("proof of concept", "product"),
@@ -57,9 +32,6 @@ FOUNDATIONS = (
     ("repository layout",),
 )
 
-VARIATION_PLACEHOLDER = "{{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}"
-
-NUMBERED = re.compile(r"^## \d+\. ")
 
 
 def load(relative):
@@ -84,8 +56,6 @@ def bullets(section):
     return tuple(line for line in section if line.startswith("- "))
 
 
-def non_blank(section):
-    return tuple(line for line in section if line.strip())
 
 
 def first_match(lines, words):
@@ -99,20 +69,6 @@ class PathwayProjectTest(unittest.TestCase):
         self.assertEqual(lines[0], "# Project playbook")
         found = tuple(line for line in lines if line.startswith("## "))
         self.assertEqual(found, PLAYBOOK_HEADINGS)
-
-    def test_project_template_has_every_numbered_section(self):
-        lines = read_lines(TEMPLATE)
-        self.assertEqual(lines[0], "# {{title}}")
-        self.assertIn("Pathway: project.", lines)
-        self.assertIn("Date: {{date}}.", lines)
-        numbered = tuple(line for line in lines if NUMBERED.match(line))
-        self.assertEqual(numbered, TEMPLATE_HEADINGS)
-        sections = sections_by_heading(lines)
-        for heading in TEMPLATE_HEADINGS:
-            with self.subTest(heading=heading):
-                self.assertIn("{{", "\n".join(sections[heading]))
-        acceptance = sections["## 13. Acceptance criteria"]
-        self.assertTrue(any(line.startswith("### 13.1 {{") for line in acceptance))
 
     def test_project_ground_researches_the_domain_and_current_stacks(self):
         ground = "\n".join(sections_by_heading(read_lines(PLAYBOOK))["## Ground"])
@@ -138,11 +94,9 @@ class PathwayProjectTest(unittest.TestCase):
     def test_project_extra_step_lets_the_user_choose_a_stack(self):
         extra = "\n".join(sections_by_heading(read_lines(PLAYBOOK))["## Extra step"])
         for needle in (
-            "Propose two or three stacks with their trade-offs.",
-            "Put the recommended one first.",
-            "Let the user choose",
+            "Propose two or three stacks with their trade-offs as one frontier question, the recommended one first.",
             "decisions file",
-            "Stack and alternatives section",
+            "the spec's Decisions section",
         ):
             with self.subTest(needle=needle):
                 self.assertIn(needle, extra)
@@ -153,14 +107,12 @@ class PathwayProjectTest(unittest.TestCase):
             "Given, When, Then",
             "WHEN <event>, THE SYSTEM SHALL <response>",
             "pass or fail with no judgement call",
-            "`### 13.1 <short name>`",
+            "Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam.",
             "the build producing a release artifact and CI running the tests",
             "`${CLAUDE_PLUGIN_ROOT}/core/variation.md`",
         ):
             with self.subTest(needle=needle):
                 self.assertIn(needle, acceptance)
-        template = sections_by_heading(read_lines(TEMPLATE))
-        self.assertIn(VARIATION_PLACEHOLDER, template["## 20. Variation"])
 
     def test_project_steps_start_with_a_walking_skeleton(self):
         steps = sections_by_heading(read_lines(PLAYBOOK))["## Steps"]
@@ -174,11 +126,6 @@ class PathwayProjectTest(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertIn(line, steps)
         self.assertLess(steps.index(skeleton), steps.index(slices))
-
-    def test_project_template_reuse_and_change_matches_the_feature_template(self):
-        project = sections_by_heading(read_lines(TEMPLATE))["## 19. Reuse and change"]
-        feature = sections_by_heading(read_lines(FEATURE_TEMPLATE))["## 14. Reuse and change"]
-        self.assertEqual(non_blank(project), non_blank(feature))
 
     def test_project_names_no_consuming_tool(self):
         names = load("tests/test_hooks.py").consumer_names()

@@ -9,34 +9,33 @@ Write every file under `docs/specs/` at the user's repository root.
 | File | Contents |
 |---|---|
 | `<slug>.md` | the spec, from the pathway template |
-| `<slug>.decisions.md` | `# Decisions for <title>`, one sentence, then one `- ` line per settled decision |
-| `<slug>.record.json` | the interview record: environments, cited facts, acceptance criteria and Step designs, kept after hand-off |
+| `<slug>.decisions.md` | `# Decisions for <title>`, one sentence, then `## Intent` with one `- I<n>` line per intent line and `## Decisions` with one `- ` line per settled decision |
+| `<slug>.record.json` | the interview record: seams, acceptance criteria and Step designs, kept after hand-off |
 | `<slug>.items.json` | the Steps, a JSON array |
 | `<slug>.repro.<ext>` | bugs only: the draft failing test, kept as evidence |
 | `<slug>.guard.json` | working file for the tree guard, deleted at hand-off |
 
-The spec and the items file are separate deliverables. Each must be usable without the other.
+The glossary and the ADRs live outside the spec folder, as `${CLAUDE_PLUGIN_ROOT}/core/domain.md` says. The spec and the items file are separate deliverables. Each must be usable without the other. The spec is disposable once its change merges; the glossary and the ADRs carry what must last.
 
 ## Interview record
 
-Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is found or settled, so that nothing depends on the conversation. It is a JSON object with exactly these four lists, and a `status`:
+Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, and a `status`:
 
 | Key | Each entry |
 |---|---|
-| `environments` | `name` (lowercase kebab-case, unique), `what` (the device, system, runtime or renderer), `builder_runs` (`true` when whoever builds a Step can run tests there) |
-| `facts` | `id` (unique), `fact`, and one citation: `path` (repository-relative), `line` (from 1) and `quote` (text that appears in that line); or `url`; or `command` and `output` (what was run and what it showed); a fact about software outside the repository also carries `outside: true` and is cited by `command` and `output` |
-| `criteria` | `number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each one row, with `file`, `name`, `given`, `expect`, `env`, `step` and, when the criterion has `domains` or `gives_way`, `covers`), `domains` (each with `name`, `over`, `classes` and, when existing code reads the input, `fact`) for the inputs the behaviour reads, `gives_way` (what gives way first to last when a bound is reached), `facts` (the ids of the facts it rests on), `unproven` (the reason) only when no test the builder runs can prove it where it counts, and `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
+| `seams` | `name` (lowercase kebab-case, unique), `interface` (the public interface tests observe behaviour at), `catches` (what tests there catch), `misses` (what they miss), `builder_runs` (`true` when whoever builds a Step can run tests there) |
+| `criteria` | `number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `tests` (each one row, with `file`, `name`, `given`, `expect`, `step` and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
 | `steps` | `name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref` |
 
 `status` is `in-progress` from phase 1 and `handed-off` once phase 10 finishes. A record without `status` predates the field: the hook treats it as finished, and `check_record.py` reports it.
 
-Give every criterion a test the builder runs in one of its `where` environments, or an `unproven` reason. For example, a frame-rate target seen only on the user's phone is unproven when the builder cannot run the phone; a colour check the project's tests can run with the phone's renderer is proven by that test. Never mark a criterion unproven to skip a test the builder could run.
+Give every criterion a test at a seam the builder runs, or an `unproven` reason. For example, a frame-rate target seen only on the user's phone sits at a seam the builder cannot run and is unproven; a colour check the project's tests can run with the phone's renderer is proven by that test. Never mark a criterion unproven to skip a test the builder could run.
 
-A criterion over an input that carries real risk, as phase 4 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` defines it, is a case table; any other criterion has rows and no domains. Each domain lists the classes of one input that the code tells apart and, when existing code reads the input, cites the fact that shows where. Each test is one row: `given` says the input, `expect` says the result, and `covers` names what the row covers, as `<domain>: <class>` or `gives-way: <item>`. The record check reports a class or give-way item no row covers, and warns about a bound with no `gives_way`.
+In a case table, each domain lists the classes of one input that the code tells apart, and each test covers some of them, named `<domain>: <class>`. The record check reports a class no row covers, domains on a criterion with no `case_table`, and a `case_table` with no domains.
 
-Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json` after every question round. It confirms that every quote is in its cited line and every name resolves, and warns about anything still missing. Add `--complete` once the Steps are designed; anything missing is then an error.
+Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json` after every question round. It confirms that every name resolves, and warns about anything still missing. Add `--complete` once the Steps are designed; anything missing is then an error.
 
-In phase 8, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the spec's Acceptance criteria section and the whole items file from the record: every Step's `acceptance`, `spec_ref` and `source`, and its task followed by every criterion it proves, word for word.
+In phase 8, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the spec's Test seams section and the whole items file from the record: every Step's `acceptance`, `spec_ref` and `source`, and its task followed by every criterion it proves, word for word, with the seam it sits at.
 
 ## Items format
 
@@ -55,8 +54,8 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 | `complexity` | no | `simple` or `complex` |
 | `file_notes` | no | object mapping a path from `files` to what changes there |
 | `msp` | no | a label that makes Steps ship together as one change |
-| `spec_ref` | no, but always set it | list of the numbers of the acceptance criteria the Step's tests prove, such as `"7.3"`; it traces each criterion to a Step and never tells a builder to read the spec |
-| `assumptions` | no | readings chosen where the spec is silent; aim for none |
+| `spec_ref` | no, but always set it | list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`; it traces each criterion to a Step and never tells a builder to read the spec |
+| `assumptions` | no | readings chosen without the user's answer, each ending `(relies on I<n>)` for the intent line it rests on, the same line as in the spec's Assumptions |
 
 Use no other fields. The only value `type` may take is `contract`. The items file's fields do not change for varying behaviour: its population, runs and pass rate live in the record and in the task text.
 
@@ -78,12 +77,12 @@ Use no other fields. The only value `type` may take is `contract`. The items fil
 - Make every acceptance test fail against today's code. Never name a behaviour the code already has.
 - Load the code under test inside the test, never at import time, so a missing implementation fails the named test.
 - Set `complexity` to `simple` only for mechanical work with no assumptions. Only simple work may go to a cheaper builder.
-- Resolve an assumption by asking, not by writing it down, whenever the user is available.
+- During the interview, settle an assumption by asking it when it passes the hard bar. After the interview, fill it from the intent and add it to the Step's `assumptions`.
 - Give Steps the user wants shipped together as one change the same `msp`.
 
 ## Writing a task
 
-Name the files and the behaviour. The render script adds each acceptance test by file and name with what it is given and what it expects, and every acceptance criterion the Step proves, word for word, after the task you write. Tell the builder to write every row into its test file literally, as the task gives it, and never to compute the rows from the code under test. Restate in the task everything the Step needs from the spec. For a bug, carry the full text of the draft test and the path where it belongs. Never write "see above". Never send the builder to the spec or to anything else outside the task. Carry into the task every Reuse and change line the Step touches: what to reuse as is and never copy, what to keep separate, and which existing code to change.
+Name the files and the behaviour, in the glossary's terms. The render script adds each acceptance test by file and name with what it is given and what it expects, and every acceptance criterion the Step proves, word for word, after the task you write. Tell the builder to write every row into its test file literally, as the task gives it, and never to compute the rows from the code under test. Restate in the task everything the Step needs from the spec. For a bug, carry the full text of the draft test and the path where it belongs. Never write "see above". Never send the builder to the spec or to anything else outside the task. Carry into the task every Reuse and change line the Step touches: what to reuse as is and never copy, what to keep separate, and which existing code to change. Carry every assumption the Step rests on in its `assumptions`, never only in the task.
 
 ## Checking the result
 

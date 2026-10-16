@@ -12,9 +12,8 @@ AMENDMENT = "--amendment"
 AMENDMENT_RE = re.compile(r"[1-9][0-9]*")
 PROVES = "Acceptance criteria this Step proves:"
 CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
-GIVE_WAY_HEAD = "When the bound is reached, these give way, first to last:"
-TABLE_HEAD = "| Test | Runs in | Given | Expected | Covers |\n|---|---|---|---|---|"
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
+SEAMS_HEAD = "Seams:"
 
 
 def load_sibling(name):
@@ -36,73 +35,76 @@ def cell(text):
     return one_line(text).replace("|", "\\|")
 
 
-def runs_in(test, what):
-    if not all(key in test for key in check_record.POPULATION_KEYS):
-        return what[test["env"]]
-    return "%s; %s cases, %s runs each, pass rate at least %s" % (
-        what[test["env"]],
-        test["cases"],
-        test["runs"],
-        test["pass_rate"],
-    )
+def population(test):
+    return "%s cases, %s runs each, pass rate at least %s" % (test["cases"], test["runs"], test["pass_rate"])
 
 
-def row(test, what):
-    cells = (
-        "`%s` `%s`" % (test["file"], test["name"]),
-        runs_in(test, what),
-        test["given"],
-        test["expect"],
-        "; ".join(test.get(check_record.COVERS, ())) or "none",
-    )
+def columns(criterion):
+    tabled = ("Covers",) if "case_table" in criterion else ()
+    varying = ("Runs",) if "varies" in criterion else ()
+    return ("Test", "Given", "Expected") + tabled + varying
+
+
+def row(test, criterion):
+    tabled = ("; ".join(test.get(check_record.COVERS, ())) or "none",) if "case_table" in criterion else ()
+    varying = (population(test),) if "varies" in criterion else ()
+    cells = ("`%s` `%s`" % (test["file"], test["name"]), test["given"], test["expect"]) + tabled + varying
     return "| %s |" % " | ".join(cell(text) for text in cells)
 
 
-def citation(fact):
-    if "url" in fact:
-        return fact["url"]
-    if "command" in fact:
-        return 'ran `%s`, which showed "%s"' % (fact["command"], fact["output"])
-    return '`%s`:%s, quoting "%s"' % (fact["path"], fact["line"], fact["quote"])
-
-
-def cited_facts(criterion):
-    domain_facts = tuple(domain["fact"] for domain in criterion.get("domains", ()) if "fact" in domain)
-    return check_record.unique(tuple(criterion.get("facts", ())) + domain_facts)
+def table(criterion):
+    names = columns(criterion)
+    head = "| %s |\n|%s" % (" | ".join(names), "---|" * len(names))
+    rows = tuple(row(test, criterion) for test in criterion["tests"])
+    return ("\n".join((head,) + rows),) if rows else ()
 
 
 def listed(head, lines):
     return ("\n".join((head,) + lines),) if lines else ()
 
 
-def criterion_block(criterion, what, facts):
-    where = "Where passing proves it: %s." % "; ".join(what[name] for name in criterion["where"])
+def seam_line(seam):
+    unrunnable = "" if seam["builder_runs"] else " The builder cannot run it."
+    return one_line(
+        "- `%s`: %s. Catches: %s. Misses: %s.%s"
+        % (
+            seam["name"],
+            seam["interface"].rstrip("."),
+            seam["catches"].rstrip("."),
+            seam["misses"].rstrip("."),
+            unrunnable,
+        )
+    )
+
+
+def seam_text(seam):
+    return one_line("Seam: `%s`, %s." % (seam["name"], seam["interface"].rstrip(".")))
+
+
+def criterion_block(criterion, seams):
     inputs = tuple(
         "- %s (`%s`): %s" % (domain["over"], domain["name"], "; ".join(domain["classes"]))
         for domain in criterion.get("domains", ())
     )
-    order = tuple("%d. %s" % (position + 1, item) for position, item in enumerate(criterion.get("gives_way", ())))
-    cited = tuple(
-        one_line("- %s (%s)" % (facts[fact_id]["fact"], citation(facts[fact_id])))
-        for fact_id in cited_facts(criterion)
-    )
-    rows = tuple(row(test, what) for test in criterion["tests"])
+    head = "Cases for %s:" % ("a security need" if criterion.get("case_table") == "security" else "a refusal")
     unproven = ("Unproven: " + criterion["unproven"],) if "unproven" in criterion else ()
     parts = (
-        ("### %s %s" % (criterion["number"], criterion["title"]), criterion["text"], where)
-        + listed("Inputs:", inputs)
-        + listed(GIVE_WAY_HEAD, order)
-        + listed("Facts:", cited)
-        + listed(TABLE_HEAD, rows)
+        (
+            "### %s %s" % (criterion["number"], criterion["title"]),
+            criterion["text"],
+            seam_text(seams[criterion["seam"]]),
+        )
+        + listed(head, inputs)
+        + table(criterion)
         + unproven
     )
     return "\n\n".join(parts)
 
 
-def record_errors(record_text, root):
+def record_errors(record_text):
     return tuple(
         message
-        for severity, message in check_record.check(record_text, root, complete=True)
+        for severity, message in check_record.check(record_text, complete=True)
         if severity == "error"
     )
 
@@ -117,9 +119,9 @@ def task_errors(steps):
 
 def section_errors(sections):
     if not sections:
-        return ("spec has no Acceptance criteria section",)
+        return ("spec has no Test seams section",)
     if len(sections) > 1:
-        return ("spec has %d Acceptance criteria sections" % len(sections),)
+        return ("spec has %d Test seams sections" % len(sections),)
     return ()
 
 
@@ -128,11 +130,28 @@ def number_errors(criteria, sections):
         return ()
     section = sections[0][1]
     return tuple(
-        "criterion %s is outside Acceptance criteria section %s; its number must start with '%s.'"
+        "criterion %s is outside Test seams section %s; its number must start with '%s.'"
         % (criterion["number"], section, section)
         for criterion in criteria
         if not criterion["number"].startswith(section + ".")
     )
+
+
+def assumption_errors(steps, lines):
+    known = frozenset(check_spec.intent_ids(lines, check_spec.numbered_headings(lines)))
+    return tuple(
+        "step %s has an assumption that %s: %s" % (step["name"], problem, text)
+        for step in steps
+        for text in step.get("assumptions", ())
+        for problem in assumption_problems(text, known)
+    )
+
+
+def assumption_problems(text, known):
+    cited = tuple(match.group(1) for match in check_spec.RELIES.finditer(text))
+    if not cited:
+        return ("cites no intent line; end it with (relies on I<n>)",)
+    return tuple("relies on %s, which is not an intent line of the spec" % name for name in cited if name not in known)
 
 
 def amendment_errors(steps, amendment):
@@ -205,27 +224,28 @@ def item(step, criteria, blocks, source):
     )
 
 
-def render(record_text, spec_text, spec_path, root, amendment=None):
-    rejected = record_errors(record_text, root)
+def render(record_text, spec_text, spec_path, amendment=None):
+    rejected = record_errors(record_text)
     if rejected:
         return (rejected, None, None)
     record = json.loads(record_text)
     steps = chosen_steps(record["steps"], amendment)
     lines = tuple(spec_text.splitlines(keepends=True))
-    sections = check_spec.acceptance_sections(check_spec.numbered_headings(lines))
+    sections = check_spec.seam_sections(check_spec.numbered_headings(lines))
     errors = (
         task_errors(record["steps"])
         + section_errors(sections)
         + number_errors(record["criteria"], sections)
         + amendment_errors(steps, amendment)
+        + assumption_errors(steps, lines)
     )
     if errors:
         return (errors, None, None)
-    what = {environment["name"]: environment["what"] for environment in record["environments"]}
-    facts = {fact["id"]: fact for fact in record["facts"]}
     criteria = {criterion["number"]: criterion for criterion in record["criteria"]}
-    blocks = {number: criterion_block(criterion, what, facts) for number, criterion in criteria.items()}
-    ordered = tuple(blocks[criterion["number"]] for criterion in record["criteria"])
+    by_name = {seam["name"]: seam for seam in record["seams"]}
+    blocks = {number: criterion_block(criterion, by_name) for number, criterion in criteria.items()}
+    seams = listed(SEAMS_HEAD, tuple(seam_line(seam) for seam in record["seams"]))
+    ordered = seams + tuple(blocks[criterion["number"]] for criterion in record["criteria"])
     new_spec_text = replace_section(spec_text, lines, sections[0][0], ordered)
     source = {"path": spec_path, "sha256": hashlib.sha256(new_spec_text.encode("utf-8")).hexdigest()}
     items = [item(step, criteria, blocks, source) for step in steps]
@@ -273,7 +293,7 @@ def main(argv):
         print("\n".join("cannot read: " + path for path in unreadable), file=sys.stderr)
         return 2
     errors, spec_text, items = render(
-        texts[0][1], texts[1][1], os.path.abspath(spec_path), os.getcwd(), amendment
+        texts[0][1], texts[1][1], os.path.abspath(spec_path), amendment
     )
     if errors:
         print("\n".join("error: " + message for message in errors))

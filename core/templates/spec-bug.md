@@ -4,96 +4,44 @@ Pathway: bug.
 
 Date: {{date}}.
 
-## 1. Request
+## 1. Problem
 
-{{The user's request, word for word.}}
+{{the user's request, word for word}}
 
-## 2. Summary
+{{what is wrong, where and for whom: the expected result and the actual result}}
 
-{{One or two sentences: what is wrong, where, and for whom.}}
+## 2. Intent
 
-## 3. Environment
+{{the intent lines of the decisions file, word for word, each with its id, such as - I1 Goal: <goal>}}
 
-{{Version, operating system, runtime, configuration and component where the bug occurs.}}
+## 3. Reproduction and cause
 
-## 4. Steps to reproduce
+{{the steps to reproduce, every reproduction run's command and observed output, and how often it reproduces}}
 
-{{Numbered steps, including setup, that reproduce the bug every time or as often as it occurs.}}
+{{the draft failing test path, docs/specs/<slug>.repro.<ext>, and its failing output}}
 
-{{How often it reproduces: always, sometimes, or never again.}}
+{{the ranked hypotheses, each probe's hypothesis, one line describing the change and its result, and the confirmed cause with path and line, or why it could not be confirmed}}
 
-## 5. Expected and actual
+{{every other place with the same fault, with path and line, or None}}
 
-{{Expected: what should happen.}}
+## 4. Decisions
 
-{{Actual: what happens instead.}}
+{{the fix boundary as three statements: Current: WHEN <condition> THEN the system <wrong behaviour>. Expected: WHEN <condition> THE SYSTEM SHALL <right behaviour>. Unchanged: WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>.}}
 
-## 6. Evidence
+{{any further numbered decision, and each threat the fix must withstand with its defence}}
 
-{{Every reproduction run: the command and its observed output.}}
-
-{{The draft failing test path, docs/specs/<slug>.repro.<ext>, and its failing output.}}
-
-{{Logs, stack traces and screenshots, if any.}}
-
-## 7. Severity and workaround
-
-{{Who is affected, how badly, and any known workaround.}}
-
-## 8. Root cause
-
-{{Ranked hypotheses. For each probe: the hypothesis, one line describing the change, and the result. Mark unconfirmed hypotheses as unconfirmed.}}
-
-{{The confirmed root cause, or why it could not be confirmed.}}
-
-## 9. Fix boundary
-
-### Current
-
-{{WHEN <condition> THEN the system <wrong behaviour>}}
-
-### Expected
-
-{{WHEN <condition> THE SYSTEM SHALL <right behaviour>, citing the acceptance criterion that states it, such as 10.1}}
-
-### Unchanged
-
-{{WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>, citing the acceptance criterion that states it, such as 10.2}}
-
-## 10. Acceptance criteria
-
-### 10.1 {{short name of the reproduction test}}
-
-{{The test that fails before the fix and passes after, named by file and test.}}
-
-### 10.2 {{short name of the first unchanged behaviour}}
-
-{{A check that the unchanged behaviour still works. Add 10.3 and so on for each further check.}}
-
-## 11. Assumptions
-
-{{Every default chosen without the user's explicit answer, one per line.}}
-
-## 12. Open questions
-
-{{At most three open questions, each with why it is safe to leave open.}}
-
-## 13. Prevention
-
-{{What would have caught this earlier, such as a test, a check or a monitor.}}
-
-## 14. Reuse and change
+### Reuse and change
 
 {{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
 
-## 15. Variation
+### Assumptions
 
-{{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}
+{{each reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
 
-## 16. Review bar
+## 5. Test seams
 
-{{The threats the change must withstand and the level of defence for each, each one defended somewhere in this spec; or that it has none beyond its acceptance criteria, and why.}}
+{{written by the render script from the record: the agreed seams, then one numbered heading per acceptance criterion, 5.1 being the reproduction test}}
 
-{{What a reviewer may block on beyond the acceptance criteria: the Expected and Unchanged statements of the Fix boundary.}}
+## 6. Out of scope
 
-{{What is out of scope for review: at least weaknesses the code had before the change, and hardening beyond the named threats.}}
+{{what could reasonably be in scope but is not, at least one item}}

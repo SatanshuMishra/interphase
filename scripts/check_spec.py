@@ -12,14 +12,13 @@ VAGUE_WORDS = (
     "flexible", "clean", "nice", "better", "optimal",
 )
 VAGUE = re.compile(r"\b(" + "|".join(re.escape(word) for word in VAGUE_WORDS) + r")\b", re.IGNORECASE)
-OPEN_QUESTIONS_LIMIT = 3
-CITED_SECTIONS = ("requirements", "edge cases")
-CITED_SUB_SECTIONS = ("expected", "unchanged")
-LEVEL_THREE = re.compile(r"^### (.+)$")
+SEAM_SECTION = "test seams"
+INTENT_SECTION = "intent"
+ASSUMPTIONS = "### Assumptions"
 UP_TO_LEVEL_THREE = re.compile(r"^#{1,3} ")
-HEADING = re.compile(r"^#{1,6}([ \t]|$)")
-CRITERION = re.compile(r"^### (\S+)[ \t]+\S")
-EXEMPT_PREFIXES = (" ", "\t", "Not applicable:")
+INTENT_LINE = re.compile(r"^- (I\d+) \S")
+RELIES = re.compile(r"\brelies on (I\d+)\b", re.IGNORECASE)
+NONE_LINE = "- None"
 USAGE = "usage: check_spec.py --template TEMPLATE SPEC"
 
 
@@ -103,83 +102,68 @@ def criterion_heading(number):
     return re.compile(r"^#{3,6}[ \t]+" + re.escape(number) + r"\.\d+(\.\d+)*\.?[ \t]+\S")
 
 
-def acceptance_sections(spec_headings):
+def seam_sections(spec_headings):
     matches = tuple((line_number, NUMBERED.match(heading)) for line_number, heading in spec_headings)
     return tuple(
         (line_number, match.group(1))
         for line_number, match in matches
-        if match.group(2).strip().lower() == "acceptance criteria"
+        if match.group(2).strip().lower() == SEAM_SECTION
     )
 
 
 def unnumbered_criteria(lines, spec_headings):
     boundaries = level_two_lines(lines)
     return tuple(
-        ("error", line_number, "line {}: acceptance criteria has no numbered criterion heading such as ### {}.1".format(line_number, number))
-        for line_number, number in acceptance_sections(spec_headings)
+        ("error", line_number, "line {}: test seams has no numbered criterion heading such as ### {}.1".format(line_number, number))
+        for line_number, number in seam_sections(spec_headings)
         if not any(criterion_heading(number).match(line) for line in section_body(lines, line_number, boundaries))
     )
 
 
-def citation(number):
-    return re.compile(r"(?<![\d.])" + re.escape(number) + r"\.\d+(?!\d)(?!\.\d)")
-
-
-def criterion_numbers(lines, line_number):
-    matches = (CRITERION.match(line) for line in section_body(lines, line_number, level_two_lines(lines)))
-    return frozenset(match.group(1) for match in matches if match)
-
-
-def cited_bodies(lines, spec_headings):
+def intent_ids(lines, spec_headings):
     boundaries = level_two_lines(lines)
-    sub_boundaries = tuple(
-        number for number, line in enumerate(lines, start=1) if UP_TO_LEVEL_THREE.match(line)
-    )
-    sections = tuple(
-        (number, heading_title(heading), section_body(lines, number, boundaries))
-        for number, heading in spec_headings
-        if heading_title(heading).lower() in CITED_SECTIONS
-    )
-    sub_headings = tuple(
-        (number, match.group(1).strip())
-        for number, match in ((number, LEVEL_THREE.match(line.rstrip())) for number, line in enumerate(lines, start=1))
+    return tuple(
+        match.group(1)
+        for line_number, heading in spec_headings
+        if heading_title(heading).lower() == INTENT_SECTION
+        for match in (INTENT_LINE.match(line) for line in section_body(lines, line_number, boundaries))
         if match
     )
-    sub_sections = tuple(
-        (number, title, section_body(lines, number, sub_boundaries))
-        for number, title in sub_headings
-        if title.lower() in CITED_SUB_SECTIONS
-    )
-    return tuple(sorted(sections + sub_sections, key=lambda section: section[0]))
 
 
-def exempt(line):
-    return not line.strip() or bool(HEADING.match(line)) or line.startswith(EXEMPT_PREFIXES)
-
-
-def line_citations(number, title, cited, criteria):
-    if not cited:
-        return (("error", number, "line {}: {} line cites no acceptance criterion".format(number, title)),)
-    return tuple(
-        ("error", number, "line {}: {} line cites {}, which is not an acceptance criterion".format(number, title, cite))
-        for cite in dict.fromkeys(cited)
-        if cite not in criteria
-    )
-
-
-def uncited_lines(lines, spec_headings):
-    acceptance = acceptance_sections(spec_headings)
-    if len(acceptance) != 1:
+def missing_intent(lines, spec_headings):
+    intent = tuple(number for number, heading in spec_headings if heading_title(heading).lower() == INTENT_SECTION)
+    if not intent or intent_ids(lines, spec_headings):
         return ()
-    line_number, number = acceptance[0]
-    criteria = criterion_numbers(lines, line_number)
-    pattern = citation(number)
+    return (("error", intent[0], "line {}: intent has no line such as - I1 Goal: <goal>".format(intent[0])),)
+
+
+def unknown_intent(lines, spec_headings):
+    known = frozenset(intent_ids(lines, spec_headings))
     return tuple(
-        finding
-        for start, title, body in cited_bodies(lines, spec_headings)
-        for offset, line in enumerate(body, start=start + 1)
-        if not exempt(line)
-        for finding in line_citations(offset, title, tuple(match.group(0) for match in pattern.finditer(line)), criteria)
+        ("error", number, "line {}: relies on {}, which is not an intent line".format(number, match.group(1)))
+        for number, line in enumerate(lines, start=1)
+        for match in RELIES.finditer(line)
+        if match.group(1) not in known
+    )
+
+
+def assumption_lines(lines):
+    starts = tuple(number for number, line in enumerate(lines, start=1) if line.rstrip() == ASSUMPTIONS)
+    boundaries = tuple(number for number, line in enumerate(lines, start=1) if UP_TO_LEVEL_THREE.match(line))
+    return tuple(
+        (offset, line)
+        for start in starts
+        for offset, line in enumerate(section_body(lines, start, boundaries), start=start + 1)
+        if line.startswith("- ") and line.rstrip() != NONE_LINE
+    )
+
+
+def uncited_assumptions(lines):
+    return tuple(
+        ("error", number, "line {}: assumption cites no intent line; end it with (relies on I<n>)".format(number))
+        for number, line in assumption_lines(lines)
+        if not RELIES.search(line)
     )
 
 
@@ -196,20 +180,6 @@ def heading_title(line):
     return numbered.group(2).strip() if numbered else line.rstrip()[3:].strip()
 
 
-def open_questions(lines):
-    boundaries = level_two_lines(lines)
-    counts = tuple(
-        (number, sum(1 for line in section_body(lines, number, boundaries) if line.startswith("- ")))
-        for number in boundaries
-        if heading_title(lines[number - 1]).lower() == "open questions"
-    )
-    return tuple(
-        ("warning", number, "line {}: {} open questions, more than {}".format(number, count, OPEN_QUESTIONS_LIMIT))
-        for number, count in counts
-        if count > OPEN_QUESTIONS_LIMIT
-    )
-
-
 def check(template_text, spec_text):
     template_lines = tuple(template_text.splitlines())
     spec_lines = tuple(spec_text.splitlines())
@@ -223,9 +193,10 @@ def check(template_text, spec_text):
         + unfinished_markers(spec_lines)
         + empty_sections(spec_lines, spec_headings)
         + unnumbered_criteria(spec_lines, spec_headings)
-        + uncited_lines(spec_lines, spec_headings)
+        + missing_intent(spec_lines, spec_headings)
+        + unknown_intent(spec_lines, spec_headings)
+        + uncited_assumptions(spec_lines)
         + vague_words(spec_lines)
-        + open_questions(spec_lines)
     )
 
 

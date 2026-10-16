@@ -13,7 +13,7 @@ Research before you ask.
 
 ## Questions
 
-Use this bank as the checklist of what must be known. Skip any question the Ground phase already answered.
+Use this bank as the checklist of branches the design tree must reach. Ask only what passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`; skip any question the Ground phase or the intent round already answered.
 
 - Is this a proof of concept or a product?
 - What is the definition of done for the first usable version?
@@ -31,14 +31,14 @@ Use this bank as the checklist of what must be known. Skip any question the Grou
 
 ## Extra step
 
-Propose two or three stacks with their trade-offs. Put the recommended one first. Let the user choose before you write the spec. Record the choice in the decisions file and the rejected stacks in the Stack and alternatives section of the spec.
+Propose two or three stacks with their trade-offs as one frontier question, the recommended one first. Record the choice in the decisions file, and the choice with the rejected stacks in the spec's Decisions section.
 
 ## Acceptance
 
 - Write Given, When, Then for each user story.
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.
-- Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 13.1 <short name>`.
+- Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam.
 - Write criteria for the foundations themselves, such as the build producing a release artifact and CI running the tests.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 

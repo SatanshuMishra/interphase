@@ -9,47 +9,52 @@ import unittest
 
 SPEC_TEXT = (
     "# Demo spec\n\n## 1. Interface\n\nThe shared interface.\n\n## 2. Client\n\nThe client.\n\n"
-    "## 3. Acceptance criteria\n\n### 3.1 Interface exists\n\nThe interface can be imported.\n\n"
+    "## 3. Test seams\n\n### 3.1 Interface exists\n\nThe interface can be imported.\n\n"
     "### 3.2 Client calls it\n\nThe client calls the interface.\n"
 )
 AMENDMENT_SPEC_TEXT = (
-    "# Demo fix\n\n## 6. Requirements\n\nThe app returns the total it is given.\n\n"
-    "## 7. Acceptance criteria\n\n### 7.1 The total adds up\n\nThe total is unchanged.\n\n"
-    "### 7.2 A negative total is zero\n\nThe app returns zero for a negative total.\n"
+    "# Demo fix\n\n## 4. Decisions\n\nThe app returns the total it is given.\n\n"
+    "## 5. Test seams\n\n### 5.1 The total adds up\n\nThe total is unchanged.\n\n"
+    "### 5.2 A negative total is zero\n\nThe app returns zero for a negative total.\n"
 )
 AMENDED_RECORD = {
     "status": "handed-off",
-    "environments": [{"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True}],
-    "facts": [],
+    "seams": [
+        {
+            "name": "unit-tests",
+            "interface": "the total_of function in src/app.py",
+            "catches": "a wrong total",
+            "misses": "how the total is drawn on screen",
+            "builder_runs": True,
+        }
+    ],
     "criteria": [
         {
-            "number": "7.1",
+            "number": "5.1",
             "title": "The total adds up",
             "text": "Given a total, when the app returns it, then it is unchanged.",
-            "where": ["unit-tests"],
+            "seam": "unit-tests",
             "tests": [
                 {
                     "file": "tests/test_app.py",
                     "name": "test_total",
                     "given": "a total of 3",
                     "expect": "3 is returned",
-                    "env": "unit-tests",
                     "step": "build-app",
                 }
             ],
         },
         {
-            "number": "7.2",
+            "number": "5.2",
             "title": "A negative total is zero",
             "text": "Given a negative total, when the app returns it, then it is zero.",
-            "where": ["unit-tests"],
+            "seam": "unit-tests",
             "tests": [
                 {
                     "file": "tests/test_fix.py",
                     "name": "test_negative_total",
                     "given": "a total of -3",
                     "expect": "0 is returned",
-                    "env": "unit-tests",
                     "step": "fix-app",
                 }
             ],
@@ -59,13 +64,13 @@ AMENDED_RECORD = {
         {
             "name": "build-app",
             "files": ["src/app.py", "tests/test_app.py"],
-            "criteria": ["7.1"],
+            "criteria": ["5.1"],
             "task": "Build the app.",
         },
         {
             "name": "fix-app",
             "files": ["src/app.py", "tests/test_fix.py"],
-            "criteria": ["7.2"],
+            "criteria": ["5.2"],
             "task": "Return zero for a negative total.",
             "amendment": 1,
             "after": ["build-app"],
@@ -220,6 +225,28 @@ class CheckItemsTest(ScriptLoader, unittest.TestCase):
     def test_check_items_reports_an_unclaimed_acceptance_criterion(self):
         self.assert_error(lambda steps: [steps[0], dict(steps[1], spec_ref=["2"])], "acceptance criterion 3.2")
 
+    def test_check_items_traces_criteria_only_under_test_seams(self):
+        spec_text = SPEC_TEXT.replace("## 3. Test seams", "## 3. Acceptance criteria")
+        code, errors, warnings = self.run_check(spec_text=spec_text)
+        self.assertEqual(code, 0)
+        self.assertEqual(errors, ())
+        self.assertEqual(warnings, ("warning: spec has no numbered acceptance criteria to trace",))
+
+    def test_check_items_finds_test_seams_in_any_case(self):
+        spec_text = SPEC_TEXT.replace("## 3. Test seams", "## 3. TEST SEAMS")
+        self.assert_error(lambda steps: [steps[0], dict(steps[1], spec_ref=["2"])], "acceptance criterion 3.2", spec_text)
+
+    def test_check_items_names_each_unclaimed_criterion_under_test_seams(self):
+        code, errors, _ = self.run_check(lambda steps: [dict(steps[0], spec_ref=["1"]), dict(steps[1], spec_ref=["2"])])
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            errors,
+            (
+                "error: acceptance criterion 3.1 Interface exists is claimed by no step's spec_ref",
+                "error: acceptance criterion 3.2 Client calls it is claimed by no step's spec_ref",
+            ),
+        )
+
     def test_check_items_warns_about_a_step_that_claims_no_criterion(self):
         def change(steps):
             docs = {
@@ -301,7 +328,7 @@ class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
                 "files": ["src/app.py", "tests/test_fix.py"],
                 "source": {"path": str(spec_path), "sha256": sha},
                 "acceptance": [{"file": "tests/test_fix.py", "test": "test_negative_total"}],
-                "spec_ref": ["7.2"],
+                "spec_ref": ["5.2"],
             }
         ]
 
@@ -323,12 +350,12 @@ class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
     def test_amendment_option_skips_unclaimed_criteria(self):
         code, lines, _ = self.run_amendment(["--amendment", "ITEMS"])
         self.assertEqual(code, 0, lines)
-        self.assertFalse(any("7.1" in line for line in lines), lines)
+        self.assertFalse(any("5.1" in line for line in lines), lines)
 
     def test_amendment_option_after_the_path_is_accepted(self):
         code, lines, _ = self.run_amendment(["ITEMS", "--amendment"])
         self.assertEqual(code, 0, lines)
-        self.assertFalse(any("7.1" in line for line in lines), lines)
+        self.assertFalse(any("5.1" in line for line in lines), lines)
 
     def test_amendment_option_keeps_other_errors(self):
         code, lines, _ = self.run_amendment(["--amendment", "ITEMS"], lambda steps: [dict(steps[0], name="Fix_App")])

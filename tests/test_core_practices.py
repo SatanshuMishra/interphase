@@ -48,18 +48,18 @@ class CorePracticesTest(unittest.TestCase):
         self.assertEqual(len(numbered), len(RULES))
         for number, (line, rule) in enumerate(zip(numbered, RULES), start=1):
             self.assertTrue(line.startswith(f"{number}. {rule}"), line)
-        self.assertIn("The project's own written rules win when they conflict with the other four.", body)
+        self.assertIn("The project's own written rules, its glossary and its ADRs win when they conflict with the other four.", body)
 
-    def test_autonomous_runs_let_the_context_override_a_project_rule(self):
+    def test_unattended_runs_let_the_context_override_a_project_rule(self):
         rules = section(read_practices(), "## The five rules")
         self.assertIn(
-            "The project's own written rules win when they conflict with the other four. In an autonomous run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Work autonomously of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.",
+            "The project's own written rules, its glossary and its ADRs win when they conflict with the other four. In an unattended run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.",
             rules,
         )
         record = section(read_practices(), "## Record the result")
         followed = record.index("starts with Project rule followed:")
         overridden = record.index(
-            "When a requirement overrode a project rule or convention in an autonomous run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement."
+            "When a requirement overrode a project rule or convention in an unattended run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement."
         )
         self.assertLess(followed, overridden)
 
@@ -88,7 +88,7 @@ class CorePracticesTest(unittest.TestCase):
         for sentence in (
             "Reuse existing code without asking when it already does the job unchanged.",
             "Ask the user only at a fork: when sharing would mean changing existing code for a new use, or keeping apart would mean copying its logic.",
-            "Ask one question per fork, in the same rounds as the other questions, with a recommendation and a one-line reason.",
+            "Ask one question per fork, in the same frontier rounds as the other questions, with a recommendation and a one-line reason.",
             "Recommend sharing the parts that must always change together and keeping apart the parts that differ.",
             "Never offer bending as an option.",
         ):

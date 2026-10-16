@@ -5,11 +5,11 @@ import unittest
 CASE_PREFIX = "reviewbar-"
 FIXTURE = "evals-heldout/fixtures/tasks-app.sh"
 PROMPT_FIELDS = {"name", "description", "runs", "max_turns", "timeout_seconds", "allowed_tools"}
-GRADERS = ["review-bar.md", "rubric.md", "spec-written.md"]
-REVIEW_BAR_PATTERN = "## \\d+\\. Review bar"
-RUBRIC_PHRASES = ("Review bar", "out of scope", "before the change", "FAIL")
+GRADERS = ["decisions.md", "rubric.md", "spec-written.md"]
+DECISIONS_PATTERN = "## \\d+\\. Decisions"
+RUBRIC_PHRASES = ("Decisions", "before the change", "FAIL")
 THREAT = "threat"
-NO_THREATS = "no threats beyond"
+NO_THREATS = "no security threat"
 
 HELDOUT_CASES = {
     "reviewbar-shared-list": (
@@ -97,11 +97,11 @@ class EvalsReviewBarTest(unittest.TestCase):
         spec = spec_path(name)
         fields, _ = graders["spec-written.md"]
         self.assertEqual(fields, {"type": "file_exists", "path": spec, "exists": "true"})
-        fields, _ = graders["review-bar.md"]
+        fields, _ = graders["decisions.md"]
         self.assertEqual(set(fields), {"type", "target", "pattern", "match"})
         self.assertEqual(fields["type"], "regex")
         self.assertEqual(variation.parse_flow_map(fields["target"]), {"source": "file", "path": spec})
-        self.assertEqual(variation.yaml_scalar(fields["pattern"]), REVIEW_BAR_PATTERN)
+        self.assertEqual(variation.yaml_scalar(fields["pattern"]), DECISIONS_PATTERN)
         self.assertEqual(fields["match"], "contains")
         fields, body = graders["rubric.md"]
         self.assertEqual(set(fields), {"type", "focus"})

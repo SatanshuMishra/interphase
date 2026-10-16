@@ -12,33 +12,55 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PHASES = str(ROOT / "core" / "phases.md")
 HEADING = "interphase run in progress: "
 DECISIONS_TEXT = "# Decisions\n\n- Totals are kept in cents.\n- The report runs nightly.\n"
-SECRETS = ("SECRET-ENV", "SECRET-FACT", "SECRET-TEXT", "SECRET-TEST", "SECRET-TASK")
+SECRETS = ("SECRET-SEAM", "SECRET-CATCH", "SECRET-TEXT", "SECRET-TEST", "SECRET-TASK", "SECRET-CASE")
 
 
 def record(**fields):
-    return {"environments": [], "facts": [], "criteria": [], "steps": [], "status": "in-progress", **fields}
+    return {"seams": [], "criteria": [], "steps": [], "status": "in-progress", **fields}
 
 
 def full_record():
     return record(
-        environments=[
-            {"name": "unit-tests", "what": "SECRET-ENV", "builder_runs": True},
-            {"name": "phone", "what": "Galaxy Note10+, Android 12", "builder_runs": False},
-        ],
-        facts=[{"id": "f1", "fact": "The app returns the total", "path": "src/app.py", "line": 2, "quote": "SECRET-FACT"}],
-        criteria=[
+        seams=[
             {
-                "number": "7.1",
-                "title": "Totals add up",
-                "text": "SECRET-TEXT",
-                "where": ["unit-tests"],
-                "tests": [{"file": "tests/test_app.py", "name": "SECRET-TEST", "asserts": "the total", "env": "unit-tests", "step": "build-app"}],
+                "name": "unit-tests",
+                "interface": "SECRET-SEAM",
+                "catches": "SECRET-CATCH",
+                "misses": "how the total is drawn",
+                "builder_runs": True,
             },
             {
-                "number": "7.2",
+                "name": "phone-screen",
+                "interface": "the total drawn on a Galaxy Note10+",
+                "catches": "a total drawn late",
+                "misses": "a wrong total",
+                "builder_runs": False,
+            },
+        ],
+        criteria=[
+            {
+                "number": "5.1",
+                "title": "Totals add up",
+                "text": "SECRET-TEXT",
+                "seam": "unit-tests",
+                "case_table": "security",
+                "domains": [{"name": "payload", "over": "SECRET-CASE", "classes": ["absent", "present"]}],
+                "tests": [
+                    {
+                        "file": "tests/test_app.py",
+                        "name": "SECRET-TEST",
+                        "given": "a total of 3",
+                        "expect": "3 is returned",
+                        "step": "build-app",
+                        "covers": ["payload: absent", "payload: present"],
+                    }
+                ],
+            },
+            {
+                "number": "5.2",
                 "title": "Fast on the phone",
                 "text": "The total shows within a second.",
-                "where": ["phone"],
+                "seam": "phone-screen",
                 "tests": [],
                 "unproven": "needs the phone",
             },
@@ -47,7 +69,7 @@ def full_record():
             {
                 "name": "build-app",
                 "files": ["src/app.py", "tests/test_app.py"],
-                "criteria": ["7.1", "7.2"],
+                "criteria": ["5.1", "5.2"],
                 "task": "SECRET-TASK",
             }
         ],
@@ -103,8 +125,8 @@ class ResumeContextTest(unittest.TestCase):
             folder = self.specs(root)
             self.write(folder, "beta.record.json", record())
             self.write(folder, "alpha.record.json", record(
-                criteria=[{"number": "7.1", "title": "Totals add up", "text": "The total adds up.", "where": ["unit-tests"], "tests": []}],
-                steps=[{"name": "build-app", "files": ["src/app.py"], "criteria": ["7.1"]}],
+                criteria=[{"number": "5.1", "title": "Totals add up", "text": "The total adds up.", "seam": "unit-tests", "tests": []}],
+                steps=[{"name": "build-app", "files": ["src/app.py"], "criteria": ["5.1"]}],
             ))
             self.write(folder, "alpha.decisions.md", DECISIONS_TEXT)
             code, output = self.session(module, root)
@@ -122,7 +144,7 @@ class ResumeContextTest(unittest.TestCase):
             root = pathlib.Path(tmp).resolve()
             folder = self.specs(root)
             self.write(folder, "done.record.json", record(status="handed-off"))
-            self.write(folder, "old.record.json", {"environments": [], "facts": [], "criteria": [], "steps": []})
+            self.write(folder, "old.record.json", {"seams": [], "criteria": [], "steps": []})
             self.write(folder, "guarded.guard.json", {"head": "abc"})
             self.write(folder, "guarded.decisions.md", DECISIONS_TEXT)
             self.write(folder, "lone.items.json", [])
@@ -171,10 +193,10 @@ class ResumeContextTest(unittest.TestCase):
             "\n",
             "Record digest (" + str(folder / "app.record.json") + "):\n",
             "Criteria:\n",
-            "- 7.1 Totals add up (where: unit-tests)\n",
-            "- 7.2 Fast on the phone (where: phone) Unproven: needs the phone\n",
+            "- 5.1 Totals add up (seam: unit-tests)\n",
+            "- 5.2 Fast on the phone (seam: phone-screen) Unproven: needs the phone\n",
             "Steps:\n",
-            "- build-app: files src/app.py, tests/test_app.py; criteria 7.1, 7.2\n",
+            "- build-app: files src/app.py, tests/test_app.py; criteria 5.1, 5.2\n",
         ))
         self.assertEqual(code, 0)
         self.assertEqual(output, expected)
@@ -264,9 +286,11 @@ class ResumeContextTest(unittest.TestCase):
             self.write(folder, "partial.record.json", {
                 "status": "in-progress",
                 "criteria": [
-                    {"number": "7.1", "title": "No where"},
-                    {"number": 7.2, "title": "Numeric", "where": ["unit-tests"]},
-                    {"number": "7.3", "title": None, "where": [], "unproven": None},
+                    {"number": "5.1", "title": "No seam"},
+                    {"number": 5.2, "title": "Numeric", "seam": "unit-tests"},
+                    {"number": "5.3", "title": None, "seam": None, "unproven": None},
+                    {"number": "5.4", "title": "Listed", "seam": ["unit-tests"], "unproven": ""},
+                    {"number": "5.5", "title": "Old shape", "where": ["phone"], "unproven": "needs the phone"},
                     "junk",
                 ],
             })
@@ -277,9 +301,11 @@ class ResumeContextTest(unittest.TestCase):
             lines[lines.index("Record digest (" + str(folder / "partial.record.json") + "):") + 1:],
             [
                 "Criteria:",
-                "- 7.1 No where (where: )",
-                "- 7.2 Numeric (where: unit-tests)",
-                "- 7.3  (where: )",
+                "- 5.1 No seam (seam: )",
+                "- 5.2 Numeric (seam: unit-tests)",
+                "- 5.3  (seam: )",
+                "- 5.4 Listed (seam: ['unit-tests'])",
+                "- 5.5 Old shape (seam: ) Unproven: needs the phone",
                 "Steps:",
             ],
         )

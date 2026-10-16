@@ -4,7 +4,6 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PLAYBOOK = ROOT / "core" / "pathways" / "prototype.md"
-TEMPLATE = ROOT / "core" / "templates" / "spec-prototype.md"
 
 PLAYBOOK_HEADINGS = (
     "## Ground",
@@ -15,29 +14,6 @@ PLAYBOOK_HEADINGS = (
     "## Steps",
 )
 
-TEMPLATE_HEADINGS = (
-    "## 1. Request",
-    "## 2. Source artefacts",
-    "## 3. Intended and incidental",
-    "## 4. Screens and journeys",
-    "## 5. State matrix",
-    "## 6. Content variation",
-    "## 7. Interactions not shown",
-    "## 8. Data sources",
-    "## 9. Validation and errors",
-    "## 10. Auth and permissions",
-    "## 11. Persistence and concurrency",
-    "## 12. Accessibility",
-    "## 13. Responsive behaviour",
-    "## 14. Analytics",
-    "## 15. Non-goals",
-    "## 16. Acceptance criteria",
-    "## 17. Assumptions",
-    "## 18. Open questions",
-    "## 19. Reuse and change",
-    "## 20. Variation",
-    "## 21. Review bar",
-)
 
 
 def section_body(lines, heading):
@@ -60,32 +36,12 @@ class PrototypePathwayTest(unittest.TestCase):
             [line.split(".", 1)[0] for line in numbered],
         )
 
-    def test_prototype_template_has_every_numbered_section(self):
-        text = TEMPLATE.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        self.assertEqual("# {{title}}", lines[0])
-        self.assertIn("Pathway: prototype.", lines)
-        self.assertIn("Date: {{date}}.", lines)
-        numbered = [line for line in lines if re.match(r"^## \d+\.", line)]
-        self.assertEqual(list(TEMPLATE_HEADINGS), numbered)
-        for heading in TEMPLATE_HEADINGS:
-            body = "\n".join(section_body(lines, heading))
-            self.assertIn("{{", body, heading)
-        for path in (PLAYBOOK, TEMPLATE):
-            content = path.read_text(encoding="utf-8")
-            self.assertNotIn("mitosis", content.lower(), str(path))
-
-    def test_prototype_template_numbers_each_acceptance_criterion(self):
-        lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
-        body = section_body(lines, "## 16. Acceptance criteria")
-        self.assertTrue(any(line.startswith("### 16.1 ") for line in body))
-
     def test_prototype_playbook_designs_steps_during_the_interview(self):
         lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
         steps_body = "\n".join(section_body(lines, "## Steps"))
         self.assertIn("Design the Steps during the interview", steps_body)
         acceptance_body = "\n".join(section_body(lines, "## Acceptance"))
-        self.assertIn("### 16.1", acceptance_body)
+        self.assertIn("Number each check under the Test seams section, such as `5.1`, and place it at an agreed seam.", acceptance_body)
 
     def test_prototype_ground_maps_the_prototype_to_existing_code(self):
         lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
@@ -93,31 +49,18 @@ class PrototypePathwayTest(unittest.TestCase):
         self.assertIn("Map every component and data flow in the prototype to existing code that already provides it", ground)
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", ground)
 
-    def test_prototype_template_records_reuse_and_change(self):
-        lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
-        body = "\n".join(section_body(lines, "## 19. Reuse and change"))
-        for label in ("Reused as is", "Kept separate", "Changed"):
-            self.assertIn(label, body)
-        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/practices.md", body)
-
-    def test_prototype_sorts_gaps_with_the_questioning_table(self):
+    def test_prototype_sorts_gaps_with_the_hard_bar(self):
         lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
         extra = "\n".join(section_body(lines, "## Extra step"))
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/questioning.md`", extra)
-        self.assertIn("Sort every unknown", extra)
+        self.assertIn("a gap that passes the hard bar", extra)
+        self.assertIn("a cosmetic gap takes the mockup's choice as an assumption", extra)
         self.assertNotIn("- Cosmetic: default to the mockup", extra)
 
     def test_prototype_acceptance_follows_the_variation_rules(self):
         lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
         acceptance = "\n".join(section_body(lines, "## Acceptance"))
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
-        template_lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
-        numbered = [line for line in template_lines if re.match(r"^## \d+\.", line)]
-        self.assertEqual("## 21. Review bar", numbered[-1])
-        body = "\n".join(section_body(template_lines, "## 20. Variation"))
-        self.assertIn("{{", body)
-        self.assertIn("Not applicable: <reason>", body)
-        self.assertIn("${CLAUDE_PLUGIN_ROOT}/core/variation.md", body)
 
 
 if __name__ == "__main__":

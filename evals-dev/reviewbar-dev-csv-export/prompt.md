@@ -1,6 +1,6 @@
 ---
 name: reviewbar-dev-csv-export
-description: A request to download every task as a CSV file writes a spec whose Review bar names the threats to the file and their defence.
+description: A request to download every task as a CSV file writes a spec whose Decisions name the threats to the file and their defence.
 runs: 3
 max_turns: 200
 timeout_seconds: 3600

@@ -76,8 +76,8 @@ class CoreVariationTest(unittest.TestCase):
             "get approval",
             "in full in the task of the step that tests them",
             "the way a bug's draft test is carried",
-            "variation section",
-            "not applicable: <reason>",
+            "each varying criterion's text states its kind, the ways its input varies, the held-out set and the pass rule.",
+            "in an unattended run, record the held-out set as an assumption instead.",
         ):
             self.assertIn(needle, population, needle)
 
@@ -145,7 +145,7 @@ class CoreVariationTest(unittest.TestCase):
             "`runs`",
             "`pass_rate`",
             "check_record.py",
-            "Runs in cell",
+            "Runs cell",
         ):
             self.assertIn(needle, record, needle)
 
@@ -156,7 +156,7 @@ class CoreVariationTest(unittest.TestCase):
     def test_variation_guide_puts_population_in_the_table(self):
         text = read_variation()
         self.assertIn(
-            "Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs in cell.",
+            "Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs cell.",
             text.splitlines(),
         )
         self.assertNotIn("Population line", text)

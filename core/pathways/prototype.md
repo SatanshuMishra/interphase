@@ -34,7 +34,7 @@ Walk these fifteen areas for every screen. Record what the mockup shows, what it
 
 ## Questions
 
-Draw from this bank. Ask only what the prototype and the code cannot answer.
+Draw from this bank. Ask only what passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`: what the prototype and the code cannot answer.
 
 - Which parts of the mockup are deliberate and which are placeholders?
 - Which screens are final?
@@ -46,11 +46,11 @@ Draw from this bank. Ask only what the prototype and the code cannot answer.
 
 ## Extra step
 
-Sort every gap before writing the spec, using the table in the section "Sort every unknown" of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
+Sort every gap before writing the spec: a gap that passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` is a frontier question, a fact the code answers is looked up, and a cosmetic gap takes the mockup's choice as an assumption. Write each settled area into the spec's Decisions section.
 
 ## Acceptance
 
-Write one check per screen state. Add a screenshot of the built screen compared with the mockup. Give each check its own numbered heading under the Acceptance criteria section, such as `### 16.1 <short name>`.
+Write one check per screen state. Add a screenshot of the built screen compared with the mockup. Number each check under the Test seams section, such as `5.1`, and place it at an agreed seam.
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 

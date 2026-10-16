@@ -4,94 +4,36 @@ Pathway: prototype.
 
 Date: {{date}}.
 
-## 1. Request
+## 1. Problem
 
 {{the user's request, word for word}}
 
-## 2. Source artefacts
+{{every file, URL and screenshot the prototype came from, where each lives and whether it could be run, and the problem the shipped product solves}}
 
-{{every file, URL and screenshot the prototype came from, with where each one lives and whether it could be run}}
+## 2. Intent
 
-## 3. Intended and incidental
+{{the intent lines of the decisions file, word for word, each with its id, such as - I1 Goal: <goal>}}
 
-{{which parts of the mockup are deliberate and which are placeholders or accidents, with who confirmed each}}
+## 3. User stories
 
-## 4. Screens and journeys
+{{a long numbered list covering every screen and journey, each as: As a <actor>, I want <feature>, so that <benefit>}}
 
-{{every screen, whether it is final or exploratory, and the user journeys it serves}}
+## 4. Decisions
 
-## 5. State matrix
+{{numbered decisions settling each area of the gap analysis the mockup fakes or omits: which screens are final, every screen state, content variation, interactions not shown, data sources and their failure, validation and error wording, permissions, saving and concurrent edits, accessibility, layout at each screen size, analytics, and each threat with its defence}}
 
-{{for each screen, what it shows when ideal, empty, loading, partial and in error}}
-
-## 6. Content variation
-
-{{how each screen handles long text, missing images and half-filled records}}
-
-## 7. Interactions not shown
-
-{{interactions the mockup does not show and the behaviour each one must have}}
-
-## 8. Data sources
-
-{{where each piece of displayed data really comes from, and what happens when that source fails or is slow}}
-
-## 9. Validation and errors
-
-{{input limits for every field and the exact wording of every error message}}
-
-## 10. Auth and permissions
-
-{{who may see and change what, denied by default and checked on the server}}
-
-## 11. Persistence and concurrency
-
-{{how data is saved, what happens when saving fails, and what happens when two people edit at once}}
-
-## 12. Accessibility
-
-{{the target accessibility level, keyboard use, visible focus, contrast and touch targets at least 24 by 24 pixels}}
-
-## 13. Responsive behaviour
-
-{{the must-have layout behaviour at every screen size the product supports}}
-
-## 14. Analytics
-
-{{the analytics events to record, or a statement that there are none}}
-
-## 15. Non-goals
-
-{{what is out of scope, including anything the mockup shows that will not be built}}
-
-## 16. Acceptance criteria
-
-### 16.1 {{short name of the first check}}
-
-{{one check for one screen state, or a screenshot of one built screen compared with the mockup}}
-
-{{one more numbered heading, 16.2, 16.3 and so on, for each further check}}
-
-## 17. Assumptions
-
-{{every cosmetic default taken from the mockup and every other assumption, each one marked for confirmation}}
-
-## 18. Open questions
-
-{{at most three open questions, each with why it is safe to leave open, or None}}
-
-## 19. Reuse and change
+### Reuse and change
 
 {{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
 
-## 20. Variation
+### Assumptions
 
-{{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}
+{{each reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
 
-## 21. Review bar
+## 5. Test seams
 
-{{the threats the change must withstand and the level of defence for each, each one defended somewhere in this spec; or that it has none beyond its acceptance criteria, and why}}
+{{written by the render script from the record: the agreed seams, then one numbered heading per acceptance criterion, 5.1, 5.2 and so on}}
 
-{{what a reviewer may block on beyond the acceptance criteria: the behaviours sections 4 to 14 specify and the non-goals}}
+## 6. Out of scope
 
-{{what is out of scope for review: at least weaknesses the code had before the change, and hardening beyond the named threats}}
+{{what is out of scope, including anything the mockup shows that will not be built}}
