@@ -137,6 +137,23 @@ def number_errors(criteria, sections):
     )
 
 
+def assumption_errors(steps, lines):
+    known = frozenset(check_spec.intent_ids(lines, check_spec.numbered_headings(lines)))
+    return tuple(
+        "step %s has an assumption that %s: %s" % (step["name"], problem, text)
+        for step in steps
+        for text in step.get("assumptions", ())
+        for problem in assumption_problems(text, known)
+    )
+
+
+def assumption_problems(text, known):
+    cited = tuple(match.group(1) for match in check_spec.RELIES.finditer(text))
+    if not cited:
+        return ("cites no intent line; end it with (relies on I<n>)",)
+    return tuple("relies on %s, which is not an intent line of the spec" % name for name in cited if name not in known)
+
+
 def amendment_errors(steps, amendment):
     if amendment is None or steps:
         return ()
@@ -220,6 +237,7 @@ def render(record_text, spec_text, spec_path, amendment=None):
         + section_errors(sections)
         + number_errors(record["criteria"], sections)
         + amendment_errors(steps, amendment)
+        + assumption_errors(steps, lines)
     )
     if errors:
         return (errors, None, None)

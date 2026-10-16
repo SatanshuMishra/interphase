@@ -421,6 +421,28 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
             "error: criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
         )
 
+    def test_render_refuses_a_step_assumption_without_a_known_intent_line(self):
+        intent_spec = SPEC_TEXT.replace("## 4. Decisions", "## 2. Intent\n\n- I1 Goal: show the total.\n\n## 4. Decisions")
+        cases = (
+            (
+                "Totals use whole numbers.",
+                "error: step build-app has an assumption that cites no intent line; end it with (relies on I<n>): Totals use whole numbers.\n",
+            ),
+            (
+                "Totals use whole numbers (relies on I9).",
+                "error: step build-app has an assumption that relies on I9, which is not an intent line of the spec: "
+                "Totals use whole numbers (relies on I9).\n",
+            ),
+        )
+        for text, expected in cases:
+            with self.subTest(text):
+                step = {**record()["steps"][0], "assumptions": [text]}
+                self.assertEqual(self.refused(replace_step(record(), 0, step), intent_spec), expected)
+        cited = {**record()["steps"][0], "assumptions": ["Totals use whole numbers (relies on I1)."]}
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, replace_step(record(), 0, cited), intent_spec)
+        self.assertEqual(json.loads(items_text)[0]["assumptions"], ["Totals use whole numbers (relies on I1)."])
+
     def test_rendering_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as folder:
             self.rendered(folder, record())

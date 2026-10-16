@@ -159,7 +159,7 @@ class ReadmeTest(unittest.TestCase):
             "It opens with your intent (the goal, why you want it, and what success looks like)",
             "It asks only what the code, the docs and your earlier decisions cannot answer, and only when a different answer would change what gets built.",
             "any gap it finds later is filled with a reasoned guess from your recorded intent, listed as an assumption.",
-            "Every spec has the same six sections: the problem, your intent, user stories (for a bug, the reproduction and cause), the decisions, the agreed test seams with the acceptance tests at each, and what is out of scope.",
+            "Every spec has the same six sections: the problem, your intent, user stories (for a bug, the reproduction and cause; for a brief, the evidence), the decisions, the agreed test seams with the acceptance tests at each, and what is out of scope.",
             "Only behaviour that is security-sensitive or exists to refuse something gets a full table of input cases.",
             "`GLOSSARY.md`",
             "`docs/adr/`",

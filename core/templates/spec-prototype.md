@@ -28,7 +28,7 @@ Date: {{date}}.
 
 ### Assumptions
 
-{{each cosmetic default taken from the mockup and every other reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
+{{each reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
 
 ## 5. Test seams
 

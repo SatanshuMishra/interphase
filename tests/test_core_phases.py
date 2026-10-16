@@ -128,7 +128,7 @@ class CorePhasesTest(unittest.TestCase):
             'snapshot --repo . --owned "docs/specs/<slug>." --owned GLOSSARY --owned docs/adr/ --out docs/specs/<slug>.guard.json',
             intake,
         )
-        self.assertIn("When a `GLOSSARY-MAP.md` exists, add one `--owned` for each glossary and each ADR folder it names.", intake)
+        self.assertIn("When a `GLOSSARY-MAP.md` exists, add one `--owned` for each glossary it names and one for `<dir>/docs/adr/`, where `<dir>` is that glossary's folder, whether or not that ADR folder exists yet.", intake)
         self.assertIn("then an empty `## Intent` section and an empty `## Decisions` section.", intake)
         self.assertIn('{"seams": [], "criteria": [], "steps": [], "status": "in-progress"}', intake)
 

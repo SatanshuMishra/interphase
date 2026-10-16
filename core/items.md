@@ -55,7 +55,7 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 | `file_notes` | no | object mapping a path from `files` to what changes there |
 | `msp` | no | a label that makes Steps ship together as one change |
 | `spec_ref` | no, but always set it | list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`; it traces each criterion to a Step and never tells a builder to read the spec |
-| `assumptions` | no | readings chosen without the user's answer, each ending `(relies on I<n>)` for the intent line it rests on; aim for none |
+| `assumptions` | no | readings chosen without the user's answer, each ending `(relies on I<n>)` for the intent line it rests on, the same line as in the spec's Assumptions |
 
 Use no other fields. The only value `type` may take is `contract`. The items file's fields do not change for varying behaviour: its population, runs and pass rate live in the record and in the task text.
 

@@ -15,7 +15,7 @@ Each request follows one of four pathways:
 - **Prototype**: a mockup or design export to ship as a working product. interphase explores the mockup and finds what it fakes or leaves out.
 - **Project**: a new repository, or a new stack, build, CI or release for an existing one. interphase settles the stage, platforms, stack, test strategy, CI, release, licence and logging, and the first Step is a walking skeleton that runs end to end.
 
-Every spec has the same six sections: the problem, your intent, user stories (for a bug, the reproduction and cause), the decisions, the agreed test seams with the acceptance tests at each, and what is out of scope. A test seam is the public interface a test observes behaviour at; interphase agrees the seams with you and aims for one. Only behaviour that is security-sensitive or exists to refuse something gets a full table of input cases.
+Every spec has the same six sections: the problem, your intent, user stories (for a bug, the reproduction and cause; for a brief, the evidence), the decisions, the agreed test seams with the acceptance tests at each, and what is out of scope. A test seam is the public interface a test observes behaviour at; interphase agrees the seams with you and aims for one. Only behaviour that is security-sensitive or exists to refuse something gets a full table of input cases.
 
 Every spec follows five programming rules, kept in `core/practices.md`. interphase reuses code that already does the job, asks you only when sharing code and keeping it apart are both real options, and writes a short Reuse and change list (what it reuses as is, what it keeps separate, and what existing code it changes).
 
@@ -107,7 +107,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `file_notes` | no | An object mapping a path from `files` to what changes there. |
 | `msp` | no | A label that makes Steps ship together as one change. |
 | `spec_ref` | no, but interphase always sets it | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
-| `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. interphase aims for none. |
+| `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. Each shows in the pull request that builds the Step. |
 
 No other fields are allowed.
 
@@ -149,7 +149,7 @@ Render the spec's Test seams section and the items file from a record:
 python3 /path/to/interphase/scripts/render_record.py --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json
 ```
 
-It refuses a record that the checker rejects with `--complete`, and then writes nothing.
+It refuses a record that the checker rejects with `--complete`, and a Step assumption that cites no intent line of the spec, and then writes nothing.
 
 To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.
 

@@ -10,7 +10,7 @@ NOT_BRIEF_PATTERN = "Lane: brief\\."
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 BRIEF_TEMPLATE = "core/templates/spec-brief.md"
 FULL_TEMPLATES = ("core/templates/spec-bug.md", "core/templates/spec-feature.md")
-RUBRIC_START = "PASS when the spec makes"
+RUBRIC_START = "PASS when the spec requires all of these, in its Decisions or an acceptance criterion:"
 RUBRIC_END = "as the context that decided them; FAIL otherwise."
 
 HELDOUT_CASES = {
@@ -138,7 +138,7 @@ RUBRICS = {
         "a sign-in by email and password or by an emailed one-time link",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "does not require multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest",
         "adds no package outside the Python standard library",
         "the single coffee shop and its customers",
     ),
@@ -155,7 +155,7 @@ RUBRICS = {
         "a sign-in by an emailed one-time link or by email and password",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "does not require multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest",
         "adds no package outside the Python standard library",
         "the neighbourhood book club and its members",
     ),
@@ -173,7 +173,7 @@ RUBRICS = {
         "a sign-in by email and password or by an emailed one-time link",
         "passwords, if used, stored only as salted hashes",
         "a limit on repeated failed sign-ins",
-        "does not make multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest a Must",
+        "does not require multi-factor authentication, phone-number sign-in, a CAPTCHA or encryption at rest",
         "adds no package outside the Python standard library",
         "the allotment society and its members",
     ),

@@ -11,7 +11,7 @@ Ask a question only when both hold:
 
 Facts are yours to find and decisions are the user's. When a question needs a fact, look it up, or dispatch the `interphase:scout` agent for outside documentation, and ask only the decision the fact leaves open. Never ask the user to confirm something you read. A question that fails the bar is neither asked nor recorded as an assumption.
 
-Wording that states how the product behaves is a fact, not a cosmetic choice. For example, a mockup's "the N days in a row you kept writing" says what the count measures; look it up in the code before using it. Cosmetic choices, such as colour, spacing, icons and wording that states nothing about how the product behaves, are never asked: take the mockup's or the existing style's and record it as an assumption.
+Wording that states how the product behaves is a fact, not a cosmetic choice. For example, a mockup's "the N days in a row you kept writing" says what the count measures; look it up in the code before using it. Cosmetic choices, such as colour, spacing, icons and wording that states nothing about how the product behaves, are never asked: take the mockup's or the existing style's. Such a choice is read, not guessed, so it is not an assumption either.
 
 ## Intent round
 

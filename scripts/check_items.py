@@ -197,8 +197,6 @@ def check_assumptions(who, step):
     assumptions = step["assumptions"]
     if not is_text_list(assumptions):
         return (error("%s has assumptions that is not a list of strings" % who),)
-    if assumptions:
-        return (warning("%s has a non-empty assumptions list" % who),)
     return ()
 
 

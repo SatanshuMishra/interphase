@@ -14,7 +14,7 @@ Reproduce the bug before you ask about it.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
 - Write the draft failing test that reproduces the symptom at `docs/specs/<slug>.repro.<ext>`, in the project's own test framework.
 - Run the draft only inside a probe worktree (see Probes): copy it to the path where the test belongs in that worktree, run it there with the project's single-test command, then remove the worktree. Never copy it into the user's own test folders.
-- Record its failing output in the spec's Reproduction and cause section.
+- Record its failing output in the spec's Reproduction and cause section, or in its Evidence section in the brief lane.
 
 ## Probes
 
