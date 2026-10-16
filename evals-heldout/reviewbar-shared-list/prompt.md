@@ -1,6 +1,6 @@
 ---
 name: reviewbar-shared-list
-description: A request to share the task list through a link writes a spec whose Review bar names the threats to the link and their defence.
+description: A request to share the task list through a link writes a spec whose Decisions name the threats to the link and their defence.
 runs: 3
 max_turns: 200
 timeout_seconds: 3600

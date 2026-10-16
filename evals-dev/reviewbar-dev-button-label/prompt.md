@@ -1,6 +1,6 @@
 ---
 name: reviewbar-dev-button-label
-description: A request to rename a button writes a spec whose Review bar names no security threat.
+description: A request to rename a button writes a spec whose Decisions name no security threat.
 runs: 3
 max_turns: 200
 timeout_seconds: 3600

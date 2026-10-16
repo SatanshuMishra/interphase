@@ -1,6 +1,6 @@
 ---
 name: reviewbar-sort-by-due
-description: A request to change the order of the task list writes a spec whose Review bar names no security threat.
+description: A request to change the order of the task list writes a spec whose Decisions name no security threat.
 runs: 3
 max_turns: 200
 timeout_seconds: 3600
