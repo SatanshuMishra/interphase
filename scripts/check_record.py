@@ -1,45 +1,30 @@
 import importlib.util
 import json
-import os
 import pathlib
 import re
 import sys
 
 USAGE = "usage: python3 check_record.py [--complete] RECORD"
 COMPLETE = "--complete"
-RECORD_KEYS = ("environments", "facts", "criteria", "steps")
+RECORD_KEYS = ("seams", "criteria", "steps")
 STATUSES = ("in-progress", "handed-off")
-MISSING_PARTS =("environments", "criteria", "steps")
-ENVIRONMENT_KEYS = ("name", "what", "builder_runs")
-LOCATION = ("path", "line", "quote")
-COMMAND = ("command", "output")
-CITATIONS = (LOCATION, ("url",), COMMAND)
-PARTIAL_CITATIONS = {
-    LOCATION: "only some of path, line and quote",
-    COMMAND: "only one of command and output",
-}
-FACT_KEYS = ("id", "fact", "outside") + tuple(key for form in CITATIONS for key in form)
+SEAM_KEYS = ("name", "interface", "catches", "misses", "builder_runs")
 CRITERION_KEYS = (
     "number",
     "title",
     "text",
-    "where",
+    "seam",
     "tests",
     "unproven",
     "varies",
+    "case_table",
     "domains",
-    "gives_way",
-    "facts",
 )
-CRITERION_REQUIRED = ("number", "title", "text", "where", "tests")
-DOMAIN_KEYS = ("name", "over", "classes", "fact")
-DOMAIN_REQUIRED = ("name", "over", "classes")
-GIVES_WAY = "gives-way"
-TEST_KEYS = ("file", "name", "given", "expect", "env", "step")
+CRITERION_REQUIRED = ("number", "title", "text", "seam", "tests")
+CASE_TABLES = ("security", "refusal")
+DOMAIN_KEYS = ("name", "over", "classes")
+TEST_KEYS = ("file", "name", "given", "expect", "step")
 COVERS = "covers"
-BOUND_RE = re.compile(
-    r"\b(at\s+most|no\s+more\s+than|up\s+to|maximum|budget|limits?|caps?|exceed(?:s|ing)?)\b", re.IGNORECASE
-)
 VARIES = ("input", "output", "measured")
 POPULATION_KEYS = ("cases", "runs", "pass_rate")
 STEP_KEYS = (
@@ -101,10 +86,6 @@ def is_count(value, least):
     return isinstance(value, int) and not isinstance(value, bool) and value >= least
 
 
-def is_line(value):
-    return is_count(value, 1)
-
-
 def is_rate(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and 0 < value <= 1
 
@@ -160,180 +141,64 @@ def check_status(record):
 
 
 def check_missing_parts(record, complete):
-    return tuple(missing("record has no %s" % key, complete) for key in MISSING_PARTS if record.get(key) == [])
+    return tuple(missing("record has no %s" % key, complete) for key in RECORD_KEYS if record.get(key) == [])
 
 
-def environment_label(index, environment):
-    name = environment.get("name") if isinstance(environment, dict) else None
-    return "environment %r" % name if check_items.is_text(name) else "environment %d" % (index + 1)
+def named_label(kind, index, entry, key="name"):
+    name = entry.get(key) if isinstance(entry, dict) else None
+    return "%s %r" % (kind, name) if check_items.is_text(name) else "%s %d" % (kind, index + 1)
 
 
-def check_environment_name(who, environment):
-    if "name" not in environment:
+def check_kebab_name(who, entry):
+    if "name" not in entry:
         return ()
-    name = environment["name"]
+    name = entry["name"]
     if isinstance(name, str) and check_items.NAME_RE.match(name):
         return ()
     return (error("%s has a name that is not lowercase kebab-case" % who),)
 
 
-def check_builder_runs(who, environment):
-    if "builder_runs" in environment and not isinstance(environment["builder_runs"], bool):
+def check_builder_runs(who, seam):
+    if "builder_runs" in seam and not isinstance(seam["builder_runs"], bool):
         return (error("%s has builder_runs that is not true or false" % who),)
     return ()
 
 
-def check_environment(index, environment):
-    who = environment_label(index, environment)
-    if not isinstance(environment, dict):
+def check_seam(index, seam):
+    who = named_label("seam", index, seam)
+    if not isinstance(seam, dict):
         return (error("%s is not an object" % who),)
     return (
-        unknown_keys(who, environment, ENVIRONMENT_KEYS)
-        + missing_keys(who, environment, ENVIRONMENT_KEYS)
-        + check_environment_name(who, environment)
-        + text_fields(who, environment, ("what",))
-        + check_builder_runs(who, environment)
+        unknown_keys(who, seam, SEAM_KEYS)
+        + missing_keys(who, seam, SEAM_KEYS)
+        + check_kebab_name(who, seam)
+        + text_fields(who, seam, ("interface", "catches", "misses"))
+        + check_builder_runs(who, seam)
     )
 
 
-def environment_names(environments):
-    return tuple(
-        environment["name"]
-        for environment in environments
-        if isinstance(environment, dict) and check_items.is_text(environment.get("name"))
-    )
+def seam_names(seams):
+    return tuple(seam["name"] for seam in seams if isinstance(seam, dict) and check_items.is_text(seam.get("name")))
 
 
-def builder_environments(environments):
+def builder_seams(seams):
     return frozenset(
-        environment["name"]
-        for environment in environments
-        if isinstance(environment, dict)
-        and check_items.is_text(environment.get("name"))
-        and environment.get("builder_runs") is True
+        seam["name"]
+        for seam in seams
+        if isinstance(seam, dict) and check_items.is_text(seam.get("name")) and seam.get("builder_runs") is True
     )
 
 
-def check_environments(environments):
-    per_environment = tuple(
-        finding for index, environment in enumerate(environments) for finding in check_environment(index, environment)
+def check_seams(seams, criteria, complete):
+    per_seam = tuple(finding for index, seam in enumerate(seams) for finding in check_seam(index, seam))
+    repeated = tuple(error("seam name %r is duplicated" % name) for name in duplicated(seam_names(seams)))
+    used = frozenset(criterion["seam"] for criterion in criteria if isinstance(criterion, dict) and check_items.is_text(criterion.get("seam")))
+    idle = tuple(
+        missing("seam %r is used by no criterion" % name, complete)
+        for name in unique(seam_names(seams))
+        if name not in used
     )
-    repeated = tuple(
-        error("environment name %r is duplicated" % name) for name in duplicated(environment_names(environments))
-    )
-    return per_environment + repeated
-
-
-def fact_label(index, fact):
-    fact_id = fact.get("id") if isinstance(fact, dict) else None
-    return "fact %r" % fact_id if check_items.is_text(fact_id) else "fact %d" % (index + 1)
-
-
-def read_lines(path):
-    try:
-        with open(path, encoding="utf-8") as handle:
-            text = handle.read()
-    except (OSError, UnicodeDecodeError):
-        return None
-    lines = tuple(text.split("\n"))
-    return lines[:-1] if lines[-1] == "" else lines
-
-
-def check_path_value(who, fact):
-    path = fact["path"]
-    if not check_items.is_text(path):
-        return (error("%s has path that is not a non-empty string" % who),)
-    if check_items.bad_path(path):
-        return (error("%s has path %r, which is absolute or holds a '..' segment" % (who, path)),)
-    return ()
-
-
-def check_line_value(who, fact):
-    if is_line(fact["line"]):
-        return ()
-    return (error("%s has line that is not an integer of at least 1" % who),)
-
-
-def check_quote_value(who, fact):
-    quote = fact["quote"]
-    if not check_items.is_text(quote):
-        return (error("%s has quote that is not a non-empty string" % who),)
-    if not quote.strip():
-        return (error("%s has quote that holds only spaces" % who),)
-    return ()
-
-
-def check_quote_in_file(who, fact, root):
-    path = fact["path"]
-    line = fact["line"]
-    quote = fact["quote"].strip()
-    full = os.path.join(root, path)
-    if not os.path.exists(full):
-        return (error("%s cites %r, which does not exist" % (who, path)),)
-    lines = read_lines(full)
-    if lines is None:
-        return (error("%s cites %r, which cannot be read as UTF-8" % (who, path)),)
-    if line > len(lines):
-        return (error("%s cites line %d of %r, which ends at line %d" % (who, line, path, len(lines))),)
-    if quote not in lines[line - 1]:
-        return (error("%s quotes %r, which is not within line %d of %r" % (who, quote, line, path)),)
-    return ()
-
-
-def check_location(who, fact, root):
-    shape = check_path_value(who, fact) + check_line_value(who, fact) + check_quote_value(who, fact)
-    return shape if shape else check_quote_in_file(who, fact, root)
-
-
-def citation_forms(fact):
-    return tuple(form for form in CITATIONS if any(key in fact for key in form))
-
-
-def check_citation(who, fact, root):
-    forms = citation_forms(fact)
-    if not forms:
-        return (error("%s has no citation; give path, line and quote, or url, or command and output" % who),)
-    if len(forms) > 1:
-        return (error("%s has more than one citation form" % who),)
-    form = forms[0]
-    if not all(key in fact for key in form):
-        return (error("%s has %s" % (who, PARTIAL_CITATIONS[form])),)
-    if form == LOCATION:
-        return check_location(who, fact, root)
-    return text_fields(who, fact, form)
-
-
-def check_outside(who, fact):
-    if "outside" not in fact:
-        return ()
-    if not isinstance(fact["outside"], bool):
-        return (error("%s has outside that is not true or false" % who),)
-    if fact["outside"] and citation_forms(fact) != (COMMAND,):
-        return (error("%s is marked outside but is not cited by command and output" % who),)
-    return ()
-
-
-def check_fact(index, fact, root):
-    who = fact_label(index, fact)
-    if not isinstance(fact, dict):
-        return (error("%s is not an object" % who),)
-    return (
-        unknown_keys(who, fact, FACT_KEYS)
-        + missing_keys(who, fact, ("id", "fact"))
-        + text_fields(who, fact, ("id", "fact"))
-        + check_citation(who, fact, root)
-        + check_outside(who, fact)
-    )
-
-
-def fact_ids(facts):
-    return tuple(fact["id"] for fact in facts if isinstance(fact, dict) and check_items.is_text(fact.get("id")))
-
-
-def check_facts(facts, root):
-    per_fact = tuple(finding for index, fact in enumerate(facts) for finding in check_fact(index, fact, root))
-    repeated = tuple(error("fact id %r is duplicated" % fact_id) for fact_id in duplicated(fact_ids(facts)))
-    return per_fact + repeated
+    return per_seam + repeated + idle
 
 
 def step_criteria(step):
@@ -366,22 +231,15 @@ def check_number(who, criterion):
     number = criterion["number"]
     if isinstance(number, str) and NUMBER_RE.fullmatch(number):
         return ()
-    return (error("%s has a number that is not digits, one dot and digits, such as 7.3" % who),)
+    return (error("%s has a number that is not digits, one dot and digits, such as 5.3" % who),)
 
 
-def check_where(who, criterion, known):
-    if "where" not in criterion:
+def check_seam_name(who, criterion, known):
+    if "seam" not in criterion or not check_items.is_text(criterion["seam"]):
         return ()
-    where = criterion["where"]
-    if not isinstance(where, list) or not where or not all(check_items.is_text(name) for name in where):
-        return (error("%s has where that is not a non-empty list of environment names" % who),)
-    unknown = tuple(
-        error("%s has where entry %r that names no environment" % (who, name)) for name in where if name not in known
-    )
-    repeated = tuple(
-        error("%s lists environment %r more than once in where" % (who, name)) for name in duplicated(tuple(where))
-    )
-    return unknown + repeated
+    if criterion["seam"] in known:
+        return ()
+    return (error("%s names unknown seam %r" % (who, criterion["seam"])),)
 
 
 def well_formed(test):
@@ -391,12 +249,6 @@ def well_formed(test):
 def entry_label(who, position, test):
     name = test.get("name") if isinstance(test, dict) else None
     return "%s test %r" % (who, name) if check_items.is_text(name) else "%s test %d" % (who, position + 1)
-
-
-def check_test_env(tag, test, known):
-    if test["env"] in known:
-        return ()
-    return (error("%s names unknown environment %r" % (tag, test["env"])),)
 
 
 def check_test_step(tag, test, number, by_name):
@@ -439,11 +291,7 @@ def criterion_domains(criterion):
     domains = criterion.get("domains")
     if not isinstance(domains, list):
         return ()
-    return tuple(
-        domain
-        for domain in domains
-        if isinstance(domain, dict) and check_items.is_text(domain.get("name")) and domain["name"] != GIVES_WAY
-    )
+    return tuple(domain for domain in domains if isinstance(domain, dict) and check_items.is_text(domain.get("name")))
 
 
 def domain_classes(domain):
@@ -457,21 +305,10 @@ def class_pairs(criterion):
     )
 
 
-def give_way_items(criterion):
-    items = criterion.get("gives_way")
-    return unique(tuple(item for item in items if check_items.is_text(item))) if isinstance(items, list) else ()
-
-
 def check_cover(tag, entry, criterion):
     head, separator, tail = entry.partition(": ")
     if not separator:
-        return (
-            error("%s covers %r, which is not '<domain>: <class>' or 'gives-way: <item>'" % (tag, entry)),
-        )
-    if head == GIVES_WAY:
-        if tail in give_way_items(criterion):
-            return ()
-        return (error("%s covers unknown give-way item %r" % (tag, tail)),)
+        return (error("%s covers %r, which is not '<domain>: <class>'" % (tag, entry)),)
     if head not in frozenset(domain["name"] for domain in criterion_domains(criterion)):
         return (error("%s covers unknown domain %r" % (tag, head)),)
     if (head, tail) not in class_pairs(criterion):
@@ -488,46 +325,36 @@ def check_covers(tag, test, criterion):
     return tuple(finding for entry in covers for finding in check_cover(tag, entry, criterion))
 
 
-def check_test(who, position, test, criterion, known, by_name):
+def check_test(who, position, test, criterion, by_name):
     tag = entry_label(who, position, test)
     if not well_formed(test):
-        return (
-            error("%s is not an object with non-empty string file, name, given, expect, env and step" % tag),
-        )
+        return (error("%s is not an object with non-empty string file, name, given, expect and step" % tag),)
     varying = "varies" in criterion
-    allowed = TEST_KEYS + (COVERS,) + (POPULATION_KEYS if varying else ())
+    tabled = "case_table" in criterion
+    allowed = TEST_KEYS + ((COVERS,) if tabled else ()) + (POPULATION_KEYS if varying else ())
     population = check_population(who, position, test) if varying else ()
     return (
         unknown_keys(tag, test, allowed)
         + check_covers(tag, test, criterion)
         + population
-        + check_test_env(tag, test, known)
         + check_test_step(tag, test, criterion.get("number"), by_name)
     )
 
 
-def check_tests(who, criterion, known, by_name):
+def check_tests(who, criterion, by_name):
     if "tests" not in criterion:
         return ()
     tests = criterion["tests"]
     if not isinstance(tests, list):
         return (error("%s has tests that is not a list" % who),)
     return tuple(
-        finding
-        for position, test in enumerate(tests)
-        for finding in check_test(who, position, test, criterion, known, by_name)
+        finding for position, test in enumerate(tests) for finding in check_test(who, position, test, criterion, by_name)
     )
 
 
 def domain_label(who, position, domain):
     name = domain.get("name") if isinstance(domain, dict) else None
     return "%s domain %r" % (who, name) if check_items.is_text(name) else "%s domain %d" % (who, position + 1)
-
-
-def check_reserved_name(who, domain):
-    if domain.get("name") == GIVES_WAY:
-        return (error("%s uses the reserved name %r" % (who, GIVES_WAY)),)
-    return ()
 
 
 def check_classes(who, domain):
@@ -539,25 +366,16 @@ def check_classes(who, domain):
     return tuple(error("%s lists class %r more than once" % (who, name)) for name in duplicated(tuple(classes)))
 
 
-def check_domain_fact(who, domain, ids):
-    fact = domain.get("fact")
-    if check_items.is_text(fact) and fact not in ids:
-        return (error("%s names unknown fact %r" % (who, fact)),)
-    return ()
-
-
-def check_domain(who, position, domain, ids):
+def check_domain(who, position, domain):
     tag = domain_label(who, position, domain)
     if not isinstance(domain, dict):
         return (error("%s is not an object" % tag),)
     return (
         unknown_keys(tag, domain, DOMAIN_KEYS)
-        + missing_keys(tag, domain, DOMAIN_REQUIRED)
-        + check_environment_name(tag, domain)
-        + check_reserved_name(tag, domain)
-        + text_fields(tag, domain, ("over", "fact"))
+        + missing_keys(tag, domain, DOMAIN_KEYS)
+        + check_kebab_name(tag, domain)
+        + text_fields(tag, domain, ("over",))
         + check_classes(tag, domain)
-        + check_domain_fact(tag, domain, ids)
     )
 
 
@@ -567,14 +385,32 @@ def domain_names(domains):
     )
 
 
-def check_domains(who, criterion, ids):
+def check_case_table(who, criterion):
+    tabled = "case_table" in criterion
+    if tabled and criterion["case_table"] not in CASE_TABLES:
+        return (
+            error(
+                "%s has case_table %r, which is not %s"
+                % (who, criterion["case_table"], " or ".join(repr(kind) for kind in CASE_TABLES))
+            ),
+        )
+    if tabled and "domains" not in criterion:
+        return (error("%s has case_table but no domains" % who),)
+    if "domains" in criterion and not tabled:
+        return (
+            error("%s has domains but no case_table; a case table is only for security or refusal behaviour" % who),
+        )
+    return ()
+
+
+def check_domains(who, criterion):
     if "domains" not in criterion:
         return ()
     domains = criterion["domains"]
     if not isinstance(domains, list) or not domains:
         return (error("%s has domains that is not a non-empty list" % who),)
     per_domain = tuple(
-        finding for position, domain in enumerate(domains) for finding in check_domain(who, position, domain, ids)
+        finding for position, domain in enumerate(domains) for finding in check_domain(who, position, domain)
     )
     repeated = tuple(
         error("%s domain name %r is duplicated" % (who, name)) for name in duplicated(domain_names(domains))
@@ -582,69 +418,29 @@ def check_domains(who, criterion, ids):
     return per_domain + repeated
 
 
-def check_gives_way(who, criterion):
-    if "gives_way" not in criterion:
-        return ()
-    items = criterion["gives_way"]
-    if not isinstance(items, list) or not items or not all(check_items.is_text(item) for item in items):
-        return (error("%s has gives_way that is not a non-empty list of non-empty strings" % who),)
-    return tuple(
-        error("%s lists give-way item %r more than once" % (who, item)) for item in duplicated(tuple(items))
-    )
-
-
-def check_criterion_facts(who, criterion, ids):
-    if "facts" not in criterion:
-        return ()
-    facts = criterion["facts"]
-    if not isinstance(facts, list) or not facts or not all(isinstance(fact, str) for fact in facts):
-        return (error("%s has facts that is not a non-empty list of strings" % who),)
-    unknown = tuple(
-        error("%s names unknown fact %r" % (who, fact)) for fact in unique(tuple(facts)) if fact not in ids
-    )
-    repeated = tuple(error("%s lists fact %r more than once" % (who, fact)) for fact in duplicated(tuple(facts)))
-    return unknown + repeated
-
-
-def first_match(pattern, criterion):
-    text = criterion.get("text")
-    found = pattern.search(text) if isinstance(text, str) else None
-    return re.sub(r"\s+", " ", found.group(1)).lower() if found else None
-
-
-def check_bound(who, criterion):
-    phrase = first_match(BOUND_RE, criterion)
-    if phrase is None or "gives_way" in criterion:
-        return ()
-    return (warning("%s sets a bound with %r but lists nothing in gives_way" % (who, phrase)),)
-
-
-def cover_pairs(test):
-    covers = test.get(COVERS)
-    if not isinstance(covers, list):
-        return ()
-    return tuple(tuple(entry.partition(": ")[0::2]) for entry in covers if isinstance(entry, str) and ": " in entry)
+def criterion_tests(criterion):
+    tests = criterion.get("tests")
+    return tuple(test for test in tests if well_formed(test)) if isinstance(tests, list) else ()
 
 
 def covered(criterion):
-    return frozenset(pair for test in criterion_tests(criterion) for pair in cover_pairs(test))
+    return frozenset(
+        tuple(entry.partition(": ")[0::2])
+        for test in criterion_tests(criterion)
+        for entry in (test.get(COVERS) if isinstance(test.get(COVERS), list) else ())
+        if isinstance(entry, str) and ": " in entry
+    )
 
 
 def check_coverage(who, criterion, complete):
     if "unproven" in criterion:
         return ()
     done = covered(criterion)
-    classes = tuple(
+    return tuple(
         missing("%s has no test covering class %r of domain %r" % (who, name, domain), complete)
         for domain, name in class_pairs(criterion)
         if (domain, name) not in done
     )
-    items = tuple(
-        missing("%s has no test covering give-way item %r" % (who, item), complete)
-        for item in give_way_items(criterion)
-        if (GIVES_WAY, item) not in done
-    )
-    return classes + items
 
 
 def check_varies(who, criterion):
@@ -656,38 +452,26 @@ def check_varies(who, criterion):
     return (error("%s has varies %r, which is not %s" % (who, varies, " or ".join(repr(kind) for kind in VARIES))),)
 
 
-def where_names(criterion):
-    where = criterion.get("where")
-    return frozenset(where) if check_items.is_text_list(where) else frozenset()
-
-
-def criterion_tests(criterion):
-    tests = criterion.get("tests")
-    return tuple(test for test in tests if well_formed(test)) if isinstance(tests, list) else ()
-
-
 def check_proof(who, criterion, builders, complete):
-    counted = where_names(criterion) & builders
-    proving = tuple(test["name"] for test in criterion_tests(criterion) if test["env"] in counted)
+    runnable = check_items.is_text(criterion.get("seam")) and criterion["seam"] in builders
+    tests = criterion_tests(criterion)
     if "unproven" in criterion:
-        if proving:
+        if runnable and tests:
             return (
                 error(
-                    "%s is marked unproven but has a test the builder runs in its where environments: %s"
-                    % (who, ", ".join(proving))
+                    "%s is marked unproven but has tests at a seam the builder runs: %s"
+                    % (who, ", ".join(test["name"] for test in tests))
                 ),
             )
         return ()
-    if proving:
+    if not runnable:
+        return (missing("%s sits at a seam the builder cannot run and is not marked unproven" % who, complete),)
+    if tests:
         return ()
-    return (
-        missing(
-            "%s has no test the builder runs in its where environments and is not marked unproven" % who, complete
-        ),
-    )
+    return (missing("%s has no test and is not marked unproven" % who, complete),)
 
 
-def check_criterion(index, criterion, known, builders, by_name, ids, complete):
+def check_criterion(index, criterion, known, builders, by_name, complete):
     who = criterion_label(index, criterion)
     if not isinstance(criterion, dict):
         return (error("%s is not an object" % who),)
@@ -695,28 +479,25 @@ def check_criterion(index, criterion, known, builders, by_name, ids, complete):
         unknown_keys(who, criterion, CRITERION_KEYS)
         + missing_keys(who, criterion, CRITERION_REQUIRED)
         + check_number(who, criterion)
-        + text_fields(who, criterion, ("title", "text", "unproven"))
-        + check_where(who, criterion, known)
+        + text_fields(who, criterion, ("title", "text", "seam", "unproven"))
+        + check_seam_name(who, criterion, known)
         + check_varies(who, criterion)
-        + check_domains(who, criterion, ids)
-        + check_gives_way(who, criterion)
-        + check_criterion_facts(who, criterion, ids)
-        + check_tests(who, criterion, known, by_name)
+        + check_case_table(who, criterion)
+        + check_domains(who, criterion)
+        + check_tests(who, criterion, by_name)
         + check_proof(who, criterion, builders, complete)
-        + check_bound(who, criterion)
         + check_coverage(who, criterion, complete)
     )
 
 
-def check_criteria(criteria, environments, steps, facts, complete):
-    known = frozenset(environment_names(environments))
-    builders = builder_environments(environments)
+def check_criteria(criteria, seams, steps, complete):
+    known = frozenset(seam_names(seams))
+    builders = builder_seams(seams)
     by_name = steps_by_name(steps)
-    ids = frozenset(fact_ids(facts))
     per_criterion = tuple(
         finding
         for index, criterion in enumerate(criteria)
-        for finding in check_criterion(index, criterion, known, builders, by_name, ids, complete)
+        for finding in check_criterion(index, criterion, known, builders, by_name, complete)
     )
     numbers = criterion_numbers(criteria)
     repeated = tuple(error("criterion number %s is duplicated" % number) for number in duplicated(numbers))
@@ -794,22 +575,20 @@ def check_steps(steps, criteria):
     return per_step + from_items(shared)
 
 
-def check(text, root, complete=False):
+def check(text, complete=False):
     try:
         record = json.loads(text)
     except (ValueError, RecursionError) as exc:
         return (error("record is not valid JSON: %s" % exc),)
     if not isinstance(record, dict):
         return (error("record is not a JSON object"),)
-    environments = part(record, "environments")
-    facts = part(record, "facts")
+    seams = part(record, "seams")
     criteria = part(record, "criteria")
     steps = part(record, "steps")
     return (
         check_shape(record)
-        + check_environments(environments)
-        + check_facts(facts, root)
-        + check_criteria(criteria, environments, steps, facts, complete)
+        + check_seams(seams, criteria, complete)
+        + check_criteria(criteria, seams, steps, complete)
         + check_steps(steps, criteria)
         + check_missing_parts(record, complete)
     )
@@ -841,7 +620,7 @@ def main(argv):
     if text is None:
         print("cannot read: " + path, file=sys.stderr)
         return 2
-    findings = check(text, os.getcwd(), complete)
+    findings = check(text, complete)
     for severity, message in findings:
         print("%s: %s" % (severity, message))
     return 1 if any(severity == "error" for severity, _ in findings) else 0

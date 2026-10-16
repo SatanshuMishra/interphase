@@ -4,120 +4,36 @@ Pathway: project.
 
 Date: {{date}}.
 
-## 1. Request
+## 1. Problem
 
 {{the user's request, word for word}}
 
-## 2. Problem and why now
+{{the problem the project solves, whose problem it is, the product's domain and what is at stake}}
 
-{{the real problem, whose problem it is, and why it matters now}}
+## 2. Intent
 
-{{how the benefit will be measured}}
+{{the intent lines of the decisions file, word for word, each with its id, such as - I1 Goal: <goal>}}
 
-## 3. Users and stories
+## 3. User stories
 
-{{who uses this, the product's domain and what is at stake for them}}
+{{a long numbered list covering the first usable version, each as: As a <actor>, I want <feature>, so that <benefit>}}
 
-{{user stories: as a <user>, I want <action>, so that <outcome>}}
+## 4. Decisions
 
-## 4. Stage and definition of done
+{{numbered decisions: the stage and the definition of done for the first usable version, platforms and minimum versions, the stack with each part's version and the stacks rejected, the repository layout and build tooling, how dependencies are pinned, what CI runs and on which events, packaging, signing and distribution, licence and attribution, where configuration and secrets live, logging and diagnostics, each threat with its defence, and the walking skeleton followed by each later slice in order}}
 
-{{proof of concept or product, and what changes if that stage changes}}
-
-{{the definition of done for the first usable version}}
-
-## 5. Goals and non-goals
-
-{{goals, each one the first usable version would stop without}}
-
-{{non-goals: things that could reasonably be goals but are not, at least one}}
-
-## 6. Platforms and environments
-
-{{each platform with its minimum version and the hardware it must run on}}
-
-{{each environment it runs in, such as development, CI and release, and how they differ}}
-
-## 7. Stack and alternatives
-
-{{the chosen stack, each part with its version and why it was chosen}}
-
-{{the rejected stacks and their trade-offs}}
-
-## 8. Repository and tooling
-
-{{the repository layout, with the purpose of each top-level folder}}
-
-{{build tooling, and how dependencies and versions are pinned}}
-
-{{for a re-platform, the existing code, build, CI and release this replaces, with paths}}
-
-## 9. Test strategy
-
-{{each kind of behaviour, how it is tested, the test framework and the command that runs one test}}
-
-## 10. Delivery
-
-{{what CI runs, and on which events}}
-
-{{release: packaging, signing, distribution and size}}
-
-{{licence and third-party attribution}}
-
-## 11. Operations
-
-{{configuration and secrets: where each lives and how it reaches each environment}}
-
-{{logging and diagnostics: what is recorded and where it goes}}
-
-## 12. Requirements
-
-{{one line per requirement: the behaviour in a few words and the number of the acceptance criterion that states it, such as 13.1}}
-
-{{non-functional needs: performance, security, privacy, compatibility, migration, each citing the acceptance criterion that states it, such as 13.1}}
-
-## 13. Acceptance criteria
-
-### 13.1 {{short name of the first criterion}}
-
-{{Given, When, Then for one user story, or WHEN <event>, THE SYSTEM SHALL <response> for one rule, error case or foundation}}
-
-{{one more numbered heading, 13.2, 13.3 and so on, for each further criterion}}
-
-## 14. Edge cases
-
-{{one line per edge case: the case in a few words and the number of the acceptance criterion whose row covers it, such as 13.1}}
-
-## 15. Walking skeleton and slices
-
-{{the walking skeleton: the repository, the build, CI, the test harness and the one thin path that runs end to end}}
-
-{{each later slice, in order, and the end-to-end path it adds}}
-
-## 16. Assumptions
-
-{{every default chosen without the user's explicit answer, one per line}}
-
-## 17. Open questions
-
-{{at most three open questions, each with why it is safe to leave open, or None}}
-
-## 18. Verification
-
-{{commands and checks that prove the project works after it is built}}
-
-## 19. Reuse and change
+### Reuse and change
 
 {{Reused as is, Kept separate and Changed, filled as the section Record the result of `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says}}
 
-## 20. Variation
+### Assumptions
 
-{{each behaviour that varies from run to run: its kind, the ways its input varies, the held-out set and the pass rule, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`; or Not applicable: <reason>}}
+{{each reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
 
-## 21. Review bar
+## 5. Test seams
 
-{{the threats the change must withstand and the level of defence for each, each one defended somewhere in this spec; or that it has none beyond its acceptance criteria, and why}}
+{{written by the render script from the record: the agreed seams, then one numbered heading per acceptance criterion, 5.1, 5.2 and so on}}
 
-{{what a reviewer may block on beyond the acceptance criteria: the requirements, the stage and definition of done, and the non-goals}}
+## 6. Out of scope
 
-{{what is out of scope for review: at least weaknesses the code had before the change, and hardening beyond the named threats}}
+{{what could reasonably be in scope but is not, at least one item}}

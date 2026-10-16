@@ -14,7 +14,7 @@ Reproduce the bug before you ask about it.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
 - Write the draft failing test that reproduces the symptom at `docs/specs/<slug>.repro.<ext>`, in the project's own test framework.
 - Run the draft only inside a probe worktree (see Probes): copy it to the path where the test belongs in that worktree, run it there with the project's single-test command, then remove the worktree. Never copy it into the user's own test folders.
-- Record its failing output in the spec's Evidence section.
+- Record its failing output in the spec's Reproduction and cause section.
 
 ## Probes
 
@@ -43,15 +43,15 @@ Reproduce the bug before you ask about it.
 
 ## Extra step
 
-Confirm the root cause, by probe when possible, before you write the fix boundary.
+Confirm the root cause, by probe when possible, before you write the fix boundary. The seam is usually the one the draft failing test already sits at.
 
 ## Acceptance
 
 - Write a test that fails before the fix and passes after.
 - Give every place with the same fault its own test that fails before the fix.
 - Add checks that the unchanged behaviour still works.
-- Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 10.1 <short name>`. Make the draft failing test criterion 10.1.
-- Write the fix boundary as three EARS blocks:
+- Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam. Make the draft failing test criterion 5.1.
+- Write the fix boundary in the spec's Decisions section as three EARS statements:
   - Current: "WHEN <condition> THEN the system <wrong behaviour>".
   - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>", citing the acceptance criterion that states it.
   - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", citing the acceptance criterion that states it.
@@ -63,5 +63,5 @@ Design the Steps during the interview, following the section "Designing Steps" o
 
 - Put the full text of the draft test and the path where it belongs in the fix Step's `task` in the record.
 - Include that test path in the fix Step's `files`.
-- Record that file and test in the record as a test of criterion 10.1, with the fix Step as its `step`.
-- List criterion 10.1 in the fix Step's `criteria` in the record.
+- Record that file and test in the record as a test of criterion 5.1, with the fix Step as its `step`.
+- List criterion 5.1 in the fix Step's `criteria` in the record.

@@ -13,7 +13,7 @@ Research before you ask.
 
 ## Questions
 
-Use this bank as the checklist of what must be known. Skip any question the Ground phase already answered.
+Use this bank as the checklist of branches the design tree must reach. Ask only what passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`; skip any question the Ground phase or the intent round already answered.
 
 - When does this come up, what is the user trying to do, and what should that let them achieve?
 - What is the problem really, and whose problem is it?
@@ -29,14 +29,14 @@ Use this bank as the checklist of what must be known. Skip any question the Grou
 
 ## Extra step
 
-Propose two or three approaches with their trade-offs. Put the recommended one first. Let the user choose before you write the spec. Record the choice in the decisions file and the rejected approaches in section 10 of the spec.
+Propose two or three approaches with their trade-offs as one frontier question, the recommended one first. Record the choice in the decisions file, and the choice with the rejected approaches in the spec's Decisions section.
 
 ## Acceptance
 
 - Write Given, When, Then for each user story.
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.
-- Give each criterion its own numbered heading under the Acceptance criteria section, such as `### 7.1 <short name>`.
+- Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
 ## Steps

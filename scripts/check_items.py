@@ -27,6 +27,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(\d+(?:\.\d+)*)\.?[ \t]+(.*?)[ \t]*$")
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
 USAGE = "usage: python3 check_items.py [--amendment] ITEMS"
+CRITERIA_SECTION = "test seams"
 AMENDMENT = "--amendment"
 UNCLAIMED = ("acceptance criterion ", " is claimed by no step's spec_ref")
 SCRIPT_EXTENSIONS = (".js", ".jsx", ".mjs", ".ts", ".tsx")
@@ -462,7 +463,7 @@ def criteria_start(headings):
         (
             position
             for position, (level, _, title) in enumerate(headings)
-            if level == 2 and title.strip().lower() == "acceptance criteria"
+            if level == 2 and title.strip().lower() == CRITERIA_SECTION
         ),
         None,
     )

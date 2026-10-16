@@ -19,10 +19,10 @@ Specify each varying behaviour as a population, never as one example.
 - List the ways its input varies, such as phrasing, speaker, accent, noise, pacing and document state.
 - Spread the cases across those ways.
 - Draft a held-out set during the interview: cases nothing is ever tuned on.
-- Show the user a sample of at least one held-out case for each way the input varies, and get approval.
+- Show the user a sample of at least one held-out case for each way the input varies in a frontier round, and get approval. In an unattended run, record the held-out set as an assumption instead.
 - Carry the held-out cases in full in the task of the Step that tests them, the way a bug's draft test is carried.
 
-The spec's Variation section lists each varying behaviour, its kind, the ways it varies, the held-out set and the pass rule. When nothing varies, it reads `Not applicable: <reason>`.
+Each varying criterion's text states its kind, the ways its input varies, the held-out set and the pass rule.
 
 ## Grade and pass
 
@@ -47,4 +47,4 @@ Reproduce a bug in varying behaviour as its class. Generate variants of the fail
 
 ## In the record
 
-Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs in cell.
+Mark each varying criterion with `varies` set to `input`, `output` or `measured`. Give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. `check_record.py` reports an error otherwise, and the render script writes them into the row's Runs cell.

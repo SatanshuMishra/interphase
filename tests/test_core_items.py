@@ -96,12 +96,10 @@ class CoreItemsTest(unittest.TestCase):
         self.assertIn("`<slug>.record.json`", section(text, "## Output files"))
         record = section(text, "## Interview record")
         for needle in (
-            "`environments`",
-            "`facts`",
+            "`seams`",
             "`criteria`",
             "`steps`",
             "`builder_runs`",
-            "`command`",
             "`unproven`",
             "scripts/check_record.py",
             "--complete",
@@ -140,8 +138,8 @@ class CoreItemsTest(unittest.TestCase):
     def test_record_table_names_the_new_keys(self):
         rows = section(read_guide(), "## Interview record").splitlines()
         cells = {
-            "facts": "`id` (unique), `fact`, and one citation: `path` (repository-relative), `line` (from 1) and `quote` (text that appears in that line); or `url`; or `command` and `output` (what was run and what it showed); a fact about software outside the repository also carries `outside: true` and is cited by `command` and `output`",
-            "criteria": "`number` (such as `7.3`, starting with the number of the spec's Acceptance criteria section), `title`, `text`, `where` (the environments where passing proves it), `tests` (each one row, with `file`, `name`, `given`, `expect`, `env`, `step` and, when the criterion has `domains` or `gives_way`, `covers`), `domains` (each with `name`, `over`, `classes` and, when existing code reads the input, `fact`) for the inputs the behaviour reads, `gives_way` (what gives way first to last when a bound is reached), `facts` (the ids of the facts it rests on), `unproven` (the reason) only when no test the builder runs can prove it where it counts, and `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate`",
+            "seams": "`name` (lowercase kebab-case, unique), `interface` (the public interface tests observe behaviour at), `catches` (what tests there catch), `misses` (what they miss), `builder_runs` (`true` when whoever builds a Step can run tests there)",
+            "criteria": "`number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `tests` (each one row, with `file`, `name`, `given`, `expect`, `step` and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate`",
             "steps": "`name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref`",
         }
         for key, cell in cells.items():
@@ -151,12 +149,12 @@ class CoreItemsTest(unittest.TestCase):
     def test_items_guide_explains_case_tables(self):
         paragraphs = section(read_guide(), "## Interview record").split("\n\n")
         starts = tuple(
-            i for i, p in enumerate(paragraphs) if p.startswith("Give every criterion a test the builder runs")
+            i for i, p in enumerate(paragraphs) if p.startswith("Give every criterion a test at a seam the builder runs")
         )
         self.assertEqual(len(starts), 1)
         self.assertEqual(
             paragraphs[starts[0] + 1],
-            "A criterion over an input that carries real risk, as phase 4 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` defines it, is a case table; any other criterion has rows and no domains. Each domain lists the classes of one input that the code tells apart and, when existing code reads the input, cites the fact that shows where. Each test is one row: `given` says the input, `expect` says the result, and `covers` names what the row covers, as `<domain>: <class>` or `gives-way: <item>`. The record check reports a class or give-way item no row covers, and warns about a bound with no `gives_way`.",
+            "In a case table, each domain lists the classes of one input that the code tells apart, and each test covers some of them, named `<domain>: <class>`. The record check reports a class no row covers, domains on a criterion with no `case_table`, and a `case_table` with no domains.",
         )
 
     def test_task_rows_are_written_literally(self):

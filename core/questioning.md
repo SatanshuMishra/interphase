@@ -1,91 +1,116 @@
 # Questioning
 
-## Sort every unknown
+The interview is a grilling: question the user relentlessly, in rounds, until you share one understanding of what gets built. Map it as a design tree, where every decision branches into the decisions that hang off it.
 
-| Class | Examples | What to do |
-|---|---|---|
-| Intent | who it is for, the outcome, the core behaviour, what is in or out of scope, how the user will know it works, whether to share code at a fork, and the shape of the work: what ships together, what order matters, what could be thrown away | Ask until it is settled. |
-| Structure | where it plugs in, interfaces, where data is stored, which files change, which files and tests each Step needs, which existing code already does the job, and whether wording that states how the product behaves is true of it | Look it up in the code; ask only when the code is silent. |
-| Cosmetic | colour, spacing, icons, and wording that states nothing about how the product behaves | Default to the mockup or the existing style and record the default as an assumption. |
+## The hard bar
 
-Wording that states how the product behaves is a fact, not a cosmetic choice. For example, a mockup's "the N days in a row you kept writing" says what the count measures; look it up in the code before using it.
+Ask a question only when both hold:
 
-Test every unknown before you ask it. If a different answer would not change a file, a test or an acceptance criterion, do not ask it.
+1. Nothing you can read answers it: not the request, the code, the docs, the project's written rules, `GLOSSARY.md`, the ADRs in `docs/adr/`, the decisions files of earlier specs, an answer already given, or a quick run.
+2. A different answer would change what gets built: a file, a test, an acceptance criterion or a Step.
 
-## Choose the next question
+Facts are yours to find and decisions are the user's. When a question needs a fact, look it up, or dispatch the `interphase:scout` agent for outside documentation, and ask only the decision the fact leaves open. Never ask the user to confirm something you read. A question that fails the bar is neither asked nor recorded as an assumption.
 
-- Never ask what the code, the docs or a quick run can answer.
-- Drop any question whose answer would not change what gets built.
-- Rank the rest by how much the answer matters times how unsure you are. Ask the top ones first.
-- Give every question a recommended answer, so "yes" is a complete reply.
-- Ask about one concept per question.
-- Match effort to the request. Ask more questions for thin or risky requests and few for clear ones. A long, detailed request can still hide ambiguity.
+Wording that states how the product behaves is a fact, not a cosmetic choice. For example, a mockup's "the N days in a row you kept writing" says what the count measures; look it up in the code before using it. Cosmetic choices, such as colour, spacing, icons and wording that states nothing about how the product behaves, are never asked: take the mockup's or the existing style's and record it as an assumption.
 
-## Ask
+## Intent round
 
-- Ask the first question, about purpose or the outcome the user wants, open-ended in plain text.
-- Ask every later question through the AskUserQuestion tool.
-- Put up to 4 questions in one call, and only questions that do not depend on each other. A question that depends on an unanswered one waits for the next round.
-- Give each question 2 to 4 options. Put the recommended option first, with "(Recommended)" at the end of its label. Keep the header to at most 12 characters. The tool always adds a free-text option.
-- Use an open question whenever the options cannot be listed honestly.
-- Never set a question to continue on its own after a timeout.
+Open the interview with one round, in plain text, that asks three things:
 
-## Spot ambiguity
+- Goal: what the change must achieve.
+- Why: why it is wanted now, and for whom.
+- Success: how the user will know it worked.
 
-| Kind | Example | How to spot it |
-|---|---|---|
-| Word meaning | "archive": hide it, delete it, or export it? | domain words, and everyday words used as jargon |
-| Sentence structure | "non-friendly and unknown mission or restricted airspace" | "and" and "or" mixed in one sentence |
-| Quantity | "every light has their switch": one switch each, or one shared? | "all", "each", "every", "only" |
-| Reference | "treat the roads before they freeze": the roads, or the trucks? | "it", "they", "this" |
-| Vagueness | "fast response time" | no way to measure it |
-| Missing information | "protect a small group from the elements": an igloo or a space station? | walking the playbook's question bank |
-| Conflicting goals | two Musts that cannot both hold | forcing a Must, Should, Could, Won't ranking |
+Draft a recommended answer for each from the request and what grounding found, so that "yes" accepts all three. When the request mixes pathways, spans independent subsystems or is large, put the pathway, the size and the split in this round too.
 
-Imagine two different builders reading the request. Ask about every place they would build different things.
+Write the answers to the `## Intent` section of the decisions file as numbered lines, `- I1 Goal: <goal>`, `- I2 Why: <why>`, `- I3 Success: <success>`, adding `I4` and on for each further success test or constraint the user states. Every guess made after the interview cites one of these lines.
+
+## Frontier rounds
+
+After the intent round, work the design tree in rounds. The frontier is every decision whose prerequisites are settled: the questions you can ask now without guessing at answers you have not heard yet.
+
+- Ask the whole frontier in one round. There is no cap on how many questions a round holds or how many rounds the interview takes.
+- A question whose answer depends on another question still open in the same round belongs to a later round.
+- When a lookup is still running, it is an unsettled prerequisite: ask the rest of the frontier now, and hold back only the questions downstream of it.
+- After each round, recompute the frontier from the answers and ask the next round.
+
+Write each round as numbered plain text, never through the AskUserQuestion tool:
+
+```
+Q1. <short title>: <the question, with the options when there are some>
+Recommended: <your answer>
+
+Q2. <short title>: <the question>
+Recommended: <your answer>
+```
+
+Word each question so that "yes" accepts the recommended answer. The user may answer "yes" to the whole round or answer by number.
+
+The tree covers what the pathway's `## Questions` bank lists, and always these branches:
+
+- The scope: what is in, what is out, and the rules, with one concrete example of each.
+- The shape of the work: what ships together, what order matters and what could be thrown away.
+- Each fork between sharing code and keeping it apart, as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` defines one.
+- The test seams, as the section Test seams below says.
+- The pre-mortem: "Imagine this shipped and you are unhappy with it. Why?", recommending the likeliest failure.
+
+## Domain language
+
+Follow `${CLAUDE_PLUGIN_ROOT}/core/domain.md` throughout the interview.
+
+- When the request or an answer uses a term that conflicts with the glossary, put it in the next round: "The glossary defines X as A, but you seem to mean B. Which is it?"
+- When a term is vague or overloaded, propose one precise term as the recommended answer.
+- When a relationship between domain concepts is unsettled, invent the concrete scenario that forces the boundary and ask it.
+- When the user states how something works and the code disagrees, ask which is right.
+- When a term is settled, write it to the glossary at once.
+
+## Test seams
+
+A seam is the public interface a test observes behaviour at, without reaching inside. Agree the seams before any acceptance criterion is written against them.
+
+- Prefer a seam the project already tests at to a new one, and the highest seam that observes the behaviour.
+- Use as few seams as the change allows; the ideal number is one.
+- Propose each seam with one line on what it catches and one on what it misses, and whether the builder can run tests there.
+- Put the seams to the user as a frontier question. Write no acceptance test at a seam the user has not agreed.
 
 ## Push back on scope
 
-- When a request names a solution, ask for the problem first.
+- When a request names a solution, ask for the problem first; the intent round usually settles it.
 - When a request spans several independent subsystems, split it before refining.
 - Split work vertically, so each piece works end to end. Prefer the split that lets one piece be thrown away. The word "manage" usually hides create, read, update and delete.
-- For each proposed item, ask: would you stop the release without it? Keep Musts to no more than about 60 percent of the effort.
-- Record what is cut as a non-goal or a Won't, so it does not creep back.
-- Surface hidden scope with the pre-mortem.
-- In an autonomous run, push back only on what the project's context does not call for in the requested work, following the section Work autonomously.
+- Record what is cut in the spec's Out of scope section, so it does not creep back.
 
 ## Record each answer
 
-- Append each settled answer to `docs/specs/<slug>.decisions.md` immediately. Write it as one line starting with `- `, as a rule in the user's terms. Example: `- Expired sessions redirect to the login screen; they never render an empty page.`
+- Append each settled decision to the `## Decisions` section of the decisions file at once, as one `- ` line stating a rule in the user's terms. Example: `- Expired sessions redirect to the login screen; they never render an empty page.`
 - Never reword or delete an earlier line. Give a reversed decision a new line that says it replaces the earlier one.
-- Update the record at the same time: the criterion, the environments where passing proves it, and the owning Step.
+- Update the record at the same time: the seams, the criteria and the owning Steps.
 
 ## Know when to stop
 
-Stop asking when all four hold:
+The interview ends when the frontier is empty: every branch of the tree visited and nothing left silently assumed. Then hold the read-back of phase 7, the one place the AskUserQuestion tool is used, to approve or change what you understood. Never act on the interview before the user approves it.
 
-1. Every Must requirement has a way to tell pass from fail where passing counts, or is marked unproven with the reason.
-2. Every acceptance criterion has a Step whose test proves it.
-3. No open question would change a file, a test or an acceptance criterion. Everything else is written down as an assumption or deferred with a reason.
-4. The user confirmed the read-back in phase 7.
+## After the interview
 
-In the brief lane and in an autonomous run, condition 4 holds without a read-back.
+Once the user approves the read-back, ask nothing more and never stop for an answer. Every gap a later phase finds, in writing the spec, designing a Step or fixing a review finding, is filled with a well-reasoned guess:
 
-There is no fixed question count. When you defer questions, list them in the spec's Open questions section with why each is safe to leave.
+- Take the reading the intent best supports, together with the project's context: who the product serves, what is at stake and the domain.
+- Write it to the spec's Assumptions as one line ending `(relies on I<n>)`, naming the intent line it relied on, such as `- Exports include archived tasks, because the user wants a full backup (relies on I1).`
+- Add the same line to the `assumptions` of every Step it shapes, so the pull request that builds the Step shows it.
 
-## Work autonomously
+## Unattended runs
 
-When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, ask no question and seek no approval.
+When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, hold no interview: ask no question and seek no approval.
 
-- Never guess and never fall back to the lightest option.
-- Resolve each unknown from the user's intent and the project's context: who the product serves, what is at stake, and the domain.
-- Research the established practice for that context: the standards for the capability itself, the laws and standards that govern the domain and the data the requested work touches, and what comparable products in that domain ship. Dispatch the `interphase:scout` agent for outside documentation.
+- Write the `## Intent` section from the request and the project's context, ending each line `(inferred)`.
+- Settle every decision the way the section After the interview fills a gap, from the intent and the project's context.
+- Never fall back to the lightest option. Research the established practice for that context: the standards for the capability itself, the laws and standards that govern the domain and the data the requested work touches, and what comparable products in that domain ship. Dispatch the `interphase:scout` agent for outside documentation.
 - List the threats that practice expects for what is at stake in the requested work, and require a defence for each in the layers that practice uses at those stakes: the established minimum where little is at stake, and never only that minimum where much is.
-- Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test.
-- Record each as an assumption naming the intent and context that decided it.
-- Make every requirement the context calls for in the requested work a goal. Never cut one to keep Musts near 60 percent of the effort, never leave one only in the assumptions, and never record one as a non-goal, a Won't, an open question or work for a later spec. Non-goals hold only what the context does not call for in the requested work.
+- Write the concrete, specific requirements that context calls for, without avoiding complexity or added services, so there is something specific to test. Never put one the context calls for in Out of scope.
 - Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit. When the context calls for something the project cannot do yet, require what it takes, such as a new dependency, a new stored field, an added service or a change to how it is deployed.
-- When only something outside the code can meet a requirement, such as the server in front of the app, still write the requirement and its acceptance criterion, marked unproven with the reason when the builder cannot check it. Keep in the code every part of it the code can enforce and test.
+- When only something outside the code can meet a requirement, such as the server in front of the app, still write its acceptance criterion, marked unproven with the reason when the builder cannot check it, and keep in the code every part the code can enforce and test.
 - When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.
 
-Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule. If the hospital project cannot encrypt files yet, the spec requires what lets it, never a non-goal.
+Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule. If the hospital project cannot encrypt files yet, the spec requires what lets it.
+
+A run that starts unattended stays unattended, even when it switches from the brief lane to the full pathway.

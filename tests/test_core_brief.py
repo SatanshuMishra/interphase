@@ -15,7 +15,6 @@ HEADINGS = (
     "## Choose and record",
     "## Switch",
     "## What changes",
-    "## Numbering",
 )
 CONDITIONS = (
     (
@@ -34,7 +33,7 @@ CONDITIONS = (
         "`${claude_plugin_root}/core/practices.md`",
     ),
     (
-        "every acceptance test runs where the builder runs",
+        "every acceptance test sits at a seam the builder runs",
         "nothing is marked unproven",
     ),
     (
@@ -48,13 +47,12 @@ CONDITIONS = (
 )
 OPENING = ("# {{title}}", "Pathway: {{pathway}}.", "Lane: brief.", "Date: {{date}}.")
 SECTIONS = (
-    "## 1. Request",
-    "## 2. Change",
+    "## 1. Problem",
+    "## 2. Intent",
     "## 3. Evidence",
-    "## 4. Acceptance criteria",
-    "## 5. Assumptions",
-    "## 6. Reuse and change",
-    "## 7. Review bar",
+    "## 4. Decisions",
+    "## 5. Test seams",
+    "## 6. Out of scope",
 )
 CHANGE = (
     "Current: WHEN the stock report is shown THEN the system lists each product with no total row.\n"
@@ -70,26 +68,30 @@ FILLED_BRIEF = (
     "Pathway: feature.\n\n"
     "Lane: brief.\n\n"
     "Date: 2026-10-09.\n\n"
-    "## 1. Request\n\n"
+    "## 1. Problem\n\n"
     "Add a total row to the stock report, and list low-stock products by name as the stock report does.\n\n"
-    "## 2. Change\n\n" + CHANGE + "## 3. Evidence\n\n"
+    + CHANGE
+    + "## 2. Intent\n\n"
+    "- I1 Goal: the stock report shows the total quantity and the low-stock list reads alphabetically (inferred).\n"
+    "- I2 Why: the shop owner checks stock totals by hand today (inferred).\n"
+    "- I3 Success: the report's last row holds the sum and low-stock products appear A to Z (inferred).\n\n"
+    "## 3. Evidence\n\n"
     "src/report.py line 4 sorts the stock report rows by name; the low-stock list at line 9 follows the same "
     "row pattern without the sort.\n\n"
-    "## 4. Acceptance criteria\n\n"
-    "### 4.1 {{short name of the first criterion}}\n\n"
-    "{{WHEN <condition> THE SYSTEM SHALL <behaviour wanted>}}\n\n"
-    "## 5. Assumptions\n\n"
-    "The total counts products with zero stock.\n\n"
-    "## 6. Reuse and change\n\n"
+    "## 4. Decisions\n\n"
+    "### Reuse and change\n\n"
     "Reused as is:\n\n- src/report.py stock_rows: the name sort the low-stock list follows.\n\n"
     "Kept separate:\n\n- None.\n\n"
     "Changed:\n\n- src/report.py: adds the total row and sorts the low-stock list.\n\n"
-    "## 7. Review bar\n\n"
-    "No threats beyond the acceptance criteria: the change reorders and sums rows the report already shows.\n"
-    "A reviewer may block on the Unchanged statements; weaknesses the report had before the change are out of scope.\n"
+    "### Assumptions\n\n"
+    "- The total counts products with zero stock, because the owner wants the full stock count (relies on I1).\n\n"
+    "## 5. Test seams\n\n"
+    "{{written by the render script from the record}}\n\n"
+    "## 6. Out of scope\n\n"
+    "The Unchanged statements, and any change to how a product row looks.\n"
 )
-TOTAL_ROW = "### 4.1 The stock report ends with a total row"
-LOW_STOCK_ORDER = "### 4.2 The low-stock list is sorted by name"
+TOTAL_ROW = "### 5.1 The stock report ends with a total row"
+LOW_STOCK_ORDER = "### 5.2 The low-stock list is sorted by name"
 
 
 def load(relative):
@@ -124,37 +126,29 @@ def conditions(text):
     )
 
 
-def report_test(name, step, given, expect, *covers):
-    test = {
-        "file": "tests/test_report.py",
-        "name": name,
-        "given": given,
-        "expect": expect,
-        "env": "unit-tests",
-        "step": step,
-    }
-    return {**test, "covers": list(covers)} if covers else test
+def report_test(name, step, given, expect):
+    return {"file": "tests/test_report.py", "name": name, "given": given, "expect": expect, "step": step}
 
 
 def criterion(number, title, text, tests, **extra):
-    return {"number": number, "title": title, "text": text, "where": ["unit-tests"], "tests": list(tests), **extra}
+    return {"number": number, "title": title, "text": text, "seam": "report", "tests": list(tests), **extra}
 
 
 def brief_record():
     return {
         "status": "in-progress",
-        "environments": [{"name": "unit-tests", "what": "python3 -m unittest on macOS", "builder_runs": True}],
-        "facts": [
+        "seams": [
             {
-                "id": "f1",
-                "fact": "The stock report has no total row",
-                "command": "python3 -m unittest tests.test_report",
-                "output": "OK",
+                "name": "report",
+                "interface": "the rows report.render returns",
+                "catches": "wrong totals and wrong order",
+                "misses": "how the rows are printed",
+                "builder_runs": True,
             }
         ],
         "criteria": [
             criterion(
-                "4.1",
+                "5.1",
                 "The stock report ends with a total row",
                 "WHEN the stock report is shown THE SYSTEM SHALL end it with a row holding the sum of all quantities.",
                 (
@@ -163,26 +157,17 @@ def brief_record():
                         "total-row",
                         "products with quantities 2 and 3",
                         "the last row holds 5",
-                        "stock-rows: several products",
                     ),
                     report_test(
                         "test_total_row_without_products",
                         "total-row",
                         "no products",
                         "the last row holds 0",
-                        "stock-rows: no products",
                     ),
                 ),
-                domains=[
-                    {
-                        "name": "stock-rows",
-                        "over": "the products the stock report lists",
-                        "classes": ["no products", "several products"],
-                    }
-                ],
             ),
             criterion(
-                "4.2",
+                "5.2",
                 "The low-stock list is sorted by name",
                 "WHEN the low-stock list is shown THE SYSTEM SHALL list products by name from A to Z.",
                 (
@@ -199,13 +184,13 @@ def brief_record():
             {
                 "name": "total-row",
                 "files": ["src/report.py", "tests/test_report.py"],
-                "criteria": ["4.1"],
+                "criteria": ["5.1"],
                 "task": "End the stock report with a row holding the sum of all quantities.",
             },
             {
                 "name": "low-stock-order",
                 "files": ["src/report.py", "tests/test_report.py"],
-                "criteria": ["4.2"],
+                "criteria": ["5.2"],
                 "task": "Sort the low-stock list by product name, as stock_rows sorts the stock report.",
                 "after": ["total-row"],
             },
@@ -247,18 +232,21 @@ class CoreBriefTest(unittest.TestCase):
             "When any condition breaks later, switch to the full pathway.",
             "Say so in one sentence",
             "Write `- Lane: full, replacing the brief lane.` to the decisions file.",
-            "Keep the record and the decisions.",
+            "Keep the record and the decisions. Criteria keep their numbers: every template numbers them 5.x.",
             "Continue with the full phases and the pathway's own template.",
+            "an unattended run stays unattended.",
         ):
             self.assertIn(needle, switch, needle)
 
-    def test_brief_skips_read_back_and_reviewer_but_runs_the_checkers(self):
-        changes = section(read(BRIEF), "## What changes")
+    def test_brief_reads_back_once_and_runs_the_checkers_without_a_reviewer(self):
+        text = read(BRIEF)
+        changes = section(text, "## What changes")
         self.assertIn("Every other phase and rule applies unchanged.", changes)
         expected = (
-            ("- Phase 5:", ("skip the pre-mortem", "The Unchanged statements are the non-goals.")),
+            ("- Phase 4:", ("ask the intent round", "only for a question that passes the hard bar", "the one seam")),
+            ("- Phase 5:", ("skip the pre-mortem", "The Unchanged statements are the Out of scope section.")),
             ("- Phase 6:", ("one Step per item",)),
-            ("- Phase 7:", ("skip the read-back",)),
+            ("- Phase 7:", ("read back only the intent", "ask for the one approval")),
             (
                 "- Phase 8:",
                 ("copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template",),
@@ -270,7 +258,6 @@ class CoreBriefTest(unittest.TestCase):
                     '/scripts/check_record.py" --complete docs/specs/<slug>.record.json',
                     '/scripts/check_items.py" docs/specs/<slug>.items.json',
                     "Do not dispatch the `interphase:spec-reviewer` agent.",
-                    "Ask for one approval of the written brief",
                 ),
             ),
         )
@@ -279,6 +266,8 @@ class CoreBriefTest(unittest.TestCase):
             self.assertTrue(line, prefix)
             for needle in needles:
                 self.assertIn(needle, line, needle)
+        self.assertNotIn("approval", bullet(changes, "- Phase 9:"))
+        self.assertIn("An unattended run in the brief lane asks no intent round and holds no read-back", changes)
 
     def test_brief_template_has_its_sections(self):
         lines = read(TEMPLATE).splitlines()
@@ -287,15 +276,13 @@ class CoreBriefTest(unittest.TestCase):
         numbered = tuple(line for line in lines if line.startswith("## "))
         self.assertEqual(numbered, SECTIONS)
         text = "\n".join(lines)
-        criteria = section(text, "## 4. Acceptance criteria").splitlines()
-        self.assertIn("### 4.1 {{short name of the first criterion}}", criteria)
         for heading in SECTIONS:
             with self.subTest(heading=heading):
                 self.assertIn("{{", section(text, heading))
         for heading, needles in (
-            ("## 1. Request", ("word for word",)),
+            ("## 2. Intent", ("- I1 Goal: <goal>",)),
             (
-                "## 2. Change",
+                "## 1. Problem",
                 (
                     "Current: WHEN <condition> THEN the system <behaviour today>.",
                     "Expected: WHEN <condition> THE SYSTEM SHALL <behaviour wanted>.",
@@ -306,8 +293,7 @@ class CoreBriefTest(unittest.TestCase):
                 "## 3. Evidence",
                 ("the reproduction, its output and the confirmed cause with path and line", "the pattern it follows"),
             ),
-            ("## 5. Assumptions", ("every default chosen without the user's explicit answer",)),
-            ("## 6. Reuse and change", ("`${CLAUDE_PLUGIN_ROOT}/core/practices.md`",)),
+            ("## 4. Decisions", ("(relies on I<n>)", "`${CLAUDE_PLUGIN_ROOT}/core/practices.md`")),
         ):
             for needle in needles:
                 self.assertIn(needle, section(text, heading), needle)
@@ -331,20 +317,11 @@ class CoreBriefTest(unittest.TestCase):
             lines = rendered.splitlines()
             self.assertIn(TOTAL_ROW, lines)
             self.assertIn(LOW_STOCK_ORDER, lines)
-            self.assertNotIn("### 4.1 {{short name of the first criterion}}", lines)
+            self.assertNotIn("{{written by the render script from the record}}", lines)
             self.assertEqual(check_spec.check(read(TEMPLATE), rendered), ())
             items = json.loads(read(items_path))
-            self.assertEqual([item["spec_ref"] for item in items], [["4.1"], ["4.2"]])
+            self.assertEqual([item["spec_ref"] for item in items], [["5.1"], ["5.2"]])
             self.assertEqual(check_items.check_file(str(items_path)), ())
-
-    def test_brief_numbers_every_criterion_in_section_4(self):
-        numbering = section(read(BRIEF), "## Numbering")
-        for needle in (
-            "Number every criterion in a brief 4.1, 4.2 and so on, whatever number the pathway playbook gives.",
-            "The bug playbook's draft failing test, criterion 10.1, becomes 4.1.",
-            "A prototype's 16.x checks become 4.x.",
-        ):
-            self.assertIn(needle, numbering, needle)
 
     def test_brief_names_no_consuming_tool(self):
         names = load("tests/test_hooks.py").consumer_names()
