@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "claim": {
+    "issue_link": "closes #(\\d+)",
+    "downgrade_tags": [
+      "unverified-reasoned",
+      "speculative",
+      "reverted"
+    ]
+  },
+  "build": {
+    "sha_source": "none",
+    "platform": "none",
+    "deploy_host_patterns": [],
+    "environments": {},
+    "verify_against": "none"
+  },
+  "verify": {
+    "test_command": "python3 -m unittest {test}",
+    "suite_command": "python3 -m unittest discover tests",
+    "live_drive": null
+  },
+  "degrade": {
+    "on_no_receipt": "require-downgrade-tag",
+    "on_unreachable_build": "sha-bind-only"
+  },
+  "agent": {
+    "loop_skills": [
+      "gates"
+    ],
+    "staging_query_patterns": [],
+    "observe": {
+      "confirmed": true,
+      "surface": "the interphase plugin's instruction files (core/*.md, core/pathways/*.md, core/templates/*.md, skills/*/SKILL.md, agents/*.md) as an agent reads them, and its scripts (scripts/*.py): their stdout, stderr, exit code and the spec, record and items files they write",
+      "value": "the exact text a pathway, phase or template states; a script's exit code and the errors and warnings it prints; the rendered spec section and items JSON",
+      "observe_by": "unittest reading the instruction files and running the scripts as subprocesses on temporary spec folders",
+      "terminal_action": "a script's run to its exit with every file it writes flushed; for instructions, the text an agent loads",
+      "build_artifact": "the installed plugin copy under ~/.claude/plugins/cache/interphase/interphase/<version>, whose .claude-plugin/plugin.json version must equal the checkout's; in a checkout, the files at the commit",
+      "twin": "the four pathway playbooks and their spec templates restate shared rules from core/phases.md and core/questioning.md; README.md restates the pathways",
+      "dependent": "every interphase run in any repository; the pipeline:run skill, which invokes the pathway skills; mitosis, which reads the items file",
+      "receipt": "a unittest in tests/ named for the behaviour, red before the change and green after, run as python3 -m unittest tests.<module>.<Class>.<method>",
+      "compat_boundary": "a record or items file written by one release and read by another; an installed plugin copy that stays on its version until the plugin version changes",
+      "reach": {
+        "access": "the repository checkout; Python 3.9 or later; no credentials",
+        "shortcut": "every script runs locally on temporary folders",
+        "fixtures": "tests build temporary spec folders and records",
+        "special_surfaces": [
+          "an agent's reading of the instruction files, observed only by running an interphase session"
+        ]
+      }
+    },
+    "closeout_fixed_statuses": [
+      "Pending Retest",
+      "Verified"
+    ],
+    "repo_name": "receipts-tree",
+    "receipts_version": "0.9.3"
+  },
+  "gates": {
+    "medium": "cli",
+    "enabled": "all",
+    "disabled": [],
+    "G8": {
+      "integration_branch": "main"
+    }
+  }
+}

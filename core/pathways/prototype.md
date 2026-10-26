@@ -26,7 +26,7 @@ Walk these fifteen areas for every screen. Record what the mockup shows, what it
 8. Input validation and error messages.
 9. Login and permissions: deny by default, checked on the server.
 10. Saving data, and two people editing at once.
-11. Accessibility floor: keyboard use, visible focus, contrast, touch targets at least 24 by 24 pixels.
+11. UI quality floor: each component's role, surface, states, form factors and input methods. Run the impeccable skill's standard with the key of each platform the product ships (`impeccable standard <apple|android|windows|web>`) and judge every mockup choice against it; where that command is not available, judge against WCAG 2.2 AA.
 12. Layout at every screen size the product supports.
 13. Analytics events, if any.
 14. Performance expectations for slow data.
@@ -41,16 +41,15 @@ Draw from this bank. Ask only what passes the hard bar of `${CLAUDE_PLUGIN_ROOT}
 - For each screen, what does it show when empty, loading, failed or partly filled?
 - What are the input limits and the exact error wording?
 - Which layout behaviours are must-haves at each screen size?
-- Which accessibility level is the target?
 - What is the real data source for each piece of data, who may see it, how is it saved, and what happens when saving fails?
 
 ## Extra step
 
-Sort every gap before writing the spec: a gap that passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` is a frontier question, a fact the code answers is looked up, and a cosmetic gap takes the mockup's choice as an assumption. Write each settled area into the spec's Decisions section.
+Sort every gap before writing the spec: a gap that passes the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` is a frontier question, a fact the code answers is looked up, and a cosmetic gap takes the mockup's choice as an assumption. A mockup choice that breaks the UI standard of item 11, cosmetic or behavioural, and whether or not it was called deliberate, is never kept and never asked: the spec states the corrected behaviour as an assumption. Write each settled area into the spec's Decisions section.
 
 ## Acceptance
 
-Write one check per screen state. Add a screenshot of the built screen compared with the mockup. Number each check under the Test seams section, such as `5.1`, and place it at an agreed seam.
+Write one check per screen state. Add a screenshot of the built screen compared with the mockup; it expects the corrected behaviour where the build corrects a standard violation. Number each check under the Test seams section, such as `5.1`, and place it at an agreed seam.
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
