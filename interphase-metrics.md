@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-26T23:47:19.866Z
+Updated: 2026-10-26T23:49:15.652Z
 Next ids: c5 D1 R1 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Stage 1 is in interphase's Phase 9: the spec, decisions, record and 8-Step items are written and pass every check; the one spec-reviewer pass is running. Lighthouse readiness is clear (claude cli fact saved); receipts.config.json is already committed, so no receipts setup.
+Stage 1 is in interphase's Phase 9: the spec, decisions, record and 8-Step items are written and pass every check; the one spec-reviewer pass is running. ADRs 0001 and 0002 are drafted. The run home holds CHARTER.md, worker-rules.txt, dispatch.zsh and a run.zsh whose --feature-branch is still the placeholder FEATURE_BRANCH. Lighthouse readiness is clear (claude cli fact saved); receipts.config.json is already committed, so no receipts setup.
 
 ## Next step
 
