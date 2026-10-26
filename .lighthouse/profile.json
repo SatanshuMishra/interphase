@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "sources": [
+    "README.md",
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    "hooks/hooks.json",
+    "receipts.config.json",
+    ".gitignore",
+    "tests/test_manifest.py",
+    "tests/test_skills.py",
+    "tests/test_hooks.py"
+  ],
+  "suite": {
+    "command": "python3 -m unittest discover tests",
+    "junit": null,
+    "timeout_minutes": null,
+    "rerun": "python3 -m unittest {tests}",
+    "isolated": true
+  },
+  "test_data": "tests build temporary spec folders, records and items files under tempfile directories; no shared data",
+  "surfaces": [
+    {
+      "name": "pathway skills and the /interphase command",
+      "kind": "Claude Code plugin skills (feature, bug, prototype, project, and the /interphase router command)",
+      "paths": [
+        "skills/feature/SKILL.md",
+        "skills/bug/SKILL.md",
+        "skills/prototype/SKILL.md",
+        "skills/project/SKILL.md",
+        "skills/interphase/SKILL.md",
+        "core/phases.md",
+        "core/questioning.md",
+        "core/practices.md",
+        "core/brief.md",
+        "core/domain.md",
+        "core/items.md",
+        "core/variation.md",
+        "core/pathways/feature.md",
+        "core/pathways/bug.md",
+        "core/pathways/prototype.md",
+        "core/pathways/project.md",
+        "core/templates/spec-feature.md",
+        "core/templates/spec-bug.md",
+        "core/templates/spec-prototype.md",
+        "core/templates/spec-project.md",
+        "core/templates/spec-brief.md",
+        ".claude-plugin/plugin.json"
+      ],
+      "driver": "claude -p with --plugin-dir set to the build's worktree and --output-format stream-json --verbose, started from a scratch folder under the results folder, sending a plain user request; the transcript shows which skill ran and what it produced",
+      "available": true,
+      "sign_in": {
+        "method": "none",
+        "command": null
+      },
+      "credentials": [],
+      "trials": 3
+    },
+    {
+      "name": "scout and spec-reviewer agents",
+      "kind": "Claude Code plugin subagents",
+      "paths": [
+        "agents/scout.md",
+        "agents/spec-reviewer.md"
+      ],
+      "driver": "claude -p with --plugin-dir set to the build's worktree and --output-format stream-json --verbose; the transcript shows the Agent dispatch and its result",
+      "available": true,
+      "sign_in": {
+        "method": "none",
+        "command": null
+      },
+      "credentials": [],
+      "trials": 3
+    },
+    {
+      "name": "resume hook after compact or clear",
+      "kind": "Claude Code SessionStart hook",
+      "paths": [
+        "hooks/hooks.json",
+        "scripts/resume_context.py"
+      ],
+      "driver": "python3 scripts/resume_context.py run with a SessionStart payload on stdin from a temporary folder holding an in-progress record, plus the project's tests/test_hooks.py and tests/test_resume_context.py",
+      "available": true,
+      "sign_in": {
+        "method": "none",
+        "command": null
+      },
+      "credentials": [],
+      "trials": 1
+    },
+    {
+      "name": "spec, items and record checkers and the record renderer",
+      "kind": "command-line scripts",
+      "paths": [
+        "scripts/check_spec.py",
+        "scripts/check_items.py",
+        "scripts/check_record.py",
+        "scripts/render_record.py"
+      ],
+      "driver": "python3 scripts/<script>.py run as the README shows against temporary spec folders, reading exit code and printed error and warning lines, plus the project's unittest modules for each script",
+      "available": true,
+      "sign_in": {
+        "method": "none",
+        "command": null
+      },
+      "credentials": [],
+      "trials": 1
+    },
+    {
+      "name": "bug reproduction probe and tree guard",
+      "kind": "command-line scripts",
+      "paths": [
+        "scripts/probe.py",
+        "scripts/tree_guard.py"
+      ],
+      "driver": "python3 scripts/probe.py and scripts/tree_guard.py run against a temporary git repository, plus tests/test_probe.py and tests/test_tree_guard.py",
+      "available": true,
+      "sign_in": {
+        "method": "none",
+        "command": null
+      },
+      "credentials": [],
+      "trials": 1
+    }
+  ],
+  "credentials": {
+    "file": null,
+    "names": {}
+  },
+  "facts": {
+    "python": {
+      "value": "Python 3.9 or later on PATH as python3",
+      "confirmed": true,
+      "recheck": "read the Requirements section of README.md"
+    },
+    "claude cli": {
+      "value": "the claude CLI is on PATH and signed in, so claude -p sessions can run",
+      "confirmed": false,
+      "recheck": "run claude --version and a one-line claude -p request"
+    },
+    "plugin root variable": {
+      "value": "hooks run with CLAUDE_PLUGIN_ROOT set to the plugin folder",
+      "confirmed": true,
+      "recheck": "read hooks/hooks.json"
+    }
+  },
+  "off_limits": [
+    "pushing to or opening pull requests on the GitHub repository SatanshuMishra/interphase",
+    "installing or updating the interphase plugin in the person's own Claude Code configuration",
+    "writing spec packages, glossaries or decision records into the person's own repositories"
+  ]
+}
