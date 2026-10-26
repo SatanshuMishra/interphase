@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-26T23:25:39.097Z
+Updated: 2026-10-26T23:47:15.169Z
 Next ids: c5 D1 R1 S1
 
 ## Goal
@@ -16,11 +16,11 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Not started.
+Stage 1 is in interphase's Phase 9: the spec, decisions, record and 8-Step items are written and pass every check; the one spec-reviewer pass is running. Lighthouse readiness is clear (claude cli fact saved); receipts.config.json is already committed, so no receipts setup.
 
 ## Next step
 
-Invoke pipeline:run and follow Stage 1 (Sync), then run interphase:feature with the request followed by "Interview me first." answering every round from intent lines I1 to I6 and the binding decisions.
+When the spec reviewer reports, fix each issue that would build the wrong thing, re-render and recheck, then run interphase's Phase 10 hand-off (ADRs, tree guard verify, status handed-off).
 
 ## Decisions in force
 
