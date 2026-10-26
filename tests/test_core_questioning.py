@@ -62,6 +62,10 @@ class QuestioningTest(unittest.TestCase):
         self.assertIn("Wording that states how the product behaves is a fact, not a cosmetic choice.", body)
         self.assertIn("Cosmetic choices, such as colour, spacing, icons and wording that states nothing about how the product behaves, are never asked", body)
 
+    def test_cosmetics_yield_to_the_ui_standard(self):
+        body = section("## The hard bar")
+        self.assertIn("The one exception is a choice that breaks the impeccable skill's UI standard: the spec states the corrected behaviour as an assumption, never as a question.", body)
+
     def test_the_intent_round_opens_and_is_written_as_numbered_intent_lines(self):
         body = section("## Intent round")
         for phrase in (

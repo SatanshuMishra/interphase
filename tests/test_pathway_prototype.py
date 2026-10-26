@@ -62,6 +62,44 @@ class PrototypePathwayTest(unittest.TestCase):
         acceptance = "\n".join(section_body(lines, "## Acceptance"))
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
 
+    def test_prototype_points_the_ui_floor_at_impeccable(self):
+        text = PLAYBOOK.read_text(encoding="utf-8")
+        gap = section_body(text.splitlines(), "## Gap analysis")
+        numbered = [line for line in gap if re.match(r"^\d+\. \S", line)]
+        self.assertEqual([str(n) for n in range(1, 16)], [line.split(".", 1)[0] for line in numbered])
+        item = numbered[10]
+        for phrase in (
+            "impeccable standard",
+            "each platform the product ships",
+            "judge every mockup choice against it",
+            "role",
+            "surface",
+            "states",
+            "form factors",
+            "input methods",
+            "where that command is not available",
+            "WCAG 2.2 AA",
+        ):
+            self.assertIn(phrase, item)
+        self.assertNotIn("24 by 24", text)
+
+    def test_prototype_standard_overrides_the_mockup(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        extra = "\n".join(section_body(lines, "## Extra step"))
+        self.assertIn("a cosmetic gap takes the mockup's choice as an assumption", extra)
+        self.assertIn("A mockup choice that breaks the UI standard of item 11, cosmetic or behavioural, and whether or not it was called deliberate, is never kept and never asked: the spec states the corrected behaviour as an assumption.", extra)
+
+    def test_prototype_never_asks_the_accessibility_level(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        questions = section_body(lines, "## Questions")
+        self.assertEqual([], [line for line in questions if "accessibility level" in line.lower()])
+
+    def test_prototype_comparison_expects_the_correction(self):
+        lines = PLAYBOOK.read_text(encoding="utf-8").splitlines()
+        acceptance = "\n".join(section_body(lines, "## Acceptance"))
+        self.assertIn("compared with the mockup", acceptance)
+        self.assertIn("expects the corrected behaviour where the build corrects a standard violation", acceptance)
+
 
 if __name__ == "__main__":
     unittest.main()

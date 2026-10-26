@@ -20,7 +20,7 @@ Date: {{date}}.
 
 ## 4. Decisions
 
-{{numbered decisions settling each area of the gap analysis the mockup fakes or omits: which screens are final, every screen state, content variation, interactions not shown, data sources and their failure, validation and error wording, permissions, saving and concurrent edits, accessibility, layout at each screen size, analytics, and each threat with its defence}}
+{{numbered decisions settling each area of the gap analysis the mockup fakes or omits: which screens are final, every screen state, content variation, interactions not shown, data sources and their failure, validation and error wording, permissions, saving and concurrent edits, the UI quality floor (gap analysis item 11), layout at each screen size, analytics, and each threat with its defence}}
 
 ### Reuse and change
 

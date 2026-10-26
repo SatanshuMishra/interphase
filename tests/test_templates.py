@@ -113,6 +113,12 @@ class TemplatesTest(unittest.TestCase):
         self.assertEqual(len(output), 1)
         self.assertIn("assumption cites no intent line", output[0])
 
+    def test_prototype_template_names_the_ui_quality_floor(self):
+        text = (TEMPLATES / "spec-prototype.md").read_text(encoding="utf-8")
+        self.assertIn("the UI quality floor (gap analysis item 11)", text)
+        decisions = text[text.index("## 4. Decisions") : text.index("### Reuse and change")]
+        self.assertNotIn("accessibility", decisions)
+
 
 if __name__ == "__main__":
     unittest.main()
