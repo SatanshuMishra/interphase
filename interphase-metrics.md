@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T06:27:32.635Z
+Updated: 2026-10-27T06:27:36.331Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -20,9 +20,9 @@ Stage 1 is handed off: the spec, decisions, record (status handed-off) and 8-Ste
 
 ## Next step
 
-Run the first build: ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (in the background, timeout 14400s), then read mitosis's last stdout line and go on to Stage 3 review for interview-rounds and self-metrics.
+Run the first build: ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (in the background), then read mitosis's last stdout line and go on to Stage 3 review for interview-rounds and self-metrics.
 
-Needs: D1.
+Needs: D2.
 
 ## Decisions in force
 
