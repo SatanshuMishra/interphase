@@ -1,7 +1,7 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T06:26:58.644Z
-Next ids: c5 D2 R4 S1
+Updated: 2026-10-27T06:27:32.635Z
+Next ids: c5 D3 R4 S1
 
 ## Goal
 
@@ -26,7 +26,7 @@ Needs: D1.
 
 ## Decisions in force
 
-- D1 Interphase hand-off boundary: build waits on the shared reference writers: Park at the hand-off. Once the dependency command in the pipeline checkout prints a path on either ref, the build session sets the CHARTER's Pipeline ref line to that ref and runs ~/.mitosis/interphase/interphase-metrics/run.zsh, then the rest of pipeline:run to the last pull request.
+- D2 Interphase hand-off boundary: run the first build now that the shared writers landed: Build now from origin/feat/unified-metrics at a39ab11: run ~/.mitosis/interphase/interphase-metrics/run.zsh, then Stage 3 review, validate, fix and ship as pipeline:run says.
 
 ## Open risks
 
