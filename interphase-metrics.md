@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:48:56.007Z
+Updated: 2026-10-27T09:10:17.569Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Both MSPs are shipped and wait for the owner to merge them. SatanshuMishra/interphase#49 (interview-rounds, mitosis/interview-rounds at cdd95f1, into feat/interphase-metrics; carries GLOSSARY.md and ADRs 0001 and 0002) and SatanshuMishra/interphase#50 (self-metrics, mitosis/self-metrics at bfb1221, stacked on mitosis/interview-rounds) are open, ready for review, and assigned to the owner. Each has its pipeline comment. #50 must merge into mitosis/interview-rounds before #49 merges, or its work never reaches the FEATURE branch. The ship gate found two inert tests on interview-rounds (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), and amendment 1's test_overlapping_builds_leave_the_newer_summary is inert too; inert tests are not findings.
+SatanshuMishra/interphase#49 (interview-rounds) is merged into feat/interphase-metrics at 42be35c. #50 (self-metrics) is merged into mitosis/interview-rounds at 1be3124, after #49, so its work is not yet on the FEATURE branch. Catch-up SatanshuMishra/interphase#51 brings that work over: head mitosis/interview-rounds, base feat/interphase-metrics, ready for review and assigned to the owner. Its trial merge is clean and its result is identical to 1be3124, which is the reviewed self-metrics head bfb1221 plus GLOSSARY.md and ADRs 0001 and 0002; feat/interphase-metrics already holds those files byte for byte. Inert tests (not findings): test_record_without_rounds_is_valid, test_rounds_not_a_list_refused and test_overlapping_builds_leave_the_newer_summary.
 
 ## Next step
 
