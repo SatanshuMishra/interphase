@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:47:40.460Z
+Updated: 2026-10-27T08:48:51.330Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Both MSPs are green and the ship run (SHIP=1 run.zsh --resume, log ship.log in the run home) is pushing them. interview-rounds was green in round 1; its head is cdd95f1 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), holding advisory fix 529d53a and the glossary and ADRs 0001 and 0002 commit, so mitosis re-gates it. self-metrics was green in round 3 at bfb1221 on mitosis/self-metrics (base mitosis/interview-rounds), passed as its proven head. It holds amendment 1 (5.10: write the summary under the event file's lock only when the file is unchanged), whose gate found test_overlapping_builds_leave_the_newer_summary inert. Both comments are saved as review/<msp>.comment.md, and promote added nothing; the ship boundary is D4.
+Both MSPs are shipped and wait for the owner to merge them. SatanshuMishra/interphase#49 (interview-rounds, mitosis/interview-rounds at cdd95f1, into feat/interphase-metrics; carries GLOSSARY.md and ADRs 0001 and 0002) and SatanshuMishra/interphase#50 (self-metrics, mitosis/self-metrics at bfb1221, stacked on mitosis/interview-rounds) are open, ready for review, and assigned to the owner. Each has its pipeline comment. #50 must merge into mitosis/interview-rounds before #49 merges, or its work never reaches the FEATURE branch. The ship gate found two inert tests on interview-rounds (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), and amendment 1's test_overlapping_builds_leave_the_newer_summary is inert too; inert tests are not findings.
 
 ## Next step
 
