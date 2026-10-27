@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:07:39.310Z
+Updated: 2026-10-27T08:12:10.104Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -16,11 +16,11 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-interview-rounds is green after round 1; its one advisory, C1 (core/items.md called rounds required), is fixed at 529d53a on mitosis/interview-rounds, which still needs merging into mitosis/self-metrics. Self-metrics round 1 verdict is diagnose: blockers C1 and S1 (kind stale summary overwrite race) and C2 (kind non-typed text counted as typed), advisories C4, C5 and S2; C3, S3 and S4 rejected. Self-metrics round 1 verdict is loop. On mitosis/self-metrics: C2 fixed (receipt a2d4714 red, fix 700dca7, selecting check empty), advisories C4, C5, S2 fixed in 501d906 (new scripts/metrics_files.py, outside the write-set), interview-rounds merged in (aa4160f); full suite 446 OK. The stale summary overwrite race (C1, S1) is requirement-wrong: 5.10's write-unless-stored-ts-is-later rule cannot leave the newer summary; the right rule writes under an exclusive flock on the run's event file only when it still holds the lines the build read. Amendment 1 is written (record in-progress, guard snapshot taken in the checkout): 5.10 now writes under the append lock only when the event file is unchanged, with rows test_build_skips_when_events_changed and test_overlapping_builds_leave_the_newer_summary for Step summary-write-lock (MSP self-metrics-amend-1, docs/specs/interphase-metrics.amend-1.items.json); the spec-reviewer's one issue (the tests appended before the build had read the event file) is fixed with a one-second wait(timeout=1.0) that must time out, checks pass, the guard verified clean and was deleted, and the record is handed-off again. The amendment boundary is D3; amend-1.zsh --plan-only passed (plan 07e7e2429739, 1 Step, 1 Lane) and the build is running into ~/.mitosis/runs/interphase/interphase-metrics-amend-1 (log amend-1-build.log in the run home). 5.4 and 5.20 are not applicable as live-session checks. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c); gate 5 pass, 2 inert, which are not findings. self-metrics is between review rounds 1 and 2 on mitosis/self-metrics at 46beae0 (base mitosis/interview-rounds; round 1 reviewed 09bcee9): round 1 blocker C2 (non-typed text counted as typed) is fixed with receipt a2d4714 and fix 700dca7, advisories C4, C5 and S2 are fixed in 501d906 (new scripts/metrics_files.py, outside the write-set), and the stale summary overwrite race (C1, S1) is answered by amendment 1, merged from mitosis/self-metrics-amend-1 (700624a): 5.10 now writes the summary under the event file's append lock only when that file is unchanged. The amendment's gate passed test_build_skips_when_events_changed and found test_overlapping_builds_leave_the_newer_summary inert, because on the old code the newer build always finishes last. The round-2 suite at 46beae0 passes 448 tests (review/round-2/self-metrics.suite.txt). Nothing is pushed. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
-Run ~/.mitosis/interphase/interphase-metrics/amend-1.zsh --plan-only, then the build in the background. Merge its branch into mitosis/self-metrics, re-run pipeline obligations for self-metrics, then self-metrics review round 2.
+Re-run pipeline obligations for self-metrics with the round-2 diff, re-append Threats T1 to T19, then run self-metrics review round 2 (code-reviewer and security-reviewer) and validate it.
 
 Needs: D2, D3.
 
@@ -46,4 +46,5 @@ Needs: D2, D3.
 - Decision records: docs/adr/0001-interphase-records-its-runs-through-a-hook.md and 0002-a-run-counts-only-its-own-spend-between-its-first-and-last-event.md in this checkout
 - Run home: ~/.mitosis/interphase/interphase-metrics/ (CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, items.json, graph.json, plan-2.log plan report, build-1.log build output)
 - Record and task generators: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/build_record.py and build_tasks.py
-- Mitosis run directory: ~/.mitosis/runs/interphase/interphase-metrics
+- Mitosis run directories: ~/.mitosis/runs/interphase/interphase-metrics and interphase-metrics-amend-1 (amendment 1)
+- Run home also holds amend-1.zsh and amend-1.items.json (amendment 1 build), review/ (round records, obligations, proofs, assumptions) and rounds.md
