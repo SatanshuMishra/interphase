@@ -1,7 +1,7 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:01:50.727Z
-Next ids: c5 D3 R4 S1
+Updated: 2026-10-27T08:07:19.137Z
+Next ids: c5 D4 R4 S1
 
 ## Goal
 
@@ -27,6 +27,7 @@ Needs: D2.
 ## Decisions in force
 
 - D2 Interphase hand-off boundary: run the first build now that the shared writers landed: Build now from origin/feat/unified-metrics at a39ab11: run ~/.mitosis/interphase/interphase-metrics/run.zsh, then Stage 3 review, validate, fix and ship as pipeline:run says.
+- D3 Amendment 1 hand-off boundary: build Step summary-write-lock onto mitosis/self-metrics: Build amendment 1 now: run amend-1.zsh --plan-only, then the build with --no-push, merge its branch into mitosis/self-metrics, re-run obligations, then self-metrics review round 2.
 
 ## Open risks
 
