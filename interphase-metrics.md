@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:40:24.995Z
+Updated: 2026-10-27T08:41:52.869Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c); gate 5 pass, 2 inert, which are not findings. self-metrics is in review round 3 on mitosis/self-metrics at bfb1221 (base mitosis/interview-rounds), its code-reviewer done with no findings and its security-reviewer running, previous head 46beae0. Amendment 1 (5.10: write the summary under the event file's append lock only when the file is unchanged) is merged from mitosis/self-metrics-amend-1; its gate passed test_build_skips_when_events_changed and found test_overlapping_builds_leave_the_newer_summary inert. Round 2's diagnosis classed the race fixable, its one remaining instance a lock-free write when the event file cannot be opened: receipt dec42f9 (committed red) and fix bfb1221 close it and also fix advisory C1 (duplicated byte readers and event parser); its selecting check, scratchpad/diag-r2/select_race.py, prints nothing and the round-3 suite passes 449 tests. Nothing is pushed. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c); gate 5 pass, 2 inert, which are not findings. self-metrics is in review round 3 on mitosis/self-metrics at bfb1221 (base mitosis/interview-rounds), its code-reviewer found nothing and its security-reviewer one LOW advisory S1 (parsed_events reads an event file with invalid UTF-8 as no events, so a build can replace a stored summary with an all-null one); the validator is judging carried P1, P2 (race) and S1 from review/round-3/self-metrics.candidates.md. Amendment 1 (5.10: write the summary under the event file's append lock only when the file is unchanged) is merged from mitosis/self-metrics-amend-1; its gate passed test_build_skips_when_events_changed and found test_overlapping_builds_leave_the_newer_summary inert. Round 2's diagnosis classed the race fixable, its one remaining instance a lock-free write when the event file cannot be opened: receipt dec42f9 (committed red) and fix bfb1221 close it and also fix advisory C1 (duplicated byte readers and event parser); its selecting check, scratchpad/diag-r2/select_race.py, prints nothing and the round-3 suite passes 449 tests. Nothing is pushed. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
