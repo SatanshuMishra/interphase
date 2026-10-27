@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T07:42:14.619Z
+Updated: 2026-10-27T07:47:35.926Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-interview-rounds is green after round 1; its one advisory, C1 (core/items.md called rounds required), is fixed at 529d53a on mitosis/interview-rounds, which still needs merging into mitosis/self-metrics. Self-metrics round 1 verdict is diagnose: blockers C1 and S1 (kind stale summary overwrite race) and C2 (kind non-typed text counted as typed), advisories C4, C5 and S2; C3, S3 and S4 rejected. Two Opus diagnosis agents are running, one per kind; their files go to review/round-1/self-metrics.<kind slug>.diagnosis.json. 5.4 and 5.20 are not applicable as live-session checks. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+interview-rounds is green after round 1; its one advisory, C1 (core/items.md called rounds required), is fixed at 529d53a on mitosis/interview-rounds, which still needs merging into mitosis/self-metrics. Self-metrics round 1 verdict is diagnose: blockers C1 and S1 (kind stale summary overwrite race) and C2 (kind non-typed text counted as typed), advisories C4, C5 and S2; C3, S3 and S4 rejected. The stale summary overwrite race is diagnosed and recorded as requirement-wrong: 5.10's rule (write unless the stored ts is later than the build's start) cannot leave the newer summary, and the right rule writes under an exclusive flock on the run's event file only when that file still holds the lines the build read. That kind goes to the amendment path. The non-typed-text diagnosis is still running. 5.4 and 5.20 are not applicable as live-session checks. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
