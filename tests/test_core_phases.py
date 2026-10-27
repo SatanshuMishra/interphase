@@ -27,7 +27,7 @@ RULES = (
     "Never name, detect or invoke any tool that might consume the spec.",
     "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
     "Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.",
-    "Keep the interview in the record: write each seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.",
+    "Keep the interview in the record: write each round, seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.",
     "When the user's instructions say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.",
 )
 
@@ -105,6 +105,11 @@ class CorePhasesTest(unittest.TestCase):
         ):
             self.assertIn(phrase, dispatch[0])
         self.assertIn("- Ask nothing. Go straight to Phase 10 in the same turn.", review)
+
+    def test_rule_13_keeps_each_round(self):
+        rule = next(line for line in read_phases().splitlines() if line.startswith("13. "))
+        for word in ("round", "seam", "criterion", "Step"):
+            self.assertIn(word, rule, word)
 
     def test_phases_never_mention_ignoring_the_spec_folder(self):
         text = read_phases().lower()

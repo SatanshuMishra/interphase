@@ -85,6 +85,7 @@ A seam is the public interface a test observes behaviour at, without reaching in
 - Append each settled decision to the `## Decisions` section of the decisions file at once, as one `- ` line stating a rule in the user's terms. Example: `- Expired sessions redirect to the login screen; they never render an empty page.`
 - Never reword or delete an earlier line. Give a reversed decision a new line that says it replaces the earlier one.
 - Update the record at the same time: the seams, the criteria and the owning Steps.
+- When a round is settled, append one entry to the record's rounds list at once: kind is `intent` for the intent round or `frontier` for a frontier round, questions is the number of questions the round asked (the intent round counts one for each of goal, why and success, and one for each further intent question it asked), and changed is the number of answers that differ from the recommended one, an answer of yes to a whole round changing none.
 
 ## Know when to stop
 

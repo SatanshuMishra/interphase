@@ -107,6 +107,14 @@ class CoreItemsTest(unittest.TestCase):
         ):
             self.assertIn(needle, record, needle)
 
+    def test_record_lists_rounds(self):
+        record = section(read_guide(), "## Interview record")
+        rows = [line for line in record.splitlines() if line.startswith("| `rounds` |")]
+        self.assertEqual(len(rows), 1)
+        for word in ("kind", "questions", "changed"):
+            self.assertIn(word, rows[0], word)
+        self.assertIn("without rounds", record)
+
     def test_items_guide_documents_the_run_status(self):
         record = section(read_guide(), "## Interview record")
         self.assertIn("and a `status`:", record)
