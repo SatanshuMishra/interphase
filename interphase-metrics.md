@@ -1,7 +1,7 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-26T23:49:28.719Z
-Next ids: c5 D1 R1 S1
+Updated: 2026-10-27T00:03:51.928Z
+Next ids: c5 D2 R1 S1
 
 ## Goal
 
@@ -23,6 +23,8 @@ Stage 1 is in interphase's Phase 9: the spec, decisions, record and 8-Step items
 When the spec reviewer reports, fix each issue that would build the wrong thing, re-render and recheck, then run interphase's Phase 10 hand-off (ADRs, tree guard verify, status handed-off).
 
 ## Decisions in force
+
+- D1 Interphase hand-off boundary: build waits on the shared reference writers: Park at the hand-off. Once the dependency command in the pipeline checkout prints a path on either ref, the build session sets the CHARTER's Pipeline ref line to that ref and runs ~/.mitosis/interphase/interphase-metrics/run.zsh, then the rest of pipeline:run to the last pull request.
 
 ## Open risks
 
