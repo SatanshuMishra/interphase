@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T06:28:09.710Z
+Updated: 2026-10-27T06:53:20.244Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -16,11 +16,11 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Stage 2's first build is running in the background (output in build-1.log), building 5 Lanes across MSPs interview-rounds and self-metrics. The shared writers are on the pipeline's origin/feat/unified-metrics at a39ab11 and not on origin/main; the CHARTER's Pipeline ref line names that ref, and the landed Python writer's interface matches the one the Steps assume. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+Stage 3 round 1 is running: code-reviewer and conformance-auditor on both MSPs, security-reviewer on self-metrics. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
-When the build ends, read the last line of ~/.mitosis/interphase/interphase-metrics/build-1.log (mitosis's JSON result), write lane notes' Assumption lines to review/<msp>.assumptions.txt, and go on to Stage 3 review for interview-rounds and self-metrics.
+When the five round-1 reviewers report, collect each MSP's findings into review/round-1/<msp>.findings.json, then run pipeline candidates, the validator, pipeline record and pipeline verdict per MSP.
 
 Needs: D2.
 
