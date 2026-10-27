@@ -28,6 +28,7 @@ MAIN_SESSION = "main session"
 SYNTHETIC = "<synthetic>"
 TOKEN_KINDS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 ASK = "AskUserQuestion"
+PERSON = "human"
 
 
 def load_script(name):
@@ -299,8 +300,13 @@ def parts(record):
     return tuple(part for part in content if isinstance(part, dict)) if isinstance(content, list) else ()
 
 
+def typed_by_person(record):
+    origin = record.get("origin")
+    return isinstance(origin, dict) and origin.get("kind") == PERSON and not record.get("isMeta")
+
+
 def typed_text(record):
-    if record.get("isMeta"):
+    if not typed_by_person(record):
         return False
     message = record.get("message")
     content = message.get("content") if isinstance(message, dict) else None
