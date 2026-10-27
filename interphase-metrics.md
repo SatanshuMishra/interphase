@@ -1,7 +1,7 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T12:13:25.330Z
-Next ids: c5 D6 R4 S1
+Updated: 2026-10-27T12:13:36.868Z
+Next ids: c5 D6 R5 S1
 
 ## Goal
 
@@ -20,9 +20,9 @@ Integration is done. The FEATURE pull request SatanshuMishra/interphase#52 (feat
 
 ## Next step
 
-Run ~/.mitosis/interphase/interphase-metrics/amend-2.zsh --plan-only, then the build, merge its branch into feat/interphase-metrics in the integration worktree, run the suite and the selecting check, push, then lighthouse run 2 with --previous run-1 until the FEATURE pull request into main opens.
+The owner starts Clean-up by saying SatanshuMishra/interphase#52 merged into main; then resume_thread interphase-metrics, read ~/.mitosis/interphase/interphase-metrics/CHARTER.md and run pipeline:run's Clean-up.
 
-Needs: D5, R2, R3.
+Needs: R2, R3, R4.
 
 ## Decisions in force
 
@@ -35,6 +35,7 @@ Needs: D5, R2, R3.
 
 - R2 When the pipeline drives interphase in the same Claude Code session, PLUGIN_METRICS_PARENT is not in that session's environment (run.zsh exports it only for mitosis), so interphase records parent null; out of this spec's scope, a pipeline-side change.
 - R3 Criteria 5.4 and 5.20 are live-session checks the builder cannot run; they stay unproven until the owner runs one real interphase session.
+- R4 A Bash call running the guard snapshot then a failing command arrives as PostToolUseFailure, and 5.5 starts no run on a failed snapshot, so that run records nothing (lighthouse run 2 flaky, 1 of 4 live runs); needs an amendment.
 
 ## Settled, do not reopen
 
