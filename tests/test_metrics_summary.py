@@ -143,8 +143,13 @@ def assistant(moment, model="claude-opus-5-5", tokens=None, message_id=None, con
     }
 
 
-def typed(moment, text="next"):
-    return {"type": "user", "uuid": "t-" + transcript_stamp(moment), "timestamp": transcript_stamp(moment), "message": {"role": "user", "content": text}}
+def typed(moment, text="next", origin="human", **extra):
+    described = {"origin": {"kind": origin}} if origin is not None else {}
+    return dict(
+        {"type": "user", "uuid": "t-" + transcript_stamp(moment), "timestamp": transcript_stamp(moment), "message": {"role": "user", "content": text}},
+        **described,
+        **extra
+    )
 
 
 def tool_result(moment, tool_use_id):
@@ -520,6 +525,26 @@ class SummaryTimeTest(unittest.TestCase):
         ])
         line = built(self, sandbox, run_of("feat-a"), [START_EVENT, event(600, "steps.checked", {"exit": 0, "errors": 0, "warnings": 0})])
         self.assertEqual(line["wait_seconds"], 360)
+
+    def test_non_typed_user_records_do_not_count_as_wait(self):
+        written_by_others = {
+            "task notification": typed(at(70), "<task-notification>done</task-notification>", origin="task-notification"),
+            "compaction summary": typed(at(70), "This session is being continued", origin=None, isCompactSummary=True, isVisibleInTranscriptOnly=True),
+            "reminder only": typed(at(70), "<system-reminder>note</system-reminder>", origin=None),
+            "local command output": typed(at(70), "<local-command-stdout>ok</local-command-stdout>", origin=None),
+            "interrupt marker": typed(at(70), "[Request interrupted by user]", origin=None),
+            "plugin prompt": typed(at(70), "/compact", origin="plugin"),
+        }
+        for name, record in written_by_others.items():
+            with self.subTest(record=name):
+                sandbox = make_sandbox(self)
+                write_transcript(main_transcript(sandbox, "s-1"), [assistant(at(10)), record])
+                line = built(self, sandbox, run_of("feat-a"), [START_EVENT, event(600, "steps.checked", {"exit": 0, "errors": 0, "warnings": 0})])
+                self.assertEqual(line["wait_seconds"], 0)
+        sandbox = make_sandbox(self)
+        write_transcript(main_transcript(sandbox, "s-1"), [assistant(at(10)), typed(at(70))])
+        line = built(self, sandbox, run_of("feat-a"), [START_EVENT, event(600, "steps.checked", {"exit": 0, "errors": 0, "warnings": 0})])
+        self.assertEqual(line["wait_seconds"], 60)
 
     def test_readback_answer_counts_as_wait(self):
         sandbox = make_sandbox(self)
