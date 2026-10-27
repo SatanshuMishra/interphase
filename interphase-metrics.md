@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:13:42.079Z
+Updated: 2026-10-27T08:14:04.145Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c); gate 5 pass, 2 inert, which are not findings. self-metrics is between review rounds 1 and 2 on mitosis/self-metrics at 46beae0 (base mitosis/interview-rounds; round 1 reviewed 09bcee9): round 1 blocker C2 (non-typed text counted as typed) is fixed with receipt a2d4714 and fix 700dca7, advisories C4, C5 and S2 are fixed in 501d906 (new scripts/metrics_files.py, outside the write-set), and the stale summary overwrite race (C1, S1) is answered by amendment 1, merged from mitosis/self-metrics-amend-1 (700624a): 5.10 now writes the summary under the event file's append lock only when that file is unchanged. The amendment's gate passed test_build_skips_when_events_changed and found test_overlapping_builds_leave_the_newer_summary inert, because on the old code the newer build always finishes last. The round-2 suite at 46beae0 passes 448 tests (review/round-2/self-metrics.suite.txt). Nothing is pushed. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c); gate 5 pass, 2 inert, which are not findings. self-metrics is in review round 2, its code-reviewer and security-reviewer running, on mitosis/self-metrics at 46beae0 (base mitosis/interview-rounds; round 1 reviewed 09bcee9): round 1 blocker C2 (non-typed text counted as typed) is fixed with receipt a2d4714 and fix 700dca7, advisories C4, C5 and S2 are fixed in 501d906 (new scripts/metrics_files.py, outside the write-set), and the stale summary overwrite race (C1, S1) is answered by amendment 1, merged from mitosis/self-metrics-amend-1 (700624a): 5.10 now writes the summary under the event file's append lock only when that file is unchanged. The amendment's gate passed test_build_skips_when_events_changed and found test_overlapping_builds_leave_the_newer_summary inert, because on the old code the newer build always finishes last. The round-2 suite at 46beae0 passes 448 tests (review/round-2/self-metrics.suite.txt). Nothing is pushed. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
