@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
-Status: active
-Updated: 2026-10-27T00:04:23.632Z
+Status: parked
+Updated: 2026-10-27T00:04:30.195Z
 Next ids: c5 D2 R4 S1
 
 ## Goal
