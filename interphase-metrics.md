@@ -1,7 +1,7 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-27T00:04:07.456Z
-Next ids: c5 D2 R1 S1
+Updated: 2026-10-27T00:04:23.632Z
+Next ids: c5 D2 R4 S1
 
 ## Goal
 
@@ -9,9 +9,9 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Done when
 
-- [ ] c1 The spec, decisions file, record and items for interphase-metrics are in docs/specs/ of this checkout, with the glossary and decision records interphase wrote left uncommitted
-- [ ] c2 The FEATURE branch is pushed and the run home ~/.mitosis/interphase/interphase-metrics/ holds CHARTER.md, worker-rules.txt, dispatch.zsh and run.zsh
-- [ ] c3 run.zsh --plan-only passes with no fatal finding
+- [x] c1 The spec, decisions file, record and items for interphase-metrics are in docs/specs/ of this checkout, with the glossary and decision records interphase wrote left uncommitted evidence: docs/specs/interphase-metrics.{md,decisions.md,record.json,items.json} exist (record status handed-off, check_items passes); git status shows GLOSSARY.md and docs/ (ADRs 0001, 0002) untracked, nothing committed
+- [x] c2 The FEATURE branch is pushed and the run home ~/.mitosis/interphase/interphase-metrics/ holds CHARTER.md, worker-rules.txt, dispatch.zsh and run.zsh evidence: git ls-remote shows refs/heads/feat/interphase-metrics at 4b8ad3c8 on origin; run home lists CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, feature.json, items.json, graph.json
+- [x] c3 run.zsh --plan-only passes with no fatal finding evidence: run.zsh --plan-only exit 0, plan 9ed65354d82c, 8 Steps in 5 Lanes across 2 MSPs, no fatal finding (plan-2.log)
 - [ ] c4 The thread is parked with a next step gated on the shared reference writers existing on origin/feat/unified-metrics or origin/main
 
 ## Where things stand
@@ -20,13 +20,19 @@ Stage 1 is handed off: the spec, decisions, record (status handed-off) and 8-Ste
 
 ## Next step
 
-When the spec reviewer reports, fix each issue that would build the wrong thing, re-render and recheck, then run interphase's Phase 10 hand-off (ADRs, tree guard verify, status handed-off).
+Gate: in /Users/satanshumishra/Documents/DevLabs/pipeline run `git fetch -q origin && git ls-tree --name-only <ref> -- pipeline_tool/metrics_writer.py metrics/metrics-writer.ts docs/metrics-format.md` for origin/main and origin/feat/unified-metrics. Once one prints a path (prefer origin/main), replace the "Pipeline ref:" line in ~/.mitosis/interphase/interphase-metrics/CHARTER.md with that ref, then run ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (first build), then the rest of pipeline:run (review, validate, fix pass, ship) to the last pull request.
+
+Needs: D1, R1.
 
 ## Decisions in force
 
 - D1 Interphase hand-off boundary: build waits on the shared reference writers: Park at the hand-off. Once the dependency command in the pipeline checkout prints a path on either ref, the build session sets the CHARTER's Pipeline ref line to that ref and runs ~/.mitosis/interphase/interphase-metrics/run.zsh, then the rest of pipeline:run to the last pull request.
 
 ## Open risks
+
+- R1 Shared writers absent: as of 2026-10-26 neither origin/feat/unified-metrics nor origin/main in the pipeline repo holds pipeline_tool/metrics_writer.py, metrics/metrics-writer.ts or docs/metrics-format.md; the writer-copy Step cannot build until one does, and its assumed API must be rechecked against the landed writer.
+- R2 When the pipeline drives interphase in the same Claude Code session, PLUGIN_METRICS_PARENT is not in that session's environment (run.zsh exports it only for mitosis), so interphase records parent null; out of this spec's scope, a pipeline-side change.
+- R3 Criteria 5.4 and 5.20 are live-session checks the builder cannot run; they stay unproven until the owner runs one real interphase session.
 
 ## Settled, do not reopen
 
