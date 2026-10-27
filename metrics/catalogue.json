@@ -1,0 +1,1729 @@
+{
+  "format": 1,
+  "plugin": "interphase",
+  "purpose": "interphase turns a request into an approved, testable spec and buildable Steps: it interviews the person until the intent is shared, writes the spec and its Steps, checks and reviews them, and hands them off with the repository unchanged.",
+  "objectives": [
+    {
+      "id": "approved-spec",
+      "text": "Each run ends in a spec the person approved at the read-back and handed off with the repository unchanged.",
+      "measured_by": [
+        "summary.status",
+        "summary.approved",
+        "summary.readbacks",
+        "event.run.handoff.clean"
+      ]
+    },
+    {
+      "id": "testable-spec",
+      "text": "Each spec states criteria whose tests prove them at named seams.",
+      "measured_by": [
+        "summary.criteria",
+        "summary.tests",
+        "summary.unproven",
+        "summary.varying",
+        "summary.case_tables",
+        "summary.seams"
+      ]
+    },
+    {
+      "id": "buildable-steps",
+      "text": "Each spec comes with Steps a builder can build, and rarely needs an amendment after hand-off.",
+      "measured_by": [
+        "summary.steps",
+        "summary.msps",
+        "summary.steps_with_assumptions",
+        "summary.amendment",
+        "summary.amends",
+        "event.run.start.amending"
+      ]
+    },
+    {
+      "id": "interview",
+      "text": "The interview settles the intent in few rounds, with recommended answers the person mostly takes.",
+      "measured_by": [
+        "summary.rounds",
+        "summary.questions",
+        "summary.recommended",
+        "summary.changed",
+        "summary.intent_lines",
+        "summary.attended",
+        "summary.decisions"
+      ]
+    },
+    {
+      "id": "assumptions",
+      "text": "The guesses made after the interview each rest on a recorded intent line.",
+      "measured_by": [
+        "summary.assumptions",
+        "summary.assumptions_by_intent"
+      ]
+    },
+    {
+      "id": "review-and-checks",
+      "text": "interphase's checks and its spec review find few errors in its drafts, and none remain at hand-off.",
+      "measured_by": [
+        "summary.checks",
+        "summary.review_issues",
+        "summary.review_approved",
+        "event.spec.checked.errors",
+        "event.items.checked.errors",
+        "event.review.done.issues"
+      ]
+    },
+    {
+      "id": "time-and-spend",
+      "text": "Each run's time and its own spend are known, by phase, by wait for the person and by model.",
+      "measured_by": [
+        "summary.lead_seconds",
+        "summary.wait_seconds",
+        "summary.phases",
+        "summary.usd",
+        "summary.tokens",
+        "summary.models",
+        "summary.unpriced"
+      ]
+    }
+  ],
+  "events": {
+    "run.start": {
+      "description": "A run started: interphase took its guard snapshot of the repository before writing a spec or an amendment.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "When did each run start?",
+        "Which runs amend a handed-off spec?"
+      ],
+      "fields": {
+        "slug": {
+          "type": "string",
+          "description": "The spec's slug, the name every file of the spec package starts with.",
+          "measured_from": "The docs/specs/<slug>.guard.json path named by the guard snapshot command.",
+          "unit": "id",
+          "includes": "The file name before its first dot.",
+          "excludes": "The folder and the suffix.",
+          "reading": "Every run of one spec shares this value; a reused slug names a new spec's runs too.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Which spec is this run about?"
+        },
+        "amends": {
+          "type": "string",
+          "description": "The run id of the earlier run of this slug that this run amends.",
+          "measured_from": "The store at the moment of the snapshot: the slug's newest run in this repository, taken only when the record already said handed-off.",
+          "unit": "id",
+          "includes": "The run id of the slug's newest earlier run in this repository.",
+          "excludes": "Runs of other repositories and runs of a reused slug whose record was not handed off.",
+          "reading": "A run id means this run amends a handed-off spec; null means this run is not an amendment.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Which run did this amendment correct?"
+        },
+        "amending": {
+          "type": "boolean",
+          "description": "Whether this run amends a spec that was already handed off.",
+          "measured_from": "The record file docs/specs/<slug>.record.json at the moment of the snapshot: true when it exists with status handed-off.",
+          "unit": "none",
+          "includes": "Snapshots taken while the record says handed-off.",
+          "excludes": "Snapshots of a new spec, a reused slug whose record is absent or in progress included.",
+          "reading": "true means the run amends a handed-off spec; false means it writes a new spec.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How often does a handed-off spec need an amendment?"
+        }
+      }
+    },
+    "round.recorded": {
+      "description": "The record check ran on the interview record without --complete, after interphase wrote a round, a seam, a criterion or a Step.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "How many record checks did the interview take?",
+        "How many errors did each record check find?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the record check as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the record check pass on this run of it?"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "The number of lines the record check printed that start \"error:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"error:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more errors in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many errors did the record check find at this point of the run?"
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "The number of lines the record check printed that start \"warning:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"warning:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more warnings in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many warnings did the record check find at this point of the run?"
+        },
+        "seams": {
+          "type": "integer",
+          "description": "The number of seams in the interview record when the record check ran.",
+          "measured_from": "The record file docs/specs/<slug>.record.json at that moment: the length of its seams list.",
+          "unit": "count",
+          "includes": "Every entry of the record's seams list.",
+          "excludes": "Entries written after this check ran.",
+          "reading": "Higher means the record held more seams at that moment; 0 means none yet. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How far had the record grown by this check?"
+        },
+        "criteria": {
+          "type": "integer",
+          "description": "The number of criteria in the interview record when the record check ran.",
+          "measured_from": "The record file docs/specs/<slug>.record.json at that moment: the length of its criteria list.",
+          "unit": "count",
+          "includes": "Every entry of the record's criteria list.",
+          "excludes": "Entries written after this check ran.",
+          "reading": "Higher means the record held more criteria at that moment; 0 means none yet. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How far had the record grown by this check?"
+        },
+        "steps": {
+          "type": "integer",
+          "description": "The number of Steps in the interview record when the record check ran.",
+          "measured_from": "The record file docs/specs/<slug>.record.json at that moment: the length of its steps list.",
+          "unit": "count",
+          "includes": "Every entry of the record's steps list.",
+          "excludes": "Entries written after this check ran.",
+          "reading": "Higher means the record held more Steps at that moment; 0 means none yet. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How far had the record grown by this check?"
+        },
+        "rounds": {
+          "type": "integer",
+          "description": "The number of interview rounds in the interview record when the record check ran.",
+          "measured_from": "The record file docs/specs/<slug>.record.json at that moment: the length of its rounds list.",
+          "unit": "count",
+          "includes": "Every entry of the record's rounds list.",
+          "excludes": "Entries written after this check ran.",
+          "reading": "Higher means the record held more interview rounds at that moment; 0 means none yet. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How far had the record grown by this check?"
+        }
+      }
+    },
+    "steps.checked": {
+      "description": "The record check ran with --complete, checking that the record and its Steps are complete.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "How many complete checks did the Steps need before they passed?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the complete record check as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the complete record check pass on this run of it?"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "The number of lines the complete record check printed that start \"error:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"error:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more errors in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many errors did the complete record check find at this point of the run?"
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "The number of lines the complete record check printed that start \"warning:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"warning:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more warnings in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many warnings did the complete record check find at this point of the run?"
+        }
+      }
+    },
+    "readback.asked": {
+      "description": "The person answered a question asked through AskUserQuestion during the run, such as the read-back.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "How many read-backs did the run ask before the spec was written?"
+      ],
+      "fields": {}
+    },
+    "spec.rendered": {
+      "description": "The render script wrote the spec and the items file from the record.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "When did interphase start writing the spec?",
+        "Which amendment did a render write?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the render script as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the render script pass on this run of it?"
+        },
+        "amendment": {
+          "type": "integer",
+          "description": "The amendment number the render wrote.",
+          "measured_from": "The integer after --amendment on the render script's command line.",
+          "unit": "count",
+          "includes": "Renders of an amendment's items file.",
+          "excludes": "Renders of the first spec.",
+          "reading": "1 or higher names the amendment rendered; null means the render wrote the first spec.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Which amendment of the spec was written?"
+        }
+      }
+    },
+    "spec.checked": {
+      "description": "The spec check ran on the written spec.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "How many errors did the spec check find in the first draft and the last?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the spec check as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the spec check pass on this run of it?"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "The number of lines the spec check printed that start \"error:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"error:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more errors in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many errors did the spec check find at this point of the run?"
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "The number of lines the spec check printed that start \"warning:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"warning:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more warnings in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many warnings did the spec check find at this point of the run?"
+        }
+      }
+    },
+    "items.checked": {
+      "description": "The items check ran on the written Steps.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "How many errors did the items check find in the first draft and the last?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the items check as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the items check pass on this run of it?"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "The number of lines the items check printed that start \"error:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"error:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more errors in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many errors did the items check find at this point of the run?"
+        },
+        "warnings": {
+          "type": "integer",
+          "description": "The number of lines the items check printed that start \"warning:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"warning:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more warnings in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many warnings did the items check find at this point of the run?"
+        },
+        "amendment": {
+          "type": "boolean",
+          "description": "Whether the items check ran on an amendment's items file.",
+          "measured_from": "The items check's command line: true when it holds --amendment.",
+          "unit": "none",
+          "includes": "Checks run with --amendment.",
+          "excludes": "Checks of the first items file.",
+          "reading": "true means an amendment's Steps were checked; false means the first Steps were.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Was this check on an amendment?"
+        }
+      }
+    },
+    "review.done": {
+      "description": "The interphase:spec-reviewer agent returned its one review of the spec and its Steps.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "Did the review approve the spec?",
+        "How many issues did the review raise?"
+      ],
+      "fields": {
+        "approved": {
+          "type": "boolean",
+          "description": "Whether the spec reviewer approved the spec.",
+          "measured_from": "The reviewer's reply: true when its first non-empty line is \"Status: Approved\", false when it is \"Status: Issues found\".",
+          "unit": "none",
+          "includes": "The reviewer's own Status line.",
+          "excludes": "Any judgement in the reply's prose.",
+          "reading": "true means approved; false means issues were found. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did interphase's spec pass its review?"
+        },
+        "issues": {
+          "type": "integer",
+          "description": "The number of issues the spec reviewer raised.",
+          "measured_from": "The reviewer's reply: the lines after its Status line that start \"- \".",
+          "unit": "count",
+          "includes": "Every issue line the reviewer wrote.",
+          "excludes": "Prose lines that do not start \"- \".",
+          "reading": "Higher means the review found more issues; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many issues did the review find in the spec?"
+        }
+      }
+    },
+    "run.handoff": {
+      "description": "The guard verify ran, comparing the repository with the snapshot at hand-off.",
+      "writer": "the interphase metrics hook",
+      "readers": [
+        "the owner auditing interphase",
+        "the interphase:metrics skill",
+        "a query across plugins"
+      ],
+      "questions": [
+        "Did the run hand off with the repository unchanged?"
+      ],
+      "fields": {
+        "exit": {
+          "type": "integer",
+          "description": "The exit code of the guard verify as the shell reported it.",
+          "measured_from": "The hook payload of the Bash call: 0 when the call succeeded, the integer after \"Exit code \" on the first line of the error when it failed.",
+          "unit": "none",
+          "includes": "The exit code when the command runs exactly one of interphase's scripts and that script is the command's last part.",
+          "excludes": "Commands where anything runs after the script, such as an echo of its exit code, commands that run more than one of interphase's scripts, and interrupted commands.",
+          "reading": "0 means the script passed; a higher number means it refused or failed. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did the guard verify pass on this run of it?"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "The number of lines the guard verify printed that start \"error:\".",
+          "measured_from": "A check's printed lines: the Bash call's stdout and stderr, or the error text after its first line when the call failed.",
+          "unit": "count",
+          "includes": "Every printed line starting \"error:\" when the command runs exactly one of interphase's scripts.",
+          "excludes": "Lines printed by any other part of the command, and every count on a command that runs more than one of interphase's scripts, whose outputs cannot be told apart.",
+          "reading": "Higher means the check found more errors in this draft; 0 means it found none. Null means the value is unknown or its source was absent; null is never zero.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many errors did the guard verify find at this point of the run?"
+        },
+        "clean": {
+          "type": "boolean",
+          "description": "Whether the guard verify found the repository unchanged outside the spec package.",
+          "measured_from": "The guard verify's exit code and its printed error lines: false when the exit code is a non-zero integer or an error line was printed.",
+          "unit": "none",
+          "includes": "The verify's own exit code and error lines.",
+          "excludes": "Changes inside the spec package, which the guard allows.",
+          "reading": "true means the tree matched the snapshot; false means it differed. Null means both the exit code and the error count are unknown.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Did interphase change anything outside its spec package?"
+        }
+      }
+    }
+  },
+  "summary": {
+    "description": "One line per run, rebuilt after every event: what the run produced, how its interview, checks and review went, where its time went and what its own messages cost.",
+    "fields": {
+      "slug": {
+        "type": "string",
+        "description": "The spec's slug.",
+        "measured_from": "The summary builder's --slug argument, the slug of the run's events.",
+        "unit": "id",
+        "includes": "The file name before its first dot.",
+        "excludes": "The folder and the suffix.",
+        "reading": "Every run of one spec shares this value.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which spec is this run about?"
+      },
+      "status": {
+        "type": "enum",
+        "description": "Where the run stands.",
+        "measured_from": "The run's events: the last run.handoff's clean.",
+        "unit": "none",
+        "includes": "handed-off when the last guard verify was clean, guard-difference when it found a difference, in-progress before any guard verify.",
+        "excludes": "Anything after the run's last event.",
+        "reading": "handed-off means the run ended with the repository unchanged; guard-difference means the verify found a change; in-progress means no hand-off yet. Null means the last verify's result is unknown.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Did the run reach hand-off?",
+        "values": [
+          "in-progress",
+          "handed-off",
+          "guard-difference"
+        ]
+      },
+      "pathway": {
+        "type": "enum",
+        "description": "The pathway that wrote the spec.",
+        "measured_from": "The spec file docs/specs/<slug>.md: the name in its line \"Pathway: <name>.\".",
+        "unit": "none",
+        "includes": "The four pathways.",
+        "excludes": "Nothing else.",
+        "reading": "Names the kind of request. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which kinds of request does interphase run on?",
+        "values": [
+          "feature",
+          "bug",
+          "prototype",
+          "project"
+        ]
+      },
+      "lane": {
+        "type": "enum",
+        "description": "Whether the spec is a brief or a full spec.",
+        "measured_from": "The spec file docs/specs/<slug>.md: brief when it holds the line \"Lane: brief.\", full otherwise.",
+        "unit": "none",
+        "includes": "Both lanes.",
+        "excludes": "Nothing else.",
+        "reading": "brief means a short spec without an interview; full means a full spec. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many runs wrote a brief rather than a full spec?",
+        "values": [
+          "full",
+          "brief"
+        ]
+      },
+      "attended": {
+        "type": "boolean",
+        "description": "Whether a person answered the interview.",
+        "measured_from": "The decisions file docs/specs/<slug>.decisions.md: false when every \"- I<n>\" line of its Intent section ends \"(inferred)\".",
+        "unit": "none",
+        "includes": "The intent lines of the decisions file.",
+        "excludes": "Every other section.",
+        "reading": "true means a person stated the intent; false means interphase inferred every intent line. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many runs were interviewed and how many ran unattended?"
+      },
+      "amends": {
+        "type": "string",
+        "description": "The run id of the earlier run this run amends.",
+        "measured_from": "The run's run.start event.",
+        "unit": "id",
+        "includes": "The slug's newest earlier run in the repository when the record was already handed off.",
+        "excludes": "Runs of other repositories.",
+        "reading": "A run id means this run is an amendment; null means it is not.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How often does a handed-off spec need an amendment?"
+      },
+      "amendment": {
+        "type": "integer",
+        "description": "The amendment number this run wrote.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the highest amendment among its Steps, taken only when the run amends an earlier one.",
+        "unit": "count",
+        "includes": "Amendment runs.",
+        "excludes": "Runs that write a new spec.",
+        "reading": "1 or higher numbers the amendment; null means the run is not an amendment or its record is absent.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many times has this spec been amended?"
+      },
+      "lead_seconds": {
+        "type": "number",
+        "description": "The run's lead time.",
+        "measured_from": "The run's events: the seconds from the first event's ts to the last's.",
+        "unit": "seconds",
+        "includes": "Everything between the guard snapshot and the run's latest event, waits for the person included.",
+        "excludes": "Time before the guard snapshot.",
+        "reading": "Higher means the run took longer; 0 means it holds one event so far.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How long does a run take from snapshot to hand-off?"
+      },
+      "wait_seconds": {
+        "type": "number",
+        "description": "The time the run spent waiting for the person.",
+        "measured_from": "The session transcripts: for each message the person typed, or each read-back answer, inside the run's span, the seconds since the latest assistant message before it.",
+        "unit": "seconds",
+        "includes": "Typed messages and answers to AskUserQuestion inside the run's span.",
+        "excludes": "Every other tool result and the subagents' transcripts.",
+        "reading": "Higher means more of the lead time was spent waiting for the person; 0 means none. Null means no main transcript of the run's sessions was found.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much of a run's time is the person's?"
+      },
+      "phases": {
+        "type": "array",
+        "description": "The time spent in each phase of the run, in time order.",
+        "measured_from": "The run's events: the spans between the landmarks run.start, the first round.recorded, the first steps.checked, the last readback.asked, the first spec.rendered, the last check or review after that render, and run.handoff.",
+        "unit": "none",
+        "includes": "Each span between two landmarks present in time order.",
+        "excludes": "Landmarks that are absent or earlier than the landmark kept before them.",
+        "reading": "Each entry names the phase a span ends; a missing phase means its landmark did not occur. Null means the run's events were absent.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Where does a run's time go?",
+        "items": {
+          "type": "object",
+          "description": "One phase and its seconds.",
+          "measured_from": "Two consecutive landmark events of the run.",
+          "unit": "none",
+          "includes": "One span.",
+          "excludes": "Other spans.",
+          "reading": "Each entry is one span of the run.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How long did this phase take?",
+          "fields": {
+            "phase": {
+              "type": "enum",
+              "description": "The phase's name: ground for the first span, otherwise named for the landmark that ends it.",
+              "measured_from": "The landmark that ends the span: interview for steps.checked, read-back for readback.asked, write for spec.rendered, review for the last check or review, hand-off for run.handoff.",
+              "unit": "none",
+              "includes": "The six phase names.",
+              "excludes": "Nothing else.",
+              "reading": "Names the phase the seconds belong to.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Which phase is this?",
+              "values": [
+                "ground",
+                "interview",
+                "read-back",
+                "write",
+                "review",
+                "hand-off"
+              ]
+            },
+            "seconds": {
+              "type": "number",
+              "description": "The phase's length.",
+              "measured_from": "The seconds between the two landmarks' ts.",
+              "unit": "seconds",
+              "includes": "The whole span.",
+              "excludes": "Time outside the span.",
+              "reading": "Higher means the phase took longer; 0 means both landmarks fell in the same second.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How long did this phase take?"
+            }
+          }
+        }
+      },
+      "sessions": {
+        "type": "integer",
+        "description": "The number of Claude Code sessions the run spanned.",
+        "measured_from": "The run's events: the distinct non-null session values.",
+        "unit": "count",
+        "includes": "Every session that wrote one of the run's events.",
+        "excludes": "Events whose session is null.",
+        "reading": "1 means the run stayed in one session; higher means it was resumed in others. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How often does a run span several sessions?"
+      },
+      "intent_lines": {
+        "type": "integer",
+        "description": "The number of intent lines.",
+        "measured_from": "The decisions file docs/specs/<slug>.decisions.md: the \"- I<n>\" lines.",
+        "unit": "count",
+        "includes": "Every intent line.",
+        "excludes": "Every other line.",
+        "reading": "Higher means the intent was stated in more lines. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much intent did the interview settle?"
+      },
+      "rounds": {
+        "type": "integer",
+        "description": "The number of interview rounds.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the length of its rounds list.",
+        "unit": "count",
+        "includes": "The intent round and every frontier round.",
+        "excludes": "Read-backs, which are not rounds.",
+        "reading": "Higher means the interview took more rounds; null with a record present means it holds no rounds list. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many rounds does an interview take?"
+      },
+      "questions": {
+        "type": "integer",
+        "description": "The number of questions the interview asked.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the sum of its rounds entries' questions.",
+        "unit": "count",
+        "includes": "Every question of every round.",
+        "excludes": "Read-back questions.",
+        "reading": "Higher means the interview asked more questions. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many questions does an interview ask?"
+      },
+      "recommended": {
+        "type": "integer",
+        "description": "The number of answers the person took as recommended.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the questions minus the changed answers over its rounds entries.",
+        "unit": "count",
+        "includes": "Every answer that matched interphase's recommended answer.",
+        "excludes": "Answers the person changed.",
+        "reading": "Higher means more of interphase's recommendations were taken as they stood. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much of the interview did interphase get right on its own?"
+      },
+      "changed": {
+        "type": "integer",
+        "description": "The number of answers the person changed from the recommended one.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the sum of its rounds entries' changed.",
+        "unit": "count",
+        "includes": "Every answer that differed from the recommendation.",
+        "excludes": "Answers taken as recommended.",
+        "reading": "Higher means the person changed more recommendations; 0 means every recommendation was taken. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How often does the person correct interphase's recommendations?"
+      },
+      "readbacks": {
+        "type": "integer",
+        "description": "The number of questions answered through AskUserQuestion during the run, such as the read-back.",
+        "measured_from": "The run's events: the readback.asked events.",
+        "unit": "count",
+        "includes": "Every AskUserQuestion answer in the run's sessions while the run was open.",
+        "excludes": "Questions asked in plain text.",
+        "reading": "Higher means more read-backs before the spec was written; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many read-backs did the run need?"
+      },
+      "approved": {
+        "type": "boolean",
+        "description": "Whether the person's read-back led to the spec being written.",
+        "measured_from": "The run's events: true when a spec.rendered follows the last readback.asked, false when read-backs were asked and no render follows.",
+        "unit": "none",
+        "includes": "The read-backs and renders of the run.",
+        "excludes": "Runs without a read-back.",
+        "reading": "true means the spec was written after the last read-back; false means it was not written yet. Null means no read-back was asked.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Did the read-back reach an approved spec?"
+      },
+      "decisions": {
+        "type": "integer",
+        "description": "The number of decisions recorded.",
+        "measured_from": "The decisions file docs/specs/<slug>.decisions.md: the \"- \" lines of its Decisions section.",
+        "unit": "count",
+        "includes": "Every decision line.",
+        "excludes": "Every other section.",
+        "reading": "Higher means more decisions were recorded. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many decisions did the run settle?"
+      },
+      "seams": {
+        "type": "integer",
+        "description": "The number of test seams.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the length of its seams list.",
+        "unit": "count",
+        "includes": "Every seam.",
+        "excludes": "Nothing else.",
+        "reading": "Higher means the spec tests at more seams. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many seams does a spec test at?"
+      },
+      "criteria": {
+        "type": "integer",
+        "description": "The number of acceptance criteria.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the length of its criteria list.",
+        "unit": "count",
+        "includes": "Every criterion.",
+        "excludes": "Nothing else.",
+        "reading": "Higher means the spec states more criteria. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How large is the spec?"
+      },
+      "tests": {
+        "type": "integer",
+        "description": "The number of test rows.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the rows of every criterion's tests list.",
+        "unit": "count",
+        "includes": "Every row of every criterion.",
+        "excludes": "Nothing else.",
+        "reading": "Higher means the spec names more tests. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How testable is the spec?"
+      },
+      "unproven": {
+        "type": "integer",
+        "description": "The number of criteria marked unproven.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the criteria with unproven.",
+        "unit": "count",
+        "includes": "Every criterion whose tests do not prove it for the user.",
+        "excludes": "Proven criteria.",
+        "reading": "Higher means more criteria rest on proof the builder cannot run; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much of the spec can the build prove?"
+      },
+      "varying": {
+        "type": "integer",
+        "description": "The number of criteria for behaviour that varies from run to run.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the criteria with varies.",
+        "unit": "count",
+        "includes": "Every criterion with a kind of variation.",
+        "excludes": "Criteria for fixed behaviour.",
+        "reading": "Higher means more criteria need population tests; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much of the spec varies from run to run?"
+      },
+      "case_tables": {
+        "type": "integer",
+        "description": "The number of criteria with a case table.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the criteria with case_table.",
+        "unit": "count",
+        "includes": "Every security or refusal case table.",
+        "excludes": "Criteria without one.",
+        "reading": "Higher means more criteria refuse something or are security-sensitive; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How much of the spec is refusal or security behaviour?"
+      },
+      "steps": {
+        "type": "integer",
+        "description": "The number of Steps.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the length of its steps list.",
+        "unit": "count",
+        "includes": "Every Step, amendment Steps included.",
+        "excludes": "Nothing else.",
+        "reading": "Higher means the build is split into more Steps. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many Steps does a spec need?"
+      },
+      "msps": {
+        "type": "integer",
+        "description": "The number of separately shippable parts the Steps form.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the distinct non-empty msp values of its Steps.",
+        "unit": "count",
+        "includes": "Every distinct msp value.",
+        "excludes": "Steps without an msp.",
+        "reading": "Higher means the Steps ship as more parts; 0 means no Step names one. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many separate parts does a spec ship as?"
+      },
+      "steps_with_assumptions": {
+        "type": "integer",
+        "description": "The number of Steps that carry assumptions.",
+        "measured_from": "The record file docs/specs/<slug>.record.json: the Steps with a non-empty assumptions list.",
+        "unit": "count",
+        "includes": "Every Step with at least one assumption.",
+        "excludes": "Steps without assumptions.",
+        "reading": "Higher means more Steps rest on a guess made after the interview; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many Steps rest on assumptions?"
+      },
+      "assumptions": {
+        "type": "integer",
+        "description": "The number of assumptions the spec lists.",
+        "measured_from": "The spec file docs/specs/<slug>.md: the \"- \" lines of its Assumptions subsection other than \"- None\".",
+        "unit": "count",
+        "includes": "Every assumption line.",
+        "excludes": "The line \"- None\".",
+        "reading": "Higher means interphase filled more gaps after the interview; 0 means it filled none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many guesses did interphase make after the interview?"
+      },
+      "assumptions_by_intent": {
+        "type": "array",
+        "description": "The number of assumptions citing each intent line, ordered by intent number.",
+        "measured_from": "The spec file docs/specs/<slug>.md: each I<n> inside a \"(relies on\" parenthesis of its Assumptions lines.",
+        "unit": "none",
+        "includes": "Every intent line cited, counted once per assumption line.",
+        "excludes": "Intent lines no assumption cites.",
+        "reading": "An entry with a higher count means more guesses rest on that intent line; an empty list means no assumption cites one. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which intent lines do interphase's guesses rest on?",
+        "items": {
+          "type": "object",
+          "description": "One intent line and the assumptions citing it.",
+          "measured_from": "The spec's Assumptions lines.",
+          "unit": "none",
+          "includes": "One intent line.",
+          "excludes": "Other intent lines.",
+          "reading": "Each entry is one cited intent line.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How many guesses rest on this intent line?",
+          "fields": {
+            "intent": {
+              "type": "string",
+              "description": "The intent line's id, such as I1.",
+              "measured_from": "The I<n> written inside \"(relies on\".",
+              "unit": "id",
+              "includes": "The id alone.",
+              "excludes": "The intent line's text.",
+              "reading": "Names the intent line.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Which intent line is this?"
+            },
+            "count": {
+              "type": "integer",
+              "description": "The number of assumption lines citing this intent line.",
+              "measured_from": "The spec's Assumptions lines.",
+              "unit": "count",
+              "includes": "Each line once, however often it names the id.",
+              "excludes": "Lines that do not cite it.",
+              "reading": "Higher means more guesses rest on this intent line.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How many guesses rest on this intent line?"
+            }
+          }
+        }
+      },
+      "checks": {
+        "type": "array",
+        "description": "Each of interphase's checks that ran during the run, with its errors on the first and last run.",
+        "measured_from": "The run's events round.recorded, steps.checked, spec.checked and items.checked.",
+        "unit": "none",
+        "includes": "Each check that ran at least once, in the order record, steps, spec, items.",
+        "excludes": "Checks that never ran.",
+        "reading": "Each entry describes one check; a check missing from the list never ran. Null means the run's events were absent.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many errors do interphase's first drafts carry, and how many remain?",
+        "items": {
+          "type": "object",
+          "description": "One check's runs and errors.",
+          "measured_from": "The run's events of that check.",
+          "unit": "none",
+          "includes": "One check.",
+          "excludes": "Other checks.",
+          "reading": "Each entry is one check.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "How did this check go over the run?",
+          "fields": {
+            "check": {
+              "type": "enum",
+              "description": "The check: record for the record check, steps for the complete record check, spec for the spec check, items for the items check.",
+              "measured_from": "The event's name.",
+              "unit": "none",
+              "includes": "The four checks.",
+              "excludes": "The guard verify and the review.",
+              "reading": "Names the check.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Which check is this?",
+              "values": [
+                "record",
+                "steps",
+                "spec",
+                "items"
+              ]
+            },
+            "runs": {
+              "type": "integer",
+              "description": "The number of times the check ran.",
+              "measured_from": "The run's events of that check.",
+              "unit": "count",
+              "includes": "Every run of the check.",
+              "excludes": "Other checks.",
+              "reading": "Higher means the check ran more often; 1 means it ran once.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How many attempts did the check take?"
+            },
+            "first_errors": {
+              "type": "integer",
+              "description": "The errors the check found the first time it ran.",
+              "measured_from": "The first event of that check: its errors.",
+              "unit": "count",
+              "includes": "Error lines of the first run.",
+              "excludes": "Later runs.",
+              "reading": "Higher means the first draft carried more errors; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How many errors did the first draft carry?"
+            },
+            "first_warnings": {
+              "type": "integer",
+              "description": "The warnings the check found the first time it ran.",
+              "measured_from": "The first event of that check: its warnings.",
+              "unit": "count",
+              "includes": "Warning lines of the first run.",
+              "excludes": "Later runs.",
+              "reading": "Higher means the first draft drew more warnings; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How many warnings did the first draft draw?"
+            },
+            "last_errors": {
+              "type": "integer",
+              "description": "The errors the check found the last time it ran.",
+              "measured_from": "The last event of that check: its errors.",
+              "unit": "count",
+              "includes": "Error lines of the last run.",
+              "excludes": "Earlier runs.",
+              "reading": "0 means the last draft passed the check; higher means errors remained. Null means the value is unknown or its source was absent; null is never zero.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Did the last draft pass the check?"
+            }
+          }
+        }
+      },
+      "review_approved": {
+        "type": "boolean",
+        "description": "Whether the spec reviewer approved the spec.",
+        "measured_from": "The run's last review.done event: its approved.",
+        "unit": "none",
+        "includes": "The last review of the run.",
+        "excludes": "Earlier reviews.",
+        "reading": "true means approved; false means issues were found. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Did the spec pass its review?"
+      },
+      "review_issues": {
+        "type": "integer",
+        "description": "The number of issues the spec reviewer raised.",
+        "measured_from": "The run's last review.done event: its issues.",
+        "unit": "count",
+        "includes": "Issue lines of the last review.",
+        "excludes": "Earlier reviews and prose lines.",
+        "reading": "Higher means the review found more issues; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "How many issues did the review find?"
+      },
+      "usd": {
+        "type": "number",
+        "description": "What the run's own messages cost.",
+        "measured_from": "The session transcripts: each counted message's tokens of each kind times the price table's per-million price for its model and kind, divided by one million and rounded to 6 decimal places.",
+        "unit": "usd",
+        "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+        "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+        "reading": "Higher means the run cost more; 0 means it used no priced tokens. Null means a counted model has no price in the table, or the source was absent.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "What does an interphase run cost?"
+      },
+      "prices_date": {
+        "type": "string",
+        "description": "The date of the price table the cost was computed with.",
+        "measured_from": "The date key of interphase's price table scripts/metrics_prices.json.",
+        "unit": "text",
+        "includes": "The table's own date.",
+        "excludes": "Price changes after that date.",
+        "reading": "Names the date the prices were taken; a later table may price the same tokens differently.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which prices does usd use?"
+      },
+      "tokens": {
+        "type": "object",
+        "description": "The run's own tokens of each of the five kinds.",
+        "measured_from": "The session transcripts: each counted assistant message's usage.",
+        "unit": "tokens",
+        "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+        "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+        "reading": "Higher means more tokens. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Where do the run's tokens go?",
+        "fields": {
+          "input": {
+            "type": "integer",
+            "description": "Uncached input tokens over the whole run.",
+            "measured_from": "The session transcripts: each counted assistant message's usage input_tokens.",
+            "unit": "tokens",
+            "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+            "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+            "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+            "readers": [
+              "the owner auditing interphase",
+              "the interphase:metrics skill",
+              "a query across plugins"
+            ],
+            "question": "Where do the run's tokens go?"
+          },
+          "cache_write_5m": {
+            "type": "integer",
+            "description": "Tokens written to the five-minute prompt cache over the whole run.",
+            "measured_from": "The session transcripts: each counted assistant message's usage cache_creation.ephemeral_5m_input_tokens, or cache_creation_input_tokens when the usage has no cache_creation object.",
+            "unit": "tokens",
+            "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+            "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+            "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+            "readers": [
+              "the owner auditing interphase",
+              "the interphase:metrics skill",
+              "a query across plugins"
+            ],
+            "question": "Where do the run's tokens go?"
+          },
+          "cache_write_1h": {
+            "type": "integer",
+            "description": "Tokens written to the one-hour prompt cache over the whole run.",
+            "measured_from": "The session transcripts: each counted assistant message's usage cache_creation.ephemeral_1h_input_tokens.",
+            "unit": "tokens",
+            "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+            "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+            "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+            "readers": [
+              "the owner auditing interphase",
+              "the interphase:metrics skill",
+              "a query across plugins"
+            ],
+            "question": "Where do the run's tokens go?"
+          },
+          "cache_read": {
+            "type": "integer",
+            "description": "Tokens read from the prompt cache over the whole run.",
+            "measured_from": "The session transcripts: each counted assistant message's usage cache_read_input_tokens.",
+            "unit": "tokens",
+            "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+            "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+            "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+            "readers": [
+              "the owner auditing interphase",
+              "the interphase:metrics skill",
+              "a query across plugins"
+            ],
+            "question": "Where do the run's tokens go?"
+          },
+          "output": {
+            "type": "integer",
+            "description": "Output tokens over the whole run.",
+            "measured_from": "The session transcripts: each counted assistant message's usage output_tokens.",
+            "unit": "tokens",
+            "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+            "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+            "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+            "readers": [
+              "the owner auditing interphase",
+              "the interphase:metrics skill",
+              "a query across plugins"
+            ],
+            "question": "Where do the run's tokens go?"
+          }
+        }
+      },
+      "models": {
+        "type": "array",
+        "description": "The run's own spend by agent and exact model id, ordered by usd descending with null last, then agent, then model.",
+        "measured_from": "The session transcripts: each counted assistant message, grouped by its agent and model.",
+        "unit": "none",
+        "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+        "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+        "reading": "Each entry is one agent and model pair; an empty list means no message was counted. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which models and agents does a run's spend go to?",
+        "items": {
+          "type": "object",
+          "description": "One agent and model pair's spend.",
+          "measured_from": "The counted messages of that agent and model.",
+          "unit": "none",
+          "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+          "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+          "reading": "Each entry is one pair.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "What did this agent spend on this model?",
+          "fields": {
+            "agent": {
+              "type": "string",
+              "description": "The agent: main session, or the agent type such as interphase:scout.",
+              "measured_from": "The transcript the message came from.",
+              "unit": "text",
+              "includes": "The main session and interphase's own agents.",
+              "excludes": "Every other agent type.",
+              "reading": "Names the agent.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Which agent spent this?"
+            },
+            "model": {
+              "type": "string",
+              "description": "The exact model id.",
+              "measured_from": "The message's model in the transcript.",
+              "unit": "id",
+              "includes": "The id exactly as recorded.",
+              "excludes": "The model <synthetic>.",
+              "reading": "Names the model.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Which model was used?"
+            },
+            "messages": {
+              "type": "integer",
+              "description": "The number of messages counted.",
+              "measured_from": "The transcripts: each assistant message once by its id.",
+              "unit": "count",
+              "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+              "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+              "reading": "Higher means more messages; each message is counted once.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "How many messages did this pair produce?"
+            },
+            "tokens": {
+              "type": "object",
+              "description": "This pair's tokens of each of the five kinds.",
+              "measured_from": "The counted messages' usage.",
+              "unit": "tokens",
+              "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+              "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+              "reading": "Higher means more tokens.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "Where do this pair's tokens go?",
+              "fields": {
+                "input": {
+                  "type": "integer",
+                  "description": "Uncached input tokens for this agent and model.",
+                  "measured_from": "The session transcripts: each counted assistant message's usage input_tokens.",
+                  "unit": "tokens",
+                  "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+                  "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+                  "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+                  "readers": [
+                    "the owner auditing interphase",
+                    "the interphase:metrics skill",
+                    "a query across plugins"
+                  ],
+                  "question": "Where do the run's tokens go?"
+                },
+                "cache_write_5m": {
+                  "type": "integer",
+                  "description": "Tokens written to the five-minute prompt cache for this agent and model.",
+                  "measured_from": "The session transcripts: each counted assistant message's usage cache_creation.ephemeral_5m_input_tokens, or cache_creation_input_tokens when the usage has no cache_creation object.",
+                  "unit": "tokens",
+                  "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+                  "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+                  "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+                  "readers": [
+                    "the owner auditing interphase",
+                    "the interphase:metrics skill",
+                    "a query across plugins"
+                  ],
+                  "question": "Where do the run's tokens go?"
+                },
+                "cache_write_1h": {
+                  "type": "integer",
+                  "description": "Tokens written to the one-hour prompt cache for this agent and model.",
+                  "measured_from": "The session transcripts: each counted assistant message's usage cache_creation.ephemeral_1h_input_tokens.",
+                  "unit": "tokens",
+                  "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+                  "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+                  "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+                  "readers": [
+                    "the owner auditing interphase",
+                    "the interphase:metrics skill",
+                    "a query across plugins"
+                  ],
+                  "question": "Where do the run's tokens go?"
+                },
+                "cache_read": {
+                  "type": "integer",
+                  "description": "Tokens read from the prompt cache for this agent and model.",
+                  "measured_from": "The session transcripts: each counted assistant message's usage cache_read_input_tokens.",
+                  "unit": "tokens",
+                  "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+                  "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+                  "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+                  "readers": [
+                    "the owner auditing interphase",
+                    "the interphase:metrics skill",
+                    "a query across plugins"
+                  ],
+                  "question": "Where do the run's tokens go?"
+                },
+                "output": {
+                  "type": "integer",
+                  "description": "Output tokens for this agent and model.",
+                  "measured_from": "The session transcripts: each counted assistant message's usage output_tokens.",
+                  "unit": "tokens",
+                  "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+                  "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+                  "reading": "Higher means more tokens of this kind; 0 means none. Null means the value is unknown or its source was absent; null is never zero.",
+                  "readers": [
+                    "the owner auditing interphase",
+                    "the interphase:metrics skill",
+                    "a query across plugins"
+                  ],
+                  "question": "Where do the run's tokens go?"
+                }
+              }
+            },
+            "usd": {
+              "type": "number",
+              "description": "What this pair's messages cost.",
+              "measured_from": "The pair's tokens of each kind times the price table's per-million price, divided by one million and rounded to 6 decimal places.",
+              "unit": "usd",
+              "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+              "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+              "reading": "Higher means the pair cost more. Null means the model has no price in the table.",
+              "readers": [
+                "the owner auditing interphase",
+                "the interphase:metrics skill",
+                "a query across plugins"
+              ],
+              "question": "What did this pair cost?"
+            }
+          }
+        }
+      },
+      "unpriced": {
+        "type": "array",
+        "description": "The model ids counted in the run that the price table has no price for, sorted.",
+        "measured_from": "The counted messages' models compared with scripts/metrics_prices.json.",
+        "unit": "none",
+        "includes": "Every counted model without a price.",
+        "excludes": "Priced models.",
+        "reading": "An empty list means every counted model was priced; any entry makes usd null. Null means the value is unknown or its source was absent; null is never zero.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Which models leave the run's cost unknown?",
+        "items": {
+          "type": "string",
+          "description": "One unpriced model id.",
+          "measured_from": "The message's model in the transcript.",
+          "unit": "id",
+          "includes": "The id exactly as recorded.",
+          "excludes": "Priced models.",
+          "reading": "Names a model without a price.",
+          "readers": [
+            "the owner auditing interphase",
+            "the interphase:metrics skill",
+            "a query across plugins"
+          ],
+          "question": "Which model has no price?"
+        }
+      },
+      "spend_scope": {
+        "type": "enum",
+        "description": "Whose spend the run's spend fields count.",
+        "measured_from": "Fixed by the summary builder.",
+        "unit": "none",
+        "includes": "Only the run's own main-session messages and its own interphase:scout and interphase:spec-reviewer agents' messages timed from the run's first event to its last, both included, each message once by its id.",
+        "excludes": "The messages before the guard snapshot, which belong to the run of whatever started this one, records of the model <synthetic>, every other agent type, and every other plugin's spend.",
+        "reading": "own means the spend fields hold this run's own spend only, so summing it with the spend of the run that started it counts nothing twice.",
+        "readers": [
+          "the owner auditing interphase",
+          "the interphase:metrics skill",
+          "a query across plugins"
+        ],
+        "question": "Can this run's spend be added to its parent's?",
+        "values": [
+          "own"
+        ]
+      }
+    }
+  },
+  "queries": [
+    {
+      "name": "runs_overview",
+      "question": "Which interphase runs happened in the last 30 days, newest first, with their status, pathway, lane, lead time and cost?",
+      "sql": "SELECT run, slug, status, pathway, lane, lead_seconds, usd, ts FROM summaries WHERE plugin = 'interphase' AND CAST(ts AS TIMESTAMPTZ) >= now() - INTERVAL 30 DAY ORDER BY ts DESC"
+    },
+    {
+      "name": "phase_time",
+      "question": "How much time do interphase runs spend in each phase?",
+      "sql": "SELECT phase, sum(seconds) AS seconds, count(DISTINCT run) AS runs FROM (SELECT run, unnest(phases, recursive := true) FROM summaries WHERE plugin = 'interphase') GROUP BY phase ORDER BY seconds DESC"
+    },
+    {
+      "name": "interview",
+      "question": "For each interviewed run, how many rounds and questions did the interview take and how many recommended answers did the person change?",
+      "sql": "SELECT run, rounds, questions, recommended, changed, readbacks, approved FROM summaries WHERE plugin = 'interphase' AND rounds IS NOT NULL ORDER BY ts DESC"
+    },
+    {
+      "name": "assumptions_by_intent",
+      "question": "Which intent lines do the assumptions made after the interview rest on, and how often?",
+      "sql": "SELECT intent, sum(\"count\") AS \"count\" FROM (SELECT unnest(assumptions_by_intent, recursive := true) FROM summaries WHERE plugin = 'interphase') GROUP BY intent ORDER BY \"count\" DESC, intent"
+    },
+    {
+      "name": "checks_and_review",
+      "question": "For each run and check, how many times did the check run, with how many errors on its first and last run, and what did the spec review find?",
+      "sql": "SELECT run, review_approved, review_issues, \"check\", runs, first_errors, last_errors FROM (SELECT run, ts, review_approved, review_issues, unnest(checks, recursive := true) FROM summaries WHERE plugin = 'interphase') ORDER BY ts DESC, run, \"check\""
+    },
+    {
+      "name": "spend_by_model",
+      "question": "What did interphase's own runs spend on each model?",
+      "sql": "SELECT model, sum(usd) AS usd, sum(messages) AS messages FROM (SELECT unnest(models, recursive := true) FROM summaries WHERE plugin = 'interphase') GROUP BY model ORDER BY usd DESC NULLS LAST, model"
+    },
+    {
+      "name": "amendments",
+      "question": "How often was each spec amended after hand-off?",
+      "sql": "SELECT slug, count(amends) AS amendments, count(*) AS runs FROM summaries WHERE plugin = 'interphase' GROUP BY slug ORDER BY amendments DESC, slug"
+    }
+  ]
+}

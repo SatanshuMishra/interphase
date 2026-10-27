@@ -31,6 +31,7 @@ SECTION_HEADINGS = (
     "## Use",
     "## What it never does",
     "## What it produces",
+    "## What it records",
     "## Check the output yourself",
     "## Requirements",
     "## Tests",
@@ -187,6 +188,39 @@ class ReadmeTest(unittest.TestCase):
         self.assertIn("/interphase:project", section("## Use"))
         self.assertIn("spec-project.md", section("## Check the output yourself"))
 
+
+    def test_readme_describes_what_it_records(self):
+        text = read_readme()
+        lines = text.splitlines()
+
+        def section(heading):
+            start = lines.index(heading)
+            end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+            return "\n".join(lines[start:end])
+
+        headings = tuple(line for line in lines if line.startswith("## "))
+        self.assertEqual(
+            headings.index("## What it records"),
+            headings.index("## What it produces") + 1,
+        )
+        records = section("## What it records")
+        for phrase in (
+            "~/.plugin-metrics",
+            "PLUGIN_METRICS_DIR",
+            "PLUGIN_METRICS_PARENT",
+            "catalogue",
+            "run summary",
+            "rounds",
+            "interphase:metrics",
+            "DuckDB",
+        ):
+            self.assertIn(phrase, records)
+        record_rows = tuple(
+            line for line in section("## What it produces").splitlines() if line.startswith("| `<slug>.record.json`")
+        )
+        self.assertEqual(len(record_rows), 1)
+        self.assertIn("rounds", record_rows[0])
+        self.assertIn("DuckDB", section("## Requirements"))
 
     def check_output_section(self):
         lines = read_readme().splitlines()

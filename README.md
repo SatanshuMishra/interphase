@@ -87,7 +87,7 @@ A brief is written from `core/templates/spec-brief.md`. Every spec numbers its a
 | `<slug>.md` | The spec, written from the pathway's template. |
 | `<slug>.decisions.md` | A `# Decisions for <title>` heading, one sentence, an Intent section with one numbered line (`I1`, `I2` and on) for each part of your intent, and a Decisions section with one `- ` line for each question you settled. |
 | `<slug>.items.json` | The Steps, as a JSON array. |
-| `<slug>.record.json` | The interview record: the agreed test seams, the acceptance criteria and the Steps. interphase keeps it after the run. |
+| `<slug>.record.json` | The interview record: the rounds, the agreed test seams, the acceptance criteria and the Steps. interphase keeps it after the run. |
 | `<slug>.repro.<ext>` | Bugs only. The draft failing test, kept as evidence. |
 | `<slug>.guard.json` | A working file for the guard. It is deleted when the run ends. |
 
@@ -112,6 +112,16 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 No other fields are allowed.
 
 The items file has the same shape as the input mitosis reads with --items.
+
+## What it records
+
+interphase records each run in the metrics store at `~/.plugin-metrics`, outside your repository, or wherever `PLUGIN_METRICS_DIR` names. A run starts at the guard snapshot and ends at the guard verify, and an amendment is a run of its own.
+
+A hook records an event at each check, render, read-back answer, spec review and hand-off, and a run summary after each event. The run summary holds the interview's rounds, questions and changed answers, the counts of seams, criteria, tests, unproven criteria, Steps and assumptions with the intent lines they cite, the checks' errors, the review's issues, the time per phase and the owner's waits, and the run's own spend by model in five token kinds, priced at write time. The interview record keeps a `rounds` list for this.
+
+Nothing is written into your repository, and no question or answer text is stored. A catalogue in the store describes every field. `PLUGIN_METRICS_PARENT` names the run of whatever started interphase, and the session is recorded either way.
+
+The `interphase:metrics` skill answers how interphase is performing from these records. Writing needs only Python; querying needs DuckDB.
 
 ## Check the output yourself
 
@@ -159,6 +169,7 @@ Run every command in this section from the root of the repository that holds `do
 
 - Python 3.9 or later.
 - git.
+- DuckDB, to query the records and to run the query tests.
 
 ## Tests
 

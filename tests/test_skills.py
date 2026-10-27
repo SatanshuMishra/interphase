@@ -135,6 +135,31 @@ class SkillsTest(unittest.TestCase):
             lines,
         )
 
+    def test_metrics_skill_answers_from_the_store(self):
+        text = read_skill("metrics")
+        frontmatter, body = split_skill(text)
+        self.assertEqual(frontmatter.get("name"), "metrics")
+        self.assertTrue(frontmatter.get("description"))
+        self.assertIn("interphase", frontmatter.get("description", ""))
+        self.assertNotIn("disable-model-invocation", frontmatter)
+        for needle in (
+            "PLUGIN_METRICS_DIR",
+            "~/.plugin-metrics",
+            "plugin=interphase/catalogue.json",
+            "read_json",
+            "union_by_name",
+            "hive_partitioning",
+            "TimeZone",
+            "<store>",
+            "missing",
+            "transcripts",
+            "brew install duckdb",
+        ):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, body)
+        self.assertEqual(body.count("```sql"), 1)
+        self.assertFalse("mitosis" in text.lower())
+
 
 if __name__ == "__main__":
     unittest.main()
