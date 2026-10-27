@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T06:27:36.331Z
+Updated: 2026-10-27T06:28:00.168Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Stage 1 is handed off: the spec, decisions, record (status handed-off) and 8-Step items pass every check after the one spec-reviewer round, and GLOSSARY.md plus ADRs 0001 and 0002 sit uncommitted in the checkout. Stage 2 set-up is complete: feat/interphase-metrics is pushed from 4b8ad3c8, the run home holds CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, feature.json, items.json and graph.json, and run.zsh --plan-only passes (plan 9ed65354d82c, exit 0, 5 Lanes in 2 MSPs, no fatal finding) after the PR subject was shortened to "record interphase runs as metrics" for the 72-unit title cap. No build has run. The shared writers are on neither origin/feat/unified-metrics nor origin/main as of 2026-10-26.
+Stage 2's first build is running in the background (output in build-1.log), building 5 Lanes across MSPs interview-rounds and self-metrics. The shared writers are on the pipeline's origin/feat/unified-metrics at a39ab11 and not on origin/main; the CHARTER's Pipeline ref line names that ref, and the landed Python writer's interface matches the one the Steps assume. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
