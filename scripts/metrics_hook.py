@@ -1,3 +1,4 @@
+import collections
 import datetime
 import functools
 import importlib.util
@@ -12,8 +13,6 @@ import sys
 PLUGIN = "interphase"
 SCRIPTS = pathlib.Path(__file__).resolve().parent
 PLUGIN_FOLDER = SCRIPTS.parent
-SCRIPT_NAMES = ("tree_guard.py", "check_record.py", "render_record.py", "check_spec.py", "check_items.py")
-OWN_SCRIPTS = {os.path.realpath(str(SCRIPTS / name)): name for name in SCRIPT_NAMES}
 PUNCTUATION = ";&|()<>\n"
 SEPARATOR_CHARACTERS = frozenset(";&|()\n")
 ASSIGNMENT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", re.DOTALL)
@@ -31,19 +30,14 @@ HANDED_OFF = "handed-off"
 HANDOFF = "run.handoff"
 
 
-def load_writer():
-    spec = importlib.util.spec_from_file_location("metrics_writer", SCRIPTS / "metrics_writer.py")
+def load_script(name):
+    spec = importlib.util.spec_from_file_location(name, SCRIPTS / (name + ".py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def read_json(path):
-    try:
-        with open(path, encoding="utf-8") as handle:
-            return json.load(handle)
-    except (OSError, ValueError):
-        return None
+FILES = load_script("metrics_files")
 
 
 def git_root(cwd):
@@ -141,15 +135,20 @@ def positional(arguments, flags, valued):
     )
 
 
+def first_positional(flags, valued):
+    return lambda arguments: next(iter(positional(arguments, flags, valued)), None)
+
+
+def guard_path(arguments):
+    return option_value(arguments, "--out") or option_value(arguments, "--snapshot")
+
+
+def record_option(arguments):
+    return option_value(arguments, "--record")
+
+
 def spec_path(name, arguments):
-    if name == "tree_guard.py":
-        return option_value(arguments, "--out") or option_value(arguments, "--snapshot")
-    if name == "render_record.py":
-        return option_value(arguments, "--record")
-    if name == "check_spec.py":
-        return next(iter(positional(arguments, (), ("--template",))), None)
-    flags = ("--complete",) if name == "check_record.py" else ("--amendment",)
-    return next(iter(positional(arguments, flags, ())), None)
+    return SCRIPT_KINDS[name].path(arguments)
 
 
 def slug_of(path):
@@ -203,7 +202,7 @@ def list_length(record, key):
 
 
 def round_counts(path):
-    record = read_json(path) if path else None
+    record = FILES.json_text(FILES.regular_text(path)) if path else None
     return {key: list_length(record, key) for key in ("seams", "criteria", "steps", "rounds")}
 
 
@@ -212,23 +211,51 @@ def amendment_number(arguments):
     return int(value) if value is not None and re.fullmatch(r"[0-9]+", value) else None
 
 
-def script_event(name, arguments, folder, outcome):
+def checked_fields(outcome):
     code, errors, warnings = outcome
-    checked = {"exit": code, "errors": errors, "warnings": warnings}
-    if name == "check_record.py" and "--complete" in arguments:
-        return "steps.checked", checked
-    if name == "check_record.py":
-        path = spec_path(name, arguments)
-        return "round.recorded", dict(checked, **round_counts(resolved(path, folder) if path else None))
-    if name == "render_record.py":
-        return "spec.rendered", {"exit": code, "amendment": amendment_number(arguments)}
-    if name == "check_spec.py":
-        return "spec.checked", checked
-    if name == "check_items.py":
-        return "items.checked", dict(checked, amendment="--amendment" in arguments)
-    if subcommand(arguments) == "verify":
-        return HANDOFF, {"exit": code, "errors": errors, "clean": clean_of(code, errors)}
-    return None
+    return {"exit": code, "errors": errors, "warnings": warnings}
+
+
+def guard_event(arguments, folder, outcome):
+    code, errors, _ = outcome
+    if subcommand(arguments) != "verify":
+        return None
+    return HANDOFF, {"exit": code, "errors": errors, "clean": clean_of(code, errors)}
+
+
+def record_event(arguments, folder, outcome):
+    if "--complete" in arguments:
+        return "steps.checked", checked_fields(outcome)
+    path = spec_path("check_record.py", arguments)
+    return "round.recorded", dict(checked_fields(outcome), **round_counts(resolved(path, folder) if path else None))
+
+
+def render_event(arguments, folder, outcome):
+    return "spec.rendered", {"exit": outcome[0], "amendment": amendment_number(arguments)}
+
+
+def spec_event(arguments, folder, outcome):
+    return "spec.checked", checked_fields(outcome)
+
+
+def items_event(arguments, folder, outcome):
+    return "items.checked", dict(checked_fields(outcome), amendment="--amendment" in arguments)
+
+
+ScriptKind = collections.namedtuple("ScriptKind", ("path", "event"))
+SCRIPT_KINDS = {
+    "tree_guard.py": ScriptKind(guard_path, guard_event),
+    "check_record.py": ScriptKind(first_positional(("--complete",), ()), record_event),
+    "render_record.py": ScriptKind(record_option, render_event),
+    "check_spec.py": ScriptKind(first_positional((), ("--template",)), spec_event),
+    "check_items.py": ScriptKind(first_positional(("--amendment",), ()), items_event),
+}
+SCRIPT_NAMES = tuple(SCRIPT_KINDS)
+OWN_SCRIPTS = {os.path.realpath(str(SCRIPTS / name)): name for name in SCRIPT_NAMES}
+
+
+def script_event(name, arguments, folder, outcome):
+    return SCRIPT_KINDS[name].event(arguments, folder, outcome)
 
 
 def event_folder(writer, repo):
@@ -252,17 +279,7 @@ def newest_run(writer, repo, slug):
 
 
 def run_lines(writer, repo, run):
-    try:
-        text = (event_folder(writer, repo) / (run + ".jsonl")).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return ()
-    def parsed(line):
-        try:
-            value = json.loads(line)
-        except ValueError:
-            return None
-        return value if isinstance(value, dict) else None
-    return tuple(value for value in map(parsed, text.splitlines()) if value is not None)
+    return FILES.json_lines(event_folder(writer, repo) / (run + ".jsonl"))
 
 
 def open_run_of_session(writer, repo, session):
@@ -275,7 +292,7 @@ def open_run_of_session(writer, repo, session):
 
 
 def handed_off(root, slug):
-    record = read_json(root / "docs" / "specs" / (slug + ".record.json"))
+    record = FILES.json_text(FILES.repository_text(root, root / SPEC_FOLDER[0] / SPEC_FOLDER[1] / (slug + ".record.json")))
     return isinstance(record, dict) and record.get("status") == HANDED_OFF
 
 
@@ -350,13 +367,8 @@ def session_events(writer, payload, repo):
     return () if found is None else (found + described,)
 
 
-def plugin_version():
-    manifest = read_json(PLUGIN_FOLDER / ".claude-plugin" / "plugin.json")
-    return manifest.get("version") if isinstance(manifest, dict) else None
-
-
 def catalogue():
-    return read_json(PLUGIN_FOLDER / "metrics" / "catalogue.json")
+    return FILES.read_json(PLUGIN_FOLDER / "metrics" / "catalogue.json")
 
 
 def start_summary(root, slug, run):
@@ -374,7 +386,7 @@ def start_summary(root, slug, run):
 
 
 def record(writer, root, repo, events, moment):
-    version = plugin_version()
+    version = FILES.plugin_version(PLUGIN_FOLDER)
     described = catalogue()
 
     def write(event):
@@ -407,7 +419,7 @@ def handle(payload):
     root = git_root(payload.get("cwd"))
     if root is None:
         return
-    writer = load_writer()
+    writer = load_script("metrics_writer")
     moment = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     repo = root.name
     events = bash_events(writer, payload, root, repo, moment) if tool == "Bash" else session_events(writer, payload, repo)

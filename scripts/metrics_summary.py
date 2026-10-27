@@ -2,10 +2,10 @@ import argparse
 import datetime
 import functools
 import importlib.util
-import json
 import os
 import pathlib
 import re
+import signal
 import sys
 
 PLUGIN = "interphase"
@@ -28,6 +28,7 @@ MAIN_SESSION = "main session"
 SYNTHETIC = "<synthetic>"
 TOKEN_KINDS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 ASK = "AskUserQuestion"
+BUILD_SECONDS = 600
 PERSON = "human"
 
 
@@ -38,29 +39,7 @@ def load_script(name):
     return module
 
 
-def read_json(path):
-    try:
-        with open(path, encoding="utf-8") as handle:
-            return json.load(handle)
-    except (OSError, ValueError):
-        return None
-
-
-def read_lines(path):
-    try:
-        return pathlib.Path(path).read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeDecodeError):
-        return None
-
-
-def json_lines(path):
-    def parsed(line):
-        try:
-            value = json.loads(line)
-        except ValueError:
-            return None
-        return value if isinstance(value, dict) else None
-    return tuple(value for value in map(parsed, read_lines(path) or ()) if value is not None)
+FILES = load_script("metrics_files")
 
 
 def moment(text):
@@ -284,7 +263,7 @@ def main_transcripts(home, sessions):
 def own_agent_transcripts(home, sessions):
     folder = projects(home)
     found = tuple(
-        (path, read_json(path.with_name(path.name[:-len(".jsonl")] + ".meta.json")))
+        (path, FILES.read_json(path.with_name(path.name[:-len(".jsonl")] + ".meta.json")))
         for session in sessions
         for path in sorted(folder.glob("*/" + session + "/subagents/agent-*.jsonl"))
     )
@@ -336,7 +315,7 @@ def transcript_wait(path, start, end):
         )
         return (total + seconds_between(latest, at) if waited else total), latest, asked
 
-    return functools.reduce(step, json_lines(path), (0.0, None, frozenset()))[0]
+    return functools.reduce(step, FILES.json_lines(path), (0.0, None, frozenset()))[0]
 
 
 def wait_figure(home, sessions, span):
@@ -381,7 +360,7 @@ def counted_messages(sources, span):
         return message.get("id") or record.get("uuid"), (agent, message.get("model"), message_tokens(message.get("usage")))
 
     pairs = tuple(
-        described(record, agent) for path, agent in sources for record in json_lines(path) if counted(record)
+        described(record, agent) for path, agent in sources for record in FILES.json_lines(path) if counted(record)
     )
     return tuple(dict(reversed(pairs)).values())
 
@@ -434,16 +413,24 @@ def run_span(events):
     return (times[0], times[-1]) if times else None
 
 
+def spec_file_text(repo, name):
+    return FILES.repository_text(repo, pathlib.Path(repo) / "docs" / "specs" / name)
+
+
+def spec_file_lines(repo, name):
+    text = spec_file_text(repo, name)
+    return None if text is None else text.splitlines()
+
+
 def summary(repo, slug, events, home, prices):
-    specs = pathlib.Path(repo) / "docs" / "specs"
-    record = read_json(specs / (slug + ".record.json"))
+    record = FILES.json_text(spec_file_text(repo, slug + ".record.json"))
     start = next(iter(named(events, "run.start")), None)
     amends = start.get("amends") if start else None
     sessions = tuple(sorted(frozenset(event.get("session") for event in events if isinstance(event.get("session"), str))))
     review = last_of(events, "review.done")
     span = run_span(events)
-    spec = spec_figures(read_lines(specs / (slug + ".md")), load_script("check_spec"))
-    decided = decisions_figures(read_lines(specs / (slug + ".decisions.md")))
+    spec = spec_figures(spec_file_lines(repo, slug + ".md"), load_script("check_spec"))
+    decided = decisions_figures(spec_file_lines(repo, slug + ".decisions.md"))
     counts = record_figures(record, amends)
     timed = time_figures(events)
     readback = readback_figures(events)
@@ -492,13 +479,8 @@ def summary(repo, slug, events, home, prices):
     }
 
 
-def plugin_version():
-    manifest = read_json(PLUGIN_FOLDER / ".claude-plugin" / "plugin.json")
-    return manifest.get("version") if isinstance(manifest, dict) else None
-
-
 def newer_summary_exists(path, started):
-    written = json_lines(path)
+    written = FILES.json_lines(path)
     stamp = moment(written[0].get("ts")) if written else None
     return stamp is not None and stamp > started
 
@@ -511,18 +493,24 @@ def parse_arguments(argv):
     return parser.parse_args(argv)
 
 
+def bound_build_time():
+    if hasattr(signal, "alarm"):
+        signal.alarm(BUILD_SECONDS)
+
+
 def main(argv):
+    bound_build_time()
     started = datetime.datetime.now(datetime.timezone.utc)
     arguments = parse_arguments(argv)
     writer = load_script("metrics_writer")
     root = writer.store_root(os.environ)
     repo = pathlib.Path(arguments.repo).resolve()
-    events = json_lines(writer.event_path(root, PLUGIN, repo.name, arguments.run))
+    events = FILES.json_lines(writer.event_path(root, PLUGIN, repo.name, arguments.run))
     if newer_summary_exists(writer.summary_path(root, PLUGIN, repo.name, arguments.run), started):
         return 0
     home = os.environ.get("HOME") or str(pathlib.Path.home())
-    fields = summary(repo, arguments.slug, events, home, read_json(SCRIPTS / "metrics_prices.json"))
-    warning = writer.write_summary(PLUGIN, plugin_version(), repo.name, arguments.run, fields)
+    fields = summary(repo, arguments.slug, events, home, FILES.read_json(SCRIPTS / "metrics_prices.json"))
+    warning = writer.write_summary(PLUGIN, FILES.plugin_version(PLUGIN_FOLDER), repo.name, arguments.run, fields)
     if warning is not None:
         sys.stderr.write(warning + "\n")
     return 0

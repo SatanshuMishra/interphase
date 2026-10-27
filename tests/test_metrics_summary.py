@@ -473,6 +473,32 @@ class SummaryCountsTest(unittest.TestCase):
                 self.assertIsNone(line[key])
 
 
+class SummaryRepositoryFilesTest(unittest.TestCase):
+    def test_spec_files_that_are_not_plain_files_inside_the_repository_are_skipped(self):
+        sandbox = make_sandbox(self)
+        specs = sandbox.repo / "docs" / "specs"
+        os.mkfifo(str(specs / "feat-a.md"))
+        outside = sandbox.home / "elsewhere.record.json"
+        outside.write_text(json.dumps({"seams": [{}], "criteria": [], "steps": []}), encoding="utf-8")
+        (specs / "feat-a.record.json").symlink_to(outside)
+        write_spec_file(sandbox, "feat-a.decisions.md", "## Intent\n\n- I1 Goal: x\n" + "x" * (4 * 1024 * 1024))
+        line = built(self, sandbox, run_of("feat-a"), [START_EVENT])
+        self.assertEqual(
+            (line["pathway"], line["lane"], line["assumptions"], line["seams"], line["intent_lines"]),
+            (None, None, None, None, None),
+        )
+
+    def test_snapshot_with_a_record_that_is_not_a_plain_file_still_starts_a_run(self):
+        sandbox = make_sandbox(self)
+        os.mkfifo(str(sandbox.repo / "docs" / "specs" / "feat-a.record.json"))
+        result = run_hook(sandbox, hook_payload(sandbox, SNAPSHOT.format(root=ROOT)))
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+        runs = sorted(folder(sandbox, "event").glob("feat-a.*.jsonl"))
+        self.assertEqual(len(runs), 1)
+        start = json.loads(runs[0].read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual((start["event"], start["amending"]), ("run.start", False))
+
+
 class SummaryTimeTest(unittest.TestCase):
     def test_phase_spans_attended(self):
         sandbox = make_sandbox(self)
