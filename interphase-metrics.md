@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T12:13:40.140Z
+Updated: 2026-10-27T19:02:47.403Z
 Next ids: c5 D6 R5 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Integration is done. The FEATURE pull request SatanshuMishra/interphase#52 (feat/interphase-metrics at 2e07f10 into main) is open, ready for review and assigned to the owner; I opened it because lighthouse's child read its profile's off-limits list as forbidding it. Lighthouse run 2 is green with one flaky path (R4); run 1 spent 52.92 dollars over 104.9 minutes and run 2 32.56 dollars over 39.0 minutes. Amendment 2 (Step hook-parsing) fixed run 1's U1 and U2.
+Clean-up is done. SatanshuMishra/interphase#52 merged into main at baeea14; pipeline clean removed every worktree, branch, run folder and docs/specs/interphase-metrics.* file and kept nothing. The run report is frozen at ~/.mitosis/interphase/reports/interphase-metrics.json. R4 is being fixed by the parent session in its own pull request.
 
 ## Next step
 
