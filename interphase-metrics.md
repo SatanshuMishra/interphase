@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:12:10.104Z
+Updated: 2026-10-27T08:13:42.079Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -20,7 +20,7 @@ interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mit
 
 ## Next step
 
-Re-run pipeline obligations for self-metrics with the round-2 diff, re-append Threats T1 to T19, then run self-metrics review round 2 (code-reviewer and security-reviewer) and validate it.
+When the self-metrics round-2 code-reviewer and security-reviewer report (obligations already refreshed to 53 with Threats T1 to T19 kept), collect their last JSON arrays into review/round-2/self-metrics.findings.json, then run pipeline candidates, the validator, pipeline record and pipeline verdict.
 
 Needs: D2, D3.
 
