@@ -2,11 +2,11 @@ import collections
 import datetime
 import functools
 import importlib.util
+import itertools
 import json
 import os
 import pathlib
 import re
-import shlex
 import subprocess
 import sys
 
@@ -15,6 +15,11 @@ SCRIPTS = pathlib.Path(__file__).resolve().parent
 PLUGIN_FOLDER = SCRIPTS.parent
 PUNCTUATION = ";&|()<>\n"
 SEPARATOR_CHARACTERS = frozenset(";&|()\n")
+BLANKS = " \t\r"
+DOUBLE_QUOTED_ESCAPES = frozenset('$`"\\\n')
+ANSI_ESCAPES = {"\\": "\\", "'": "'", '"': '"', "n": "\n", "t": "\t", "r": "\r"}
+HEREDOC = "<<"
+HERE_STRING = "<<<"
 ASSIGNMENT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", re.DOTALL)
 VARIABLE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
 RUN_FILE = re.compile(r"(.+)\.([0-9]{8}T[0-9]{6}Z)\.jsonl")
@@ -47,11 +52,175 @@ def git_root(cwd):
     return next((folder for folder in (start,) + tuple(start.parents) if (folder / ".git").exists()), None)
 
 
+def single_quoted(text, start):
+    end = text.find("'", start)
+    if end < 0:
+        raise ValueError("No closing quotation")
+    return text[start:end], end + 1
+
+
+def ansi_quoted(text, start):
+    pieces = []
+    position = start
+    while position < len(text):
+        character = text[position]
+        if character == "'":
+            return "".join(pieces), position + 1
+        if character == "\\" and position + 1 < len(text):
+            following = text[position + 1]
+            pieces.append(ANSI_ESCAPES.get(following, character + following))
+            position += 2
+        else:
+            pieces.append(character)
+            position += 1
+    raise ValueError("No closing quotation")
+
+
+def backtick_end(text, start):
+    position = start
+    while position < len(text):
+        if text[position] == "\\":
+            position += 2
+        elif text[position] == "`":
+            return position
+        else:
+            position += 1
+    raise ValueError("No closing quotation")
+
+
+def opens_substitution(text, position):
+    return text.startswith("$(", position) or text[position] == "`"
+
+
+def substitution(text, start):
+    if text.startswith("$(", start):
+        inner, end = read_tokens(text, start + 2, ")")
+        return ("(",) + inner + (")",), end
+    close = backtick_end(text, start + 1)
+    inner, _ = read_tokens(text[start + 1:close], 0, None)
+    return ("(",) + inner + (")",), close + 1
+
+
+def after_body(text, start, delimiter, strip_tabs):
+    position = start
+    while position < len(text):
+        end = text.find("\n", position)
+        line = text[position:] if end < 0 else text[position:end]
+        position = len(text) if end < 0 else end + 1
+        if (line.lstrip("\t") if strip_tabs else line) == delimiter:
+            return position
+    return len(text)
+
+
+def after_bodies(text, start, heredocs):
+    return functools.reduce(lambda position, heredoc: after_body(text, position, *heredoc), heredocs, start)
+
+
+def starts_heredoc(run):
+    return HEREDOC in run and HERE_STRING not in run
+
+
+def read_tokens(text, start, closer):
+    found = []
+    word = []
+    started = False
+    awaiting = None
+    heredocs = []
+    depth = 0
+    position = start
+
+    def end_word(empty_counts=True):
+        nonlocal word, started, awaiting
+        if word or (started and empty_counts):
+            finished = "".join(word)
+            found.append(finished)
+            if awaiting is not None:
+                heredocs.append((finished, awaiting))
+                awaiting = None
+        word = []
+        started = False
+
+    def closes(at):
+        return closer == ")" and depth == 0 and text[at] == ")"
+
+    while position < len(text):
+        character = text[position]
+        if closes(position):
+            end_word()
+            return tuple(found), position + 1
+        if character in BLANKS:
+            end_word()
+            position += 1
+        elif character in PUNCTUATION:
+            end_word()
+            run_start = position
+            while position < len(text) and text[position] in PUNCTUATION and not closes(position):
+                depth += {"(": 1, ")": -1}.get(text[position], 0)
+                position += 1
+                if text[position - 1] == "\n" and heredocs:
+                    break
+            run = text[run_start:position]
+            found.append(run)
+            awaiting = None
+            if starts_heredoc(run):
+                dash = text.startswith("-", position)
+                position += 1 if dash else 0
+                awaiting = dash
+            elif run.endswith("\n") and heredocs:
+                position = after_bodies(text, position, tuple(heredocs))
+                heredocs = []
+        elif character == "#" and not word and not started:
+            end = text.find("\n", position)
+            position = len(text) if end < 0 else end
+        elif character == "\\":
+            following = text[position + 1:position + 2]
+            if following != "\n":
+                word.append(following or character)
+            position += 2
+        elif character == "'":
+            piece, position = single_quoted(text, position + 1)
+            word.append(piece)
+            started = True
+        elif character == '"':
+            started = True
+            position += 1
+            while True:
+                if position >= len(text):
+                    raise ValueError("No closing quotation")
+                character = text[position]
+                if character == '"':
+                    position += 1
+                    break
+                if character == "\\" and text[position + 1:position + 2] in DOUBLE_QUOTED_ESCAPES:
+                    if text[position + 1] != "\n":
+                        word.append(text[position + 1])
+                    position += 2
+                elif opens_substitution(text, position):
+                    end_word(empty_counts=False)
+                    inner, position = substitution(text, position)
+                    found.extend(inner)
+                else:
+                    word.append(character)
+                    position += 1
+        elif text.startswith("$'", position):
+            piece, position = ansi_quoted(text, position + 2)
+            word.append(piece)
+            started = True
+        elif opens_substitution(text, position):
+            end_word(empty_counts=False)
+            inner, position = substitution(text, position)
+            found.extend(inner)
+        else:
+            word.append(character)
+            position += 1
+    if closer == ")":
+        raise ValueError("No closing parenthesis")
+    end_word()
+    return tuple(found), position
+
+
 def tokens(command):
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=PUNCTUATION)
-    lexer.whitespace = " \t\r"
-    lexer.whitespace_split = True
-    return tuple(lexer)
+    return read_tokens(command, 0, None)[0]
 
 
 def is_separator(token):
@@ -342,13 +511,23 @@ def reviewer_reply(payload):
     )
 
 
+def within_issues(line):
+    return line.startswith(ISSUE) or not line.strip() or line[:1] in (" ", "\t")
+
+
+def issue_count(lines):
+    listed = itertools.dropwhile(lambda line: not line.startswith(ISSUE), lines)
+    return sum(1 for line in itertools.takewhile(within_issues, listed) if line.startswith(ISSUE))
+
+
 def review_fields(reply):
-    lines = tuple(line.strip() for line in reply.splitlines())
+    raw = tuple(reply.splitlines())
+    lines = tuple(line.strip() for line in raw)
     first = next((line for line in lines if line), "")
     status = next((index for index, line in enumerate(lines) if line.startswith(STATUS)), None)
     return {
         "approved": True if first == APPROVED else False if first == ISSUES_FOUND else None,
-        "issues": None if status is None else sum(1 for line in reply.splitlines()[status + 1:] if line.startswith(ISSUE)),
+        "issues": 0 if first == APPROVED else None if status is None else issue_count(raw[status + 1:]),
     }
 
 
