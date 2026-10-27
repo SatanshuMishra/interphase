@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T09:10:22.877Z
+Updated: 2026-10-27T09:17:05.004Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-SatanshuMishra/interphase#49 (interview-rounds) is merged into feat/interphase-metrics at 42be35c. #50 (self-metrics) is merged into mitosis/interview-rounds at 1be3124, after #49, so its work is not yet on the FEATURE branch. Catch-up SatanshuMishra/interphase#51 brings that work over: head mitosis/interview-rounds, base feat/interphase-metrics, ready for review and assigned to the owner. Its trial merge is clean and its result is identical to 1be3124, which is the reviewed self-metrics head bfb1221 plus GLOSSARY.md and ADRs 0001 and 0002; feat/interphase-metrics already holds those files byte for byte. Inert tests (not findings): test_record_without_rounds_is_valid, test_rounds_not_a_list_refused and test_overlapping_builds_leave_the_newer_summary.
+Integration is under way. SatanshuMishra/interphase#49, #50 and catch-up #51 are merged, so feat/interphase-metrics at efbb51e holds both MSPs, and pipeline integration-ready reports ready. Lighthouse run 1 tests feat/interphase-metrics against core main, with results in ~/.mitosis/interphase/interphase-metrics/lighthouse/run-1. Inert tests (not findings): test_record_without_rounds_is_valid, test_rounds_not_a_list_refused and test_overlapping_builds_leave_the_newer_summary.
 
 ## Next step
 
