@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T09:17:05.004Z
+Updated: 2026-10-27T11:05:59.541Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Integration is under way. SatanshuMishra/interphase#49, #50 and catch-up #51 are merged, so feat/interphase-metrics at efbb51e holds both MSPs, and pipeline integration-ready reports ready. Lighthouse run 1 tests feat/interphase-metrics against core main, with results in ~/.mitosis/interphase/interphase-metrics/lighthouse/run-1. Inert tests (not findings): test_record_without_rounds_is_valid, test_rounds_not_a_list_refused and test_overlapping_builds_leave_the_newer_summary.
+Integration is in its first fix round. feat/interphase-metrics (970ae86, including lighthouse's profile commit) holds both MSPs, and the integration worktree is ~/.mitosis/runs/interphase/interphase-metrics/integration. Lighthouse run 1 (lighthouse/run-1) returned verdict failures with no pull request, spending 52.9 dollars over 105 minutes. It found U1: review.done counts every dash line of the spec reviewer's reply, including its Files reviewed list, as an issue (scripts/metrics_hook.py:351). It found U2: shlex fails on a heredoc holding an apostrophe, so the hook drops that command and run.handoff is lost (scripts/metrics_hook.py:51); lighthouse marked it flaky, but it reproduces deterministically. The scout neighbour path was unproven, because no request dispatched scout. Both findings are recorded as integration round 1 with kind failing test and verdict diagnose, and the diagnosis is running. The FEATURE suite passes at 970ae86 (review/round-1/integration.suite.txt).
 
 ## Next step
 
