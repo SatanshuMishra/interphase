@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T07:00:01.715Z
+Updated: 2026-10-27T07:02:19.743Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-interview-rounds is green after round 1; its one advisory, C1 (core/items.md called rounds required), is fixed at 529d53a on mitosis/interview-rounds, which still needs merging into mitosis/self-metrics. Self-metrics round 1: conformance audit clean, code and security reviews running. 5.4 and 5.20 are not applicable as live-session checks. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
+interview-rounds is green after round 1; its one advisory, C1 (core/items.md called rounds required), is fixed at 529d53a on mitosis/interview-rounds, which still needs merging into mitosis/self-metrics. Self-metrics round 1: conformance audit clean; security review found S1 HIGH (an older summary build overwrites a newer one) and S2 to S4 LOW, with its threats T1 to T19 appended to review/self-metrics.obligations.md; code review running. 5.4 and 5.20 are not applicable as live-session checks. Both MSPs are committed and held unpushed: interview-rounds at f20d9a8 on mitosis/interview-rounds (base feat/interphase-metrics 4b8ad3c), self-metrics at 09bcee9 on mitosis/self-metrics (base mitosis/interview-rounds). Gate: self-metrics 70 pass; interview-rounds 5 pass, 2 inert (test_record_without_rounds_is_valid, test_rounds_not_a_list_refused), which are not findings. Round-1 suites pass (374 and 443 tests); the 77 gated tests are recorded as proofs. GLOSSARY.md and ADRs 0001 and 0002 sit uncommitted in the checkout until Ship copies them.
 
 ## Next step
 
