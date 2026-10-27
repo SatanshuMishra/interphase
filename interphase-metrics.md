@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:07:19.137Z
+Updated: 2026-10-27T08:07:20.252Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -20,9 +20,9 @@ interview-rounds is green after round 1; its one advisory, C1 (core/items.md cal
 
 ## Next step
 
-When the five round-1 reviewers report, collect each MSP's findings into review/round-1/<msp>.findings.json, then run pipeline candidates, the validator, pipeline record and pipeline verdict per MSP.
+Run ~/.mitosis/interphase/interphase-metrics/amend-1.zsh --plan-only, then the build in the background. Merge its branch into mitosis/self-metrics, re-run pipeline obligations for self-metrics, then self-metrics review round 2.
 
-Needs: D2.
+Needs: D2, D3.
 
 ## Decisions in force
 
