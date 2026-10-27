@@ -24,6 +24,9 @@ ASSIGNMENT = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", re.DOTALL)
 VARIABLE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
 RUN_FILE = re.compile(r"(.+)\.([0-9]{8}T[0-9]{6}Z)\.jsonl")
 EXIT_LINE = re.compile(r"Exit code (-?[0-9]+)")
+RUN_STAMP = "%Y%m%dT%H%M%SZ"
+RUN_STAMP_RESOLUTION = datetime.timedelta(seconds=1)
+LONGEST_BASH_CALL = datetime.timedelta(minutes=10)
 SPEC_FOLDER = ("docs", "specs")
 REVIEWER = "interphase:spec-reviewer"
 AGENT_TOOLS = ("Agent", "Task")
@@ -465,6 +468,29 @@ def handed_off(root, slug):
     return isinstance(record, dict) and record.get("status") == HANDED_OFF
 
 
+def written_at(path):
+    try:
+        return datetime.datetime.fromtimestamp(os.stat(path).st_mtime, datetime.timezone.utc)
+    except OSError:
+        return None
+
+
+def run_started(stamp):
+    return datetime.datetime.strptime(stamp, RUN_STAMP).replace(tzinfo=datetime.timezone.utc)
+
+
+def snapshot_written(writer, repo, slug, path, moment):
+    written = written_at(path)
+    if written is None or written < moment - LONGEST_BASH_CALL:
+        return False
+    earlier = next((stamp for stamp, run_slug, _ in runs(writer, repo) if run_slug == slug), None)
+    return earlier is None or written >= run_started(earlier) + RUN_STAMP_RESOLUTION
+
+
+def snapshot_succeeded(payload, writer, repo, slug, path, moment):
+    return payload.get("hook_event_name") == "PostToolUse" or snapshot_written(writer, repo, slug, path, moment)
+
+
 def bash_events(writer, payload, root, repo, moment):
     command = (payload.get("tool_input") or {}).get("command")
     if not isinstance(command, str) or not any(name in command for name in SCRIPT_NAMES):
@@ -484,7 +510,7 @@ def bash_events(writer, payload, root, repo, moment):
         if slug is None:
             return None
         if name == "tree_guard.py" and subcommand(arguments) == "snapshot":
-            if payload.get("hook_event_name") != "PostToolUse":
+            if not snapshot_succeeded(payload, writer, repo, slug, resolved(guard_path(arguments), folder), moment):
                 return None
             amending = handed_off(root, slug)
             fields = {"slug": slug, "amends": newest_run(writer, repo, slug) if amending else None, "amending": amending}
