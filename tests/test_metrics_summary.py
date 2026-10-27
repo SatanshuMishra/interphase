@@ -1,5 +1,6 @@
 import collections
 import datetime
+import importlib.util
 import json
 import os
 import pathlib
@@ -12,6 +13,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 HOOK = ROOT / "scripts" / "metrics_hook.py"
+WRITER = ROOT / "scripts" / "metrics_writer.py"
 SUMMARY = ROOT / "scripts" / "metrics_summary.py"
 CATALOGUE = ROOT / "metrics" / "catalogue.json"
 INHERITED_OUT = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_PLUGIN_ROOT", "PLUGIN_METRICS_DIR", "PLUGIN_METRICS_PARENT")
@@ -104,6 +106,31 @@ def build(sandbox, run, slug="feat-a"):
         env=environment(sandbox),
         timeout=120,
     )
+
+
+def start_build(test, sandbox, run, slug="feat-a"):
+    process = subprocess.Popen(
+        [sys.executable, str(SUMMARY), "--repo", str(sandbox.repo), "--slug", slug, "--run", run],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+        env=environment(sandbox),
+    )
+    test.addCleanup(stopped, process)
+    return process
+
+
+def stopped(process):
+    if process.poll() is None:
+        process.kill()
+        process.communicate()
+
+
+def load_writer():
+    spec = importlib.util.spec_from_file_location("metrics_writer_under_test", str(WRITER))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def summary_path(sandbox, run):
@@ -220,6 +247,21 @@ def wait_for(path, limit):
     return path.exists()
 
 
+def slow_run(sandbox):
+    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    started = now - datetime.timedelta(hours=1)
+    run = run_of("feat-a", started)
+    write_events(sandbox, run, [(started, "run.start", {"slug": "feat-a", "amends": None, "amending": False}, "s-1")])
+    record = json.dumps(assistant(started + datetime.timedelta(seconds=120), tokens=usage(10, 20), message_id="msg_NUMBER"))
+    transcript = main_transcript(sandbox, "s-1")
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        "".join(record.replace("NUMBER", str(index)) + "\n" for index in range(SLOW_BUILD_MESSAGES)),
+        encoding="utf-8",
+    )
+    return run
+
+
 def type_matches(entry, value):
     if value is None:
         return True
@@ -279,17 +321,7 @@ class SummaryBuildTest(unittest.TestCase):
 
     def test_hook_returns_before_summary(self):
         sandbox = make_sandbox(self)
-        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-        started = now - datetime.timedelta(hours=1)
-        run = run_of("feat-a", started)
-        write_events(sandbox, run, [(started, "run.start", {"slug": "feat-a", "amends": None, "amending": False}, "s-1")])
-        record = json.dumps(assistant(started + datetime.timedelta(seconds=120), tokens=usage(10, 20), message_id="msg_NUMBER"))
-        transcript = main_transcript(sandbox, "s-1")
-        transcript.parent.mkdir(parents=True)
-        transcript.write_text(
-            "".join(record.replace("NUMBER", str(index)) + "\n" for index in range(SLOW_BUILD_MESSAGES)),
-            encoding="utf-8",
-        )
+        run = slow_run(sandbox)
         result = run_hook(sandbox, hook_payload(sandbox, CHECK_RECORD.format(root=ROOT)))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(summary_path(sandbox, run).exists())
@@ -308,6 +340,39 @@ class SummaryBuildTest(unittest.TestCase):
         result = build(sandbox, run)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(target.read_bytes(), before)
+
+    def test_build_skips_when_events_changed(self):
+        sandbox = make_sandbox(self)
+        run = slow_run(sandbox)
+        process = start_build(self, sandbox, run)
+        with self.assertRaises(subprocess.TimeoutExpired):
+            process.wait(timeout=1.0)
+        warning = load_writer().append_event(
+            "interphase", "0.13.0", "Sample", run, "steps.checked", {"exit": 0, "errors": 0, "warnings": 0},
+            environ=environment(sandbox),
+        )
+        self.assertIsNone(warning)
+        out, err = process.communicate(timeout=120)
+        self.assertEqual(process.returncode, 0, err)
+        self.assertEqual(out, "")
+        self.assertFalse(summary_path(sandbox, run).exists())
+
+    def test_overlapping_builds_leave_the_newer_summary(self):
+        sandbox = make_sandbox(self)
+        run = slow_run(sandbox)
+        older = start_build(self, sandbox, run)
+        with self.assertRaises(subprocess.TimeoutExpired):
+            older.wait(timeout=1.0)
+        warning = load_writer().append_event(
+            "interphase", "0.13.0", "Sample", run, "run.handoff", {"exit": 0, "errors": 0, "clean": True},
+            environ=environment(sandbox),
+        )
+        self.assertIsNone(warning)
+        newer = start_build(self, sandbox, run)
+        results = tuple((process, process.communicate(timeout=120)) for process in (older, newer))
+        for process, (_, err) in results:
+            self.assertEqual(process.returncode, 0, err)
+        self.assertEqual(read_summary(sandbox, run)["status"], "handed-off")
 
 
 START_EVENT = event(0, "run.start", {"slug": "feat-a", "amends": None, "amending": False})

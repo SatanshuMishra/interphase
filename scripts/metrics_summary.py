@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import fcntl
 import functools
 import importlib.util
 import os
@@ -485,6 +486,42 @@ def newer_summary_exists(path, started):
     return stamp is not None and stamp > started
 
 
+def event_bytes(path):
+    try:
+        with open(path, "rb") as handle:
+            return handle.read()
+    except OSError:
+        return b""
+
+
+def parsed_events(data):
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return ()
+    return tuple(value for value in map(FILES.parsed_object, text.splitlines()) if value is not None)
+
+
+def locked_bytes(handle):
+    try:
+        return handle.read()
+    except OSError:
+        return b""
+
+
+def write_when_current(event_file, read, summary_file, started, write):
+    def current(data):
+        return data == read and not newer_summary_exists(summary_file, started)
+
+    try:
+        handle = open(event_file, "rb")
+    except OSError:
+        return write() if current(b"") else None
+    with handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        return write() if current(locked_bytes(handle)) else None
+
+
 def parse_arguments(argv):
     parser = argparse.ArgumentParser(prog="metrics_summary.py")
     parser.add_argument("--repo", required=True)
@@ -505,12 +542,17 @@ def main(argv):
     writer = load_script("metrics_writer")
     root = writer.store_root(os.environ)
     repo = pathlib.Path(arguments.repo).resolve()
-    events = FILES.json_lines(writer.event_path(root, PLUGIN, repo.name, arguments.run))
-    if newer_summary_exists(writer.summary_path(root, PLUGIN, repo.name, arguments.run), started):
-        return 0
+    event_file = writer.event_path(root, PLUGIN, repo.name, arguments.run)
+    read = event_bytes(event_file)
     home = os.environ.get("HOME") or str(pathlib.Path.home())
-    fields = summary(repo, arguments.slug, events, home, FILES.read_json(SCRIPTS / "metrics_prices.json"))
-    warning = writer.write_summary(PLUGIN, FILES.plugin_version(PLUGIN_FOLDER), repo.name, arguments.run, fields)
+    fields = summary(repo, arguments.slug, parsed_events(read), home, FILES.read_json(SCRIPTS / "metrics_prices.json"))
+    warning = write_when_current(
+        event_file,
+        read,
+        writer.summary_path(root, PLUGIN, repo.name, arguments.run),
+        started,
+        lambda: writer.write_summary(PLUGIN, FILES.plugin_version(PLUGIN_FOLDER), repo.name, arguments.run, fields),
+    )
     if warning is not None:
         sys.stderr.write(warning + "\n")
     return 0
