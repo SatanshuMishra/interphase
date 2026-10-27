@@ -267,6 +267,23 @@ class SnapshotTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual([(line["event"], line["slug"]) for line in every_line(sandbox)], [("run.start", "feat-a")])
 
+    def test_bash_quoting_forms_recognised(self):
+        snapshot = "python3 {}/scripts/tree_guard.py snapshot --repo . --out docs/specs/feat-a.guard.json".format(ROOT)
+        forms = (
+            ("substitution holding an apostrophe", lambda repo: 'echo "$(printf "it\'s")" && ' + snapshot),
+            ("ansi quoting", lambda repo: "echo $'it\\'s' && " + snapshot),
+            ("backtick holding an apostrophe", lambda repo: 'echo "`printf "it\'s"`" && ' + snapshot),
+            ("heredoc inside a substitution", lambda repo: "\n".join(("x=\"$(cat <<'EOF'", "it's done", "EOF", ")\" && " + snapshot))),
+            ("comment holding an apostrophe", lambda repo: "\n".join(("cd {} # it's here".format(repo), snapshot))),
+            ("script inside a substitution", lambda repo: "out=$(" + snapshot + ")"),
+        )
+        for label, command in forms:
+            with self.subTest(form=label):
+                sandbox = make_sandbox(self)
+                result = run_hook(sandbox, bash(sandbox, command(sandbox.repo)))
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual([(line["event"], line["slug"]) for line in every_line(sandbox)], [("run.start", "feat-a")])
+
     def test_unexpandable_variable_is_not_a_script(self):
         sandbox = make_sandbox(self)
         command = "python3 $Q/scripts/tree_guard.py snapshot --repo . --out docs/specs/feat-a.guard.json"
@@ -360,6 +377,22 @@ class ScriptEventsTest(unittest.TestCase):
         self.assertEqual(handoff["exit"], 0)
         self.assertIs(handoff["clean"], True)
 
+    def test_verify_after_heredoc_with_apostrophe(self):
+        sandbox = make_sandbox(self)
+        run = start_run(self, sandbox)
+        command = "\n".join((
+            "cat > notes.md <<'EOF'",
+            "it's done",
+            "EOF",
+            "python3 {}/scripts/tree_guard.py verify --repo . --snapshot docs/specs/feat-a.guard.json".format(ROOT),
+        ))
+        self.assertEqual(run_hook(sandbox, bash(sandbox, command)).returncode, 0)
+        line = newest_line(run)
+        self.assertEqual(line["event"], "run.handoff")
+        self.assertEqual(line["exit"], 0)
+        self.assertEqual(line["errors"], 0)
+        self.assertIs(line["clean"], True)
+
     def test_verify_difference_is_not_clean(self):
         sandbox = make_sandbox(self)
         run = start_run(self, sandbox)
@@ -452,6 +485,22 @@ class NothingWrittenTest(unittest.TestCase):
         self.assertEqual(result.stdout, "")
         self.assertEqual(event_state(sandbox), before)
 
+    def test_script_named_in_heredoc_writes_nothing(self):
+        sandbox = make_sandbox(self)
+        start_run(self, sandbox)
+        before = event_state(sandbox)
+        verify = "python3 {}/scripts/tree_guard.py verify --repo . --snapshot docs/specs/feat-a.guard.json".format(ROOT)
+        commands = (
+            ("quoted delimiter", "\n".join(("cat > notes.md <<'EOF'", verify, "EOF"))),
+            ("tab-stripped delimiter", "\n".join(("cat > notes.md <<-EOF", "\t" + verify, "\tEOF"))),
+        )
+        for label, command in commands:
+            with self.subTest(form=label):
+                result = run_hook(sandbox, bash(sandbox, command))
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual(event_state(sandbox), before)
+
     def test_script_before_any_run_writes_nothing(self):
         sandbox = make_sandbox(self)
         command = "python3 {}/scripts/check_record.py docs/specs/feat-a.record.json".format(ROOT)
@@ -512,6 +561,36 @@ class SessionEventsTest(unittest.TestCase):
         sandbox = make_sandbox(self)
         run = start_run(self, sandbox, session="s-1")
         text = "Status: Issues found\n\nI checked the date arithmetic in every example.\n- Section 4: a\n\n- Step b: c\nThat is all.\n"
+        run_hook(sandbox, agent(sandbox, "interphase:spec-reviewer", text, "s-1"))
+        line = newest_line(run)
+        self.assertEqual(line["event"], "review.done")
+        self.assertIs(line["approved"], False)
+        self.assertEqual(line["issues"], 2)
+
+    def test_review_ignores_trailing_dash_lists(self):
+        sandbox = make_sandbox(self)
+        run = start_run(self, sandbox, session="s-1")
+        text = "Status: Issues found\n\n- a\n- b\n\nFiles reviewed:\n- /w/x.md\n- /w/y.py"
+        run_hook(sandbox, agent(sandbox, "interphase:spec-reviewer", text, "s-1"))
+        line = newest_line(run)
+        self.assertEqual(line["event"], "review.done")
+        self.assertIs(line["approved"], False)
+        self.assertEqual(line["issues"], 2)
+
+    def test_approved_review_counts_no_issues(self):
+        sandbox = make_sandbox(self)
+        run = start_run(self, sandbox, session="s-1")
+        text = "Status: Approved\n\nNothing found.\n- checked x\n- checked y"
+        run_hook(sandbox, agent(sandbox, "interphase:spec-reviewer", text, "s-1"))
+        line = newest_line(run)
+        self.assertEqual(line["event"], "review.done")
+        self.assertIs(line["approved"], True)
+        self.assertEqual(line["issues"], 0)
+
+    def test_review_indented_details_are_not_issues(self):
+        sandbox = make_sandbox(self)
+        run = start_run(self, sandbox, session="s-1")
+        text = "Status: Issues found\n\n- a\n  - detail of a\n  more of a\n- b\n\nFiles reviewed:\n- /w/x.md"
         run_hook(sandbox, agent(sandbox, "interphase:spec-reviewer", text, "s-1"))
         line = newest_line(run)
         self.assertEqual(line["event"], "review.done")
