@@ -486,12 +486,20 @@ def newer_summary_exists(path, started):
     return stamp is not None and stamp > started
 
 
-def event_bytes(path):
+def handle_bytes(handle):
     try:
-        with open(path, "rb") as handle:
-            return handle.read()
+        return handle.read()
     except OSError:
         return b""
+
+
+def event_bytes(path):
+    try:
+        handle = open(path, "rb")
+    except OSError:
+        return b""
+    with handle:
+        return handle_bytes(handle)
 
 
 def parsed_events(data):
@@ -499,27 +507,18 @@ def parsed_events(data):
         text = data.decode("utf-8")
     except UnicodeDecodeError:
         return ()
-    return tuple(value for value in map(FILES.parsed_object, text.splitlines()) if value is not None)
-
-
-def locked_bytes(handle):
-    try:
-        return handle.read()
-    except OSError:
-        return b""
+    return FILES.json_objects(text.splitlines())
 
 
 def write_when_current(event_file, read, summary_file, started, write):
-    def current(data):
-        return data == read and not newer_summary_exists(summary_file, started)
-
     try:
         handle = open(event_file, "rb")
     except OSError:
-        return write() if current(b"") else None
+        return None
     with handle:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        return write() if current(locked_bytes(handle)) else None
+        unchanged = handle_bytes(handle) == read
+        return write() if unchanged and not newer_summary_exists(summary_file, started) else None
 
 
 def parse_arguments(argv):

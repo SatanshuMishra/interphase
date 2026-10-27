@@ -29,8 +29,12 @@ def parsed_object(line):
     return value if isinstance(value, dict) else None
 
 
+def json_objects(lines):
+    return tuple(value for value in map(parsed_object, lines) if value is not None)
+
+
 def json_lines(path):
-    return tuple(value for value in map(parsed_object, read_lines(path) or ()) if value is not None)
+    return json_objects(read_lines(path) or ())
 
 
 def json_text(text):
