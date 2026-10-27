@@ -40,6 +40,6 @@ Report only issues that would cause the wrong thing to be built for a real user 
 
 Output a `Status:` line first. It reads `Approved` or `Issues found`.
 
-Then write one line per issue. Name the section or Step, the problem and why it matters.
+Then write each issue as one line starting `- ` that names the section or Step, the problem and why it matters. Start no other line with `- `.
 
 Never edit anything.

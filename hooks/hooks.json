@@ -13,6 +13,22 @@
           {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/resume_context.py\"", "timeout": 10}
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Bash|Agent|Task|AskUserQuestion)$",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/metrics_hook.py\"", "timeout": 10}
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/metrics_hook.py\"", "timeout": 10}
+        ]
+      }
     ]
   }
 }
