@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-27T00:04:06.151Z
+Updated: 2026-10-27T00:04:07.456Z
 Next ids: c5 D2 R1 S1
 
 ## Goal
@@ -39,3 +39,4 @@ When the spec reviewer reports, fix each issue that would build the wrong thing,
 - Decision records: docs/adr/0001-interphase-records-its-runs-through-a-hook.md and 0002-a-run-counts-only-its-own-spend-between-its-first-and-last-event.md in this checkout
 - Run home: ~/.mitosis/interphase/interphase-metrics/ (CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh)
 - Record and task generators: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/build_record.py and build_tasks.py
+- Plan-only report: ~/.mitosis/interphase/interphase-metrics/plan-2.log; mitosis run directory ~/.mitosis/runs/interphase/interphase-metrics
