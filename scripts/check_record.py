@@ -44,6 +44,8 @@ STEP_KEYS = (
 STEP_REQUIRED = ("name", "files", "criteria")
 RENDERED_KEYS = ("source", "acceptance", "spec_ref")
 NUMBER_RE = re.compile(r"[0-9]+\.[0-9]+")
+ROUND_KEYS = ("kind", "questions", "changed")
+ROUND_KINDS = ("intent", "frontier")
 
 
 def load_items_checker():
@@ -121,7 +123,9 @@ def text_fields(who, item, keys):
 
 def check_shape(record):
     unknown = tuple(
-        error("record has unknown key %r" % key) for key in sorted(record) if key not in RECORD_KEYS + ("status",)
+        error("record has unknown key %r" % key)
+        for key in sorted(record)
+        if key not in RECORD_KEYS + ("status", "rounds")
     )
     absent = tuple(error("record lacks key %r" % key) for key in RECORD_KEYS if key not in record)
     not_lists = tuple(
@@ -575,6 +579,51 @@ def check_steps(steps, criteria):
     return per_step + from_items(shared)
 
 
+def check_round_kind(who, entry):
+    if "kind" not in entry or entry["kind"] in ROUND_KINDS and isinstance(entry["kind"], str):
+        return ()
+    return (error("%s has kind that is not %s" % (who, " or ".join(repr(kind) for kind in ROUND_KINDS))),)
+
+
+def check_round_counts(who, entry):
+    questions = entry.get("questions")
+    asked = (
+        ()
+        if "questions" not in entry or is_count(questions, 1)
+        else (error("%s has questions that is not a whole number of at least one" % who),)
+    )
+    ceiling = questions if is_count(questions, 1) else None
+    changed = entry.get("changed")
+    valid = is_count(changed, 0) and (ceiling is None or changed <= ceiling)
+    answered = (
+        ()
+        if "changed" not in entry or valid
+        else (error("%s has changed that is not a whole number from zero to its questions" % who),)
+    )
+    return asked + answered
+
+
+def check_round(index, entry):
+    who = "round %d" % (index + 1)
+    if not isinstance(entry, dict):
+        return (error("%s is not an object" % who),)
+    return (
+        unknown_keys(who, entry, ROUND_KEYS)
+        + missing_keys(who, entry, ROUND_KEYS)
+        + check_round_kind(who, entry)
+        + check_round_counts(who, entry)
+    )
+
+
+def check_rounds(record):
+    if "rounds" not in record:
+        return ()
+    rounds = record["rounds"]
+    if not isinstance(rounds, list):
+        return (error("record key 'rounds' is not a list"),)
+    return tuple(finding for index, entry in enumerate(rounds) for finding in check_round(index, entry))
+
+
 def check(text, complete=False):
     try:
         record = json.loads(text)
@@ -590,6 +639,7 @@ def check(text, complete=False):
         + check_seams(seams, criteria, complete)
         + check_criteria(criteria, seams, steps, complete)
         + check_steps(steps, criteria)
+        + check_rounds(record)
         + check_missing_parts(record, complete)
     )
 
