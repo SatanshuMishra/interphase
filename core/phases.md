@@ -18,7 +18,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 10. Never name, detect or invoke any tool that might consume the spec.
 11. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
 12. Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
-13. Keep the interview in the record: write each seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.
+13. Keep the interview in the record: write each round, seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.
 14. When the user's instructions say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.
 
 ## Phase 1: Intake

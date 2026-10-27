@@ -199,6 +199,13 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(tuple(line for line in lines if line.startswith("- Completeness:")), ())
         self.assertEqual(tuple(line for line in lines if line.startswith("- Trace:")), ())
 
+    def test_spec_reviewer_writes_issues_as_dash_lines(self):
+        _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))
+        self.assertIn("Then write each issue as one line starting `- ` that names the section or Step, the problem and why it matters.", body)
+        self.assertIn("Start no other line with `- `.", body)
+        self.assertIn("Output a `Status:` line first. It reads `Approved` or `Issues found`.", body)
+        self.assertLess(body.index("Output a `Status:` line first."), body.index("Then write each issue as one line starting `- `"))
+
 
 if __name__ == "__main__":
     unittest.main()

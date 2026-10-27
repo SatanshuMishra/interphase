@@ -117,6 +117,11 @@ class QuestioningTest(unittest.TestCase):
         self.assertIn("Never reword or delete an earlier line.", body)
         self.assertIn("Update the record at the same time: the seams, the criteria and the owning Steps.", body)
 
+    def test_each_round_is_recorded_with_its_counts(self):
+        body = section("## Record each answer")
+        for word in ("rounds", "kind", "intent", "frontier", "questions", "changed", "recommended"):
+            self.assertIn(word, body, word)
+
     def test_the_read_back_is_the_only_use_of_ask_user_question(self):
         body = section("## Know when to stop")
         self.assertIn("The interview ends when the frontier is empty", body)

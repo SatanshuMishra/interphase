@@ -1,0 +1,5 @@
+# Interphase records its own runs through a hook, never through steps the model runs
+
+Status: accepted
+
+Interphase writes its metrics from a Claude Code hook that watches the work it already does: the runs of its own scripts from its own install folder, the read-back answer and its spec reviewer's reply. A guard snapshot starts a run and the guard verify ends it, and the hook rebuilds the run summary in a detached process after every event, so a run that never hands off still keeps its figures. We chose this over metrics commands in the phase instructions, which a model can forget and which cost every run extra turns, and over one summary computed at hand-off, which an abandoned run never reaches. The counts only the model knows, the questions each round asked and the answers the person changed, live in the interview record's rounds list, which interphase writes like every other record entry, rather than being read back out of the conversation, because transcripts are pruned and are not metrics.
