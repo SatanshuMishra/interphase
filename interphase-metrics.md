@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:14:04.145Z
+Updated: 2026-10-27T08:16:42.382Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -39,7 +39,7 @@ Needs: D2, D3.
 ## Where the details live
 
 - Pipeline spec: /Users/satanshumishra/Documents/DevLabs/pipeline/docs/specs/unified-metrics.md
-- Shared writers, fixtures, schemas and format document: pipeline repo origin/feat/unified-metrics at a39ab11 (SatanshuMishra/pipeline#21)
+- Shared writers, fixtures, schemas and format document: pipeline repo origin/main (42b6145, SatanshuMishra/pipeline#21 merged; shared writer files byte-identical to a39ab11)
 - Pipeline decisions with intent I1 to I6: /Users/satanshumishra/Documents/DevLabs/pipeline/docs/specs/unified-metrics.decisions.md
 - Shared notes: /Users/satanshumishra/Library/Application Support/Claude/side-session-notes/local_962684e1-8c70-41bb-98a4-8bcb33f71921
 - Interphase package: docs/specs/interphase-metrics.{md,decisions.md,record.json,items.json} and GLOSSARY.md in this checkout
