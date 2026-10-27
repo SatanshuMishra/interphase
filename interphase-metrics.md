@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T11:30:33.187Z
+Updated: 2026-10-27T12:13:25.330Z
 Next ids: c5 D6 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Integration is in its first fix round. feat/interphase-metrics (970ae86, including lighthouse's profile commit) holds both MSPs, and the integration worktree is ~/.mitosis/runs/interphase/interphase-metrics/integration. Lighthouse run 1 (lighthouse/run-1) returned verdict failures with no pull request, spending 52.9 dollars over 105 minutes. It found U1: review.done counts every dash line of the spec reviewer's reply, including its Files reviewed list, as an issue (scripts/metrics_hook.py:351). It found U2: shlex fails on a heredoc holding an apostrophe, so the hook drops that command and run.handoff is lost (scripts/metrics_hook.py:51); lighthouse marked it flaky, but it reproduces deterministically. The scout neighbour path was unproven, because no request dispatched scout. Both findings are recorded as integration round 1 with kind failing test; the diagnosis classed them requirement-wrong. Amendment 2 (Step hook-parsing, MSP integration-amend-2: the first-run issue count for 5.8 and a bash-aware command reader for 5.5 to 5.7) is built (gate 6 pass) and merged into feat/interphase-metrics, now pushed at 2e07f10; the suite passes (455 tests, review/round-1/integration.amend-2.suite.txt) and the selecting check finds no instance. Lighthouse run 2 with --previous run-1 is next.
+Integration is done. The FEATURE pull request SatanshuMishra/interphase#52 (feat/interphase-metrics at 2e07f10 into main) is open, ready for review and assigned to the owner; I opened it because lighthouse's child read its profile's off-limits list as forbidding it. Lighthouse run 2 is green with one flaky path (R4); run 1 spent 52.92 dollars over 104.9 minutes and run 2 32.56 dollars over 39.0 minutes. Amendment 2 (Step hook-parsing) fixed run 1's U1 and U2.
 
 ## Next step
 
