@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T06:28:00.168Z
+Updated: 2026-10-27T06:28:02.332Z
 Next ids: c5 D3 R4 S1
 
 ## Goal
@@ -20,7 +20,7 @@ Stage 2's first build is running in the background (output in build-1.log), buil
 
 ## Next step
 
-Run the first build: ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (in the background), then read mitosis's last stdout line and go on to Stage 3 review for interview-rounds and self-metrics.
+When the build ends, read the last line of ~/.mitosis/interphase/interphase-metrics/build-1.log (mitosis's JSON result), write lane notes' Assumption lines to review/<msp>.assumptions.txt, and go on to Stage 3 review for interview-rounds and self-metrics.
 
 Needs: D2.
 
