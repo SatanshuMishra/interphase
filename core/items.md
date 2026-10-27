@@ -19,14 +19,14 @@ The glossary and the ADRs live outside the spec folder, as `${CLAUDE_PLUGIN_ROOT
 
 ## Interview record
 
-Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these four lists, `seams`, `criteria`, `steps` and `rounds`, and a `status`:
+Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, `seams`, `criteria` and `steps`, an optional `rounds` list, and a `status`:
 
 | Key | Each entry |
 |---|---|
 | `seams` | `name` (lowercase kebab-case, unique), `interface` (the public interface tests observe behaviour at), `catches` (what tests there catch), `misses` (what they miss), `builder_runs` (`true` when whoever builds a Step can run tests there) |
 | `criteria` | `number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `tests` (each one row, with `file`, `name`, `given`, `expect`, `step` and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
-| `rounds` | `kind` (`intent` or `frontier`), `questions` (the number of questions the round asked) and `changed` (the answers that differ from the recommended one) |
 | `steps` | `name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref` |
+| `rounds` | `kind` (`intent` or `frontier`), `questions` (the number of questions the round asked) and `changed` (the answers that differ from the recommended one) |
 
 A record without rounds stays valid, because an unattended run holds no interview and a record from an earlier release has none.
 
