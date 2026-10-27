@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:47:26.690Z
+Updated: 2026-10-27T08:47:28.609Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -20,9 +20,9 @@ interview-rounds is green after round 1, its advisory C1 fixed at 529d53a on mit
 
 ## Next step
 
-When the self-metrics round-3 code-reviewer and security-reviewer report, collect their last JSON arrays into review/round-3/self-metrics.findings.json and write review/round-3/self-metrics.md, then run pipeline candidates, the validator (brief from render_briefs.zsh 3 ... validator), pipeline record and pipeline verdict; on green, fix any advisories, run rerun-plan, then Ship.
+Run SHIP=1 ~/.mitosis/interphase/interphase-metrics/run.zsh --resume --proven-head self-metrics=bfb1221d100fad655d67823b212a8122ef21633e, read each MSP's title, body, branch and base from its JSON result, and open the two pull requests in stack order through the GitHub MCP create_pull_request tool; then assign them and post review/<msp>.comment.md on each.
 
-Needs: D2, D3.
+Needs: D2, D3, D4.
 
 ## Decisions in force
 
