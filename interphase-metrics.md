@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T11:24:43.923Z
+Updated: 2026-10-27T11:24:46.588Z
 Next ids: c5 D6 R4 S1
 
 ## Goal
@@ -49,5 +49,5 @@ Needs: D5, R2, R3.
 - Run home: ~/.mitosis/interphase/interphase-metrics/ (CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, items.json, graph.json, plan-2.log plan report, build-1.log build output)
 - Record and task generators: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/build_record.py and build_tasks.py
 - Mitosis run directories: ~/.mitosis/runs/interphase/interphase-metrics and interphase-metrics-amend-1 (amendment 1)
-- Amendment 2 generator: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/amend2/amend2.py; amendment 2 items: docs/specs/interphase-metrics.amend-2.items.json
+- Amendment 2 generators: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/amend2/amend2.py and amend2b.py (review fixes); amendment 2 items: docs/specs/interphase-metrics.amend-2.items.json
 - Run home also holds amend-1.zsh and amend-1.items.json (amendment 1 build), amend-2.zsh (amendment 2 build onto feat/interphase-metrics), lighthouse/run-1 (Integration's first lighthouse results), review/ (round records, obligations, proofs, assumptions) and rounds.md; CHARTER.md's Pipeline ref names pipeline origin/main as the source of the shared files
