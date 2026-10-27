@@ -341,6 +341,20 @@ class SummaryBuildTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(target.read_bytes(), before)
 
+    def test_build_without_the_event_file_lock_writes_nothing(self):
+        sandbox = make_sandbox(self)
+        run = run_of("feat-a")
+        earlier = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=10)
+        target = summary_path(sandbox, run)
+        target.parent.mkdir(parents=True)
+        stored = json.dumps({"v": 1, "ts": stamp(earlier), "plugin": "interphase", "kind": "summary", "event": "run.summary", "run": run, "slug": "feat-a", "status": "handed-off"}) + "\n"
+        target.write_text(stored, encoding="utf-8")
+        before = target.read_bytes()
+        result = build(sandbox, run)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(target.read_bytes(), before)
+
     def test_build_skips_when_events_changed(self):
         sandbox = make_sandbox(self)
         run = slow_run(sandbox)
