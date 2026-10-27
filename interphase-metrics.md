@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T00:04:34.191Z
+Updated: 2026-10-27T06:26:58.644Z
 Next ids: c5 D2 R4 S1
 
 ## Goal
@@ -20,9 +20,9 @@ Stage 1 is handed off: the spec, decisions, record (status handed-off) and 8-Ste
 
 ## Next step
 
-Gate: in /Users/satanshumishra/Documents/DevLabs/pipeline run `git fetch -q origin && git ls-tree --name-only <ref> -- pipeline_tool/metrics_writer.py metrics/metrics-writer.ts docs/metrics-format.md` for origin/main and origin/feat/unified-metrics. Once one prints a path (prefer origin/main), replace the "Pipeline ref:" line in ~/.mitosis/interphase/interphase-metrics/CHARTER.md with that ref, then run ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (first build), then the rest of pipeline:run (review, validate, fix pass, ship) to the last pull request.
+Run the first build: ~/.mitosis/interphase/interphase-metrics/run.zsh from the interphase repo root (in the background, timeout 14400s), then read mitosis's last stdout line and go on to Stage 3 review for interview-rounds and self-metrics.
 
-Needs: D1, R1.
+Needs: D1.
 
 ## Decisions in force
 
@@ -30,7 +30,6 @@ Needs: D1, R1.
 
 ## Open risks
 
-- R1 Shared writers absent: as of 2026-10-26 neither origin/feat/unified-metrics nor origin/main in the pipeline repo holds pipeline_tool/metrics_writer.py, metrics/metrics-writer.ts or docs/metrics-format.md; the writer-copy Step cannot build until one does, and its assumed API must be rechecked against the landed writer.
 - R2 When the pipeline drives interphase in the same Claude Code session, PLUGIN_METRICS_PARENT is not in that session's environment (run.zsh exports it only for mitosis), so interphase records parent null; out of this spec's scope, a pipeline-side change.
 - R3 Criteria 5.4 and 5.20 are live-session checks the builder cannot run; they stay unproven until the owner runs one real interphase session.
 
