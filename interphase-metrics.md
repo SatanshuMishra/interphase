@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:16:42.382Z
+Updated: 2026-10-27T08:17:14.860Z
 Next ids: c5 D4 R4 S1
 
 ## Goal
@@ -47,4 +47,4 @@ Needs: D2, D3.
 - Run home: ~/.mitosis/interphase/interphase-metrics/ (CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, items.json, graph.json, plan-2.log plan report, build-1.log build output)
 - Record and task generators: /private/tmp/claude-501/-Users-satanshumishra-Documents-DevLabs-interphase/3eafd85b-d0b0-4374-a9f8-454cba4f33f9/scratchpad/build_record.py and build_tasks.py
 - Mitosis run directories: ~/.mitosis/runs/interphase/interphase-metrics and interphase-metrics-amend-1 (amendment 1)
-- Run home also holds amend-1.zsh and amend-1.items.json (amendment 1 build), review/ (round records, obligations, proofs, assumptions) and rounds.md
+- Run home also holds amend-1.zsh and amend-1.items.json (amendment 1 build), review/ (round records, obligations, proofs, assumptions) and rounds.md; CHARTER.md's Pipeline ref names pipeline origin/main as the source of the shared files
