@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T11:18:35.376Z
+Updated: 2026-10-27T11:18:37.688Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -20,7 +20,7 @@ Integration is in its first fix round. feat/interphase-metrics (970ae86, includi
 
 ## Next step
 
-The owner starts Integration by saying SatanshuMishra/interphase#51 merged into feat/interphase-metrics. Integration then runs pipeline:run's Integration: resume_thread interphase-metrics, read ~/.mitosis/interphase/interphase-metrics/CHARTER.md, sync, have lighthouse test feat/interphase-metrics, and open the FEATURE pull request.
+Hand off amendment 2, record its boundary, build it with amend-2.zsh (--no-push), merge its branch into feat/interphase-metrics in the integration worktree, push, then run lighthouse run 2 with --previous run-1 until the FEATURE pull request into main opens.
 
 Needs: D4, R2, R3.
 
