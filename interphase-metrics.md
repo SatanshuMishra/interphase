@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: active
-Updated: 2026-10-27T00:03:51.928Z
+Updated: 2026-10-27T00:04:06.151Z
 Next ids: c5 D2 R1 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Stage 1 is in interphase's Phase 9: the spec, decisions, record and 8-Step items are written and pass every check; the one spec-reviewer pass is running. ADRs 0001 and 0002 are drafted. The run home holds CHARTER.md, worker-rules.txt, dispatch.zsh and a run.zsh whose --feature-branch is still the placeholder FEATURE_BRANCH. Lighthouse readiness is clear (claude cli fact saved); receipts.config.json is already committed, so no receipts setup.
+Stage 1 is handed off: the spec, decisions, record (status handed-off) and 8-Step items pass every check after the one spec-reviewer round, and GLOSSARY.md plus ADRs 0001 and 0002 sit uncommitted in the checkout. Stage 2 set-up is complete: feat/interphase-metrics is pushed from 4b8ad3c8, the run home holds CHARTER.md, worker-rules.txt, dispatch.zsh, run.zsh, feature.json, items.json and graph.json, and run.zsh --plan-only passes (plan 9ed65354d82c, exit 0, 5 Lanes in 2 MSPs, no fatal finding) after the PR subject was shortened to "record interphase runs as metrics" for the 72-unit title cap. No build has run. The shared writers are on neither origin/feat/unified-metrics nor origin/main as of 2026-10-26.
 
 ## Next step
 
