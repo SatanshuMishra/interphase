@@ -30,7 +30,7 @@ class TestManifest(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         manifest_path = root / ".claude-plugin" / "plugin.json"
         manifest = json.loads(manifest_path.read_text())
-        self.assertEqual(manifest["version"], "0.13.0")
+        self.assertEqual(manifest["version"], "0.13.1")
 
 
 class TestMarketplace(unittest.TestCase):

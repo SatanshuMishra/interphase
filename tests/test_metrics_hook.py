@@ -1,4 +1,5 @@
 import collections
+import datetime
 import json
 import os
 import pathlib
@@ -7,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -125,6 +127,12 @@ def store_files(sandbox):
 
 def snapshot_command():
     return SNAPSHOT.format(root=ROOT)
+
+
+def write_guard(sandbox, modified):
+    guard = sandbox.repo / "docs" / "specs" / "feat-a.guard.json"
+    guard.write_text("{}\n", encoding="utf-8")
+    os.utime(str(guard), (modified, modified))
 
 
 def start_run(test, sandbox, session="s-1"):
@@ -295,6 +303,34 @@ class SnapshotTest(unittest.TestCase):
         sandbox = make_sandbox(self)
         result = run_hook(sandbox, failure(sandbox, snapshot_command(), "Exit code 2\ntree_guard.py: error: x"))
         self.assertEqual(result.returncode, 0)
+        self.assertEqual(event_files(sandbox), [])
+
+    def test_snapshot_then_failing_command_starts_a_run(self):
+        sandbox = make_sandbox(self)
+        write_guard(sandbox, time.time())
+        command = snapshot_command() + " && python3 -c 'raise SystemExit(1)'"
+        result = run_hook(sandbox, failure(sandbox, command, "Exit code 1"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        files = event_files(sandbox)
+        self.assertEqual(len(files), 1)
+        self.assertRegex(files[0].name, STAMPED_RUN)
+        self.assertEqual([line["event"] for line in read_lines(files[0])], ["run.start"])
+
+    def test_failure_with_the_earlier_runs_snapshot_starts_no_run(self):
+        sandbox = make_sandbox(self)
+        started = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+        earlier = "feat-a." + started.strftime("%Y%m%dT%H%M%SZ")
+        seed_run(sandbox, earlier, [("run.start", {"slug": "feat-a", "amends": None, "amending": False})])
+        write_guard(sandbox, started.timestamp() + 0.5)
+        result = run_hook(sandbox, failure(sandbox, snapshot_command() + " && false", "Exit code 1"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([path.name for path in event_files(sandbox)], [earlier + ".jsonl"])
+
+    def test_failure_with_a_stale_snapshot_starts_no_run(self):
+        sandbox = make_sandbox(self)
+        write_guard(sandbox, time.time() - 11 * 60)
+        result = run_hook(sandbox, failure(sandbox, snapshot_command() + " && false", "Exit code 1"))
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(event_files(sandbox), [])
 
     def test_reused_slug_is_not_an_amendment(self):

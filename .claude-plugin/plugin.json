@@ -1,6 +1,6 @@
 {
   "name": "interphase",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Turns a rough request into a clear spec. Grills the user in numbered rounds until intent is shared, then writes the spec and its Steps autonomously, filling late gaps from the recorded intent. Features get researched, bugs get reproduced, prototypes get explored. Never implements.",
   "author": {
     "name": "Satanshu Mishra",
