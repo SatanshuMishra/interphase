@@ -722,5 +722,57 @@ class AmendmentRecordTest(RecordFixture, unittest.TestCase):
         )
 
 
+class RoundsRecordTest(RecordFixture, unittest.TestCase):
+    def error_lines(self, record, complete=True):
+        argv = ["--complete", "record.json"] if complete else ["record.json"]
+        code, out, _ = self.run_main(argv, json.dumps(record))
+        return code, tuple(line for line in out.splitlines() if line.startswith("error:"))
+
+    def test_record_without_rounds_is_valid(self):
+        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(base_record()))
+        self.assertEqual(code, 0)
+        self.assertFalse(any("round" in line for line in out.splitlines()), out)
+
+    def test_rounds_entries_accepted(self):
+        intent = {"kind": "intent", "questions": 3, "changed": 0}
+        frontier = {"kind": "frontier", "questions": 5, "changed": 2}
+        for rounds in ([], [intent, frontier]):
+            with self.subTest(rounds=rounds):
+                code, errors = self.error_lines({**base_record(), "rounds": rounds})
+                self.assertEqual(code, 0)
+                self.assertEqual(errors, ())
+
+    def test_rounds_not_a_list_refused(self):
+        record = {**base_record(), "rounds": {"kind": "intent", "questions": 3, "changed": 0}}
+        code, errors = self.error_lines(record)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("rounds", errors[0])
+
+    def test_malformed_round_entries_refused(self):
+        rounds = [
+            "intent",
+            {"kind": "intent", "questions": 3, "changed": 0, "note": "x"},
+            {"kind": "intent", "questions": 3},
+            {"kind": "readback", "questions": 1, "changed": 0},
+            {"kind": "frontier", "questions": 0, "changed": 0},
+            {"kind": "frontier", "questions": True, "changed": 0},
+            {"kind": "frontier", "questions": 2, "changed": 3},
+            {"kind": "frontier", "questions": 2, "changed": -1},
+        ]
+        code, errors = self.error_lines({**base_record(), "rounds": rounds})
+        self.assertEqual(code, 1)
+        for number in range(1, 9):
+            with self.subTest(number=number):
+                prefix = "round %d" % number
+                self.assertTrue(
+                    any(
+                        prefix in line and not any(digit in line.replace(prefix, "", 1) for digit in "0123456789")
+                        for line in errors
+                    ),
+                    errors,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
