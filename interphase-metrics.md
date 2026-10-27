@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T11:24:18.418Z
+Updated: 2026-10-27T11:24:43.923Z
 Next ids: c5 D6 R4 S1
 
 ## Goal
@@ -16,7 +16,7 @@ Interphase records metrics personalised to its purpose (turn a request into an a
 
 ## Where things stand
 
-Integration is in its first fix round. feat/interphase-metrics (970ae86, including lighthouse's profile commit) holds both MSPs, and the integration worktree is ~/.mitosis/runs/interphase/interphase-metrics/integration. Lighthouse run 1 (lighthouse/run-1) returned verdict failures with no pull request, spending 52.9 dollars over 105 minutes. It found U1: review.done counts every dash line of the spec reviewer's reply, including its Files reviewed list, as an issue (scripts/metrics_hook.py:351). It found U2: shlex fails on a heredoc holding an apostrophe, so the hook drops that command and run.handoff is lost (scripts/metrics_hook.py:51); lighthouse marked it flaky, but it reproduces deterministically. The scout neighbour path was unproven, because no request dispatched scout. Both findings are recorded as integration round 1 with kind failing test; the diagnosis classed them requirement-wrong. Amendment 2 is written into the spec package (Step hook-parsing, MSP integration-amend-2: the first-run issue count for 5.8 and a bash-aware command reader for 5.5 to 5.7), checks pass, and its one spec review is running; the record stays in-progress until hand-off.
+Integration is in its first fix round. feat/interphase-metrics (970ae86, including lighthouse's profile commit) holds both MSPs, and the integration worktree is ~/.mitosis/runs/interphase/interphase-metrics/integration. Lighthouse run 1 (lighthouse/run-1) returned verdict failures with no pull request, spending 52.9 dollars over 105 minutes. It found U1: review.done counts every dash line of the spec reviewer's reply, including its Files reviewed list, as an issue (scripts/metrics_hook.py:351). It found U2: shlex fails on a heredoc holding an apostrophe, so the hook drops that command and run.handoff is lost (scripts/metrics_hook.py:51); lighthouse marked it flaky, but it reproduces deterministically. The scout neighbour path was unproven, because no request dispatched scout. Both findings are recorded as integration round 1 with kind failing test; the diagnosis classed them requirement-wrong. Amendment 2 (Step hook-parsing, MSP integration-amend-2: the first-run issue count for 5.8 and a bash-aware command reader for 5.5 to 5.7) is reviewed, fixed and handed off; its plan passed (89889016a98d) and its mitosis build is running in the background, writing amend-2-build.log.
 
 ## Next step
 
