@@ -134,8 +134,8 @@
       "recheck": "read the Requirements section of README.md"
     },
     "claude cli": {
-      "value": "the claude CLI is on PATH and signed in, so claude -p sessions can run",
-      "confirmed": false,
+      "value": "claude 2.1.308 (Claude Code) on PATH; a one-line claude -p request from a scratch folder exits 0 and replies",
+      "confirmed": true,
       "recheck": "run claude --version and a one-line claude -p request"
     },
     "plugin root variable": {
