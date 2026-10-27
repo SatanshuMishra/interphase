@@ -1,6 +1,6 @@
 # interphase-metrics: Interphase metrics on the shared plugin-metrics store, carried to the first build
 Status: parked
-Updated: 2026-10-27T08:48:51.330Z
+Updated: 2026-10-27T08:48:56.007Z
 Next ids: c5 D5 R4 S1
 
 ## Goal
@@ -20,9 +20,9 @@ Both MSPs are shipped and wait for the owner to merge them. SatanshuMishra/inter
 
 ## Next step
 
-Run SHIP=1 ~/.mitosis/interphase/interphase-metrics/run.zsh --resume --proven-head self-metrics=bfb1221d100fad655d67823b212a8122ef21633e, read each MSP's title, body, branch and base from its JSON result, and open the two pull requests in stack order through the GitHub MCP create_pull_request tool; then assign them and post review/<msp>.comment.md on each.
+The owner starts Integration by saying the MSP pull requests merged (SatanshuMishra/interphase#50 into mitosis/interview-rounds first, then #49 into feat/interphase-metrics). Integration then runs pipeline:run's Integration: resume_thread interphase-metrics, read ~/.mitosis/interphase/interphase-metrics/CHARTER.md, sync, have lighthouse test feat/interphase-metrics, and open the FEATURE pull request.
 
-Needs: D2, D3, D4.
+Needs: D4, R2, R3.
 
 ## Decisions in force
 
