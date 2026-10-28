@@ -68,6 +68,7 @@ def load_sibling(name):
 check_items = load_sibling("check_items")
 schema_check = load_sibling("schema_check")
 surface_probe = load_sibling("surface_probe")
+record_seams = load_sibling("record_seams")
 K1 = schema_check.load("k1-acceptance")
 K2_LOCKED = schema_check.subschema(schema_check.load("k2-locked"), "/properties/locked")
 ITEM_STEP_CHECKS = (
@@ -199,18 +200,10 @@ def seam_names(seams):
     return tuple(seam["name"] for seam in seams if isinstance(seam, dict) and check_items.is_text(seam.get("name")))
 
 
-def builder_seams(seams):
-    return frozenset(
-        seam["name"]
-        for seam in seams
-        if isinstance(seam, dict) and check_items.is_text(seam.get("name")) and seam.get("builder_runs") is True
-    )
-
-
 def check_seams(seams, criteria, complete):
     per_seam = tuple(finding for index, seam in enumerate(seams) for finding in check_seam(index, seam))
     repeated = tuple(error("seam name %r is duplicated" % name) for name in duplicated(seam_names(seams)))
-    used = frozenset(criterion["seam"] for criterion in criteria if isinstance(criterion, dict) and check_items.is_text(criterion.get("seam")))
+    used = frozenset(record_seams.criterion_seam(criterion) for criterion in criteria)
     idle = tuple(
         missing("seam %r is used by no criterion" % name, complete)
         for name in unique(seam_names(seams))
@@ -253,11 +246,10 @@ def check_number(who, criterion):
 
 
 def check_seam_name(who, criterion, known):
-    if "seam" not in criterion or not check_items.is_text(criterion["seam"]):
+    seam = record_seams.criterion_seam(criterion)
+    if seam is None or seam in known:
         return ()
-    if criterion["seam"] in known:
-        return ()
-    return (error("%s names unknown seam %r" % (who, criterion["seam"])),)
+    return (error("%s names unknown seam %r" % (who, seam)),)
 
 
 def well_formed(test):
@@ -459,7 +451,7 @@ def check_acceptance(who, criterion):
 def check_implemented(who, criterion, complete):
     if "unproven" in criterion:
         return ()
-    named = frozenset(test.get(CHECK) for test in criterion_tests(criterion))
+    named = frozenset(check_names(criterion))
     return tuple(
         missing("%s acceptance line %s is implemented by no test" % (who, line_id), complete)
         for line_id in unique(line_ids(criterion))
@@ -538,6 +530,10 @@ def criterion_tests(criterion):
     return tuple(test for test in tests if well_formed(test)) if isinstance(tests, list) else ()
 
 
+def check_names(criterion):
+    return tuple(test[CHECK] for test in criterion_tests(criterion) if check_items.is_text(test.get(CHECK)))
+
+
 def covered(criterion):
     return frozenset(
         tuple(entry.partition(": ")[0::2])
@@ -568,7 +564,7 @@ def check_varies(who, criterion):
 
 
 def check_proof(who, criterion, builders, complete):
-    runnable = check_items.is_text(criterion.get("seam")) and criterion["seam"] in builders
+    runnable = record_seams.criterion_seam(criterion) in builders
     tests = criterion_tests(criterion)
     unproven = "unproven" in criterion
     if not runnable:
@@ -616,7 +612,7 @@ def check_criterion(index, criterion, known, builders, by_name, locked, complete
 
 def check_criteria(criteria, seams, steps, locked, complete):
     known = frozenset(seam_names(seams))
-    builders = builder_seams(seams)
+    builders = record_seams.builder_seams(seams)
     by_name = steps_by_name(steps)
     per_criterion = tuple(
         finding
@@ -815,9 +811,9 @@ def check_probed(who, criterion, line, name, target, stored, builders):
     entry = stored.get((line["id"], name, target))
     if entry is None:
         return (error("acceptance line %s has no %s probe for %s; run surface_probe.py" % (line["id"], name, target)),)
-    if entry["status"] != "fail":
+    if entry["status"] != record_seams.FAILED:
         return ()
-    if criterion.get("seam") in builders:
+    if record_seams.is_blocking(criterion, entry["status"], builders):
         return (
             error(
                 "%s sits at a seam the builder runs, but the %s probe of %s failed: %s"
@@ -836,7 +832,7 @@ def check_surface_probes(record, seams, complete):
     if not complete:
         return ()
     stored = stored_probes(record)
-    builders = builder_seams(seams)
+    builders = record_seams.builder_seams(seams)
     criteria = part(record, "criteria")
     return tuple(
         finding

@@ -32,6 +32,7 @@ def load_sibling(name):
 
 check_items = load_sibling("check_items")
 atomic_file = load_sibling("atomic_file")
+record_seams = load_sibling("record_seams")
 
 
 class TimedOut(Exception):
@@ -169,15 +170,6 @@ def run_probe(line, name, target, root, timeout):
         return ("fail", "cannot run the %s probe: %s" % (name, exc))
 
 
-def builder_seams(record):
-    seams = record.get("seams")
-    return frozenset(
-        seam["name"]
-        for seam in (seams if isinstance(seams, list) else ())
-        if isinstance(seam, dict) and check_items.is_text(seam.get("name")) and seam.get("builder_runs") is True
-    )
-
-
 def acceptance_lines(record):
     criteria = record.get("criteria")
     return tuple(
@@ -200,11 +192,11 @@ def planned(record):
 
 
 def probe_all(record, root, timeout):
-    builders = builder_seams(record)
+    builders = record_seams.builder_seams(record.get("seams"))
     return tuple(
         (
             {"check": line["id"], "probe": name, "target": target, "status": status, "detail": detail},
-            criterion.get("seam") in builders and status == "fail",
+            record_seams.is_blocking(criterion, status, builders),
         )
         for criterion, line, name, target in planned(record)
         for status, detail in (run_probe(line, name, target, root, timeout),)

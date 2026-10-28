@@ -17,6 +17,7 @@ def load_sibling(name):
 
 render_record = load_sibling("render_record")
 check_record = render_record.check_record
+record_seams = check_record.record_seams
 is_text = check_record.check_items.is_text
 
 
@@ -68,7 +69,7 @@ def question(entry, criterion):
 
 
 def questions(record, criteria):
-    builders = check_record.builder_seams(check_record.part(record, "seams"))
+    builders = record_seams.builder_seams(check_record.part(record, "seams"))
     owners = {
         line["id"]: criterion
         for criterion in criteria
@@ -78,9 +79,7 @@ def questions(record, criteria):
     return tuple(
         question(entry, owners[entry["check"]])
         for entry in check_record.stored_probes(record).values()
-        if entry["status"] == "fail"
-        and entry["check"] in owners
-        and owners[entry["check"]]["seam"] in builders
+        if entry["check"] in owners and record_seams.is_blocking(owners[entry["check"]], entry["status"], builders)
     )
 
 
