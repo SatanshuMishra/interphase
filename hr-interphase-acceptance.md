@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: parked
-Updated: 2026-10-28T19:24:07.904Z
+Updated: 2026-10-28T19:24:09.084Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -22,7 +22,7 @@ Integration: MSP pull requests 55 and 56 merged into feat/hr-interphase-acceptan
 
 ## Next step
 
-Read lighthouse run 1's last JSON line; on failures or blocked, record findings, verdict and diagnosis and send each fixable kind to a fresh fix agent with a receipt test; on green, bind the FEATURE pull request lighthouse opens with Auto-Fix on, park for Clean-up and update run 3's PROGRAM.md row.
+Read lighthouse run 2's last JSON line; on failures or blocked, record findings, verdict and diagnosis and send each fixable kind to a fresh fix agent with a receipt test; on green, bind the FEATURE pull request lighthouse opens with Auto-Fix on, park for Clean-up and update run 3's PROGRAM.md row.
 
 Needs: D2.
 
