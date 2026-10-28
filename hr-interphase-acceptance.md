@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T09:02:55.446Z
+Updated: 2026-10-28T09:03:17.495Z
 Next ids: c7 D1 R1 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase Phase 9: the spec, record and items are written and pass check_spec, check_record --complete and check_items; the one spec review is running. The run home holds CHARTER.md (locked list still a placeholder), worker-rules.txt, dispatch.zsh and graph.json. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6).
+interphase Phase 9: the spec, record and items are written and pass check_spec, check_record --complete and check_items; the one spec review is running. The run home holds CHARTER.md (locked list still a placeholder; carries the O10 line verbatim), worker-rules.txt (carries the O3 line verbatim), dispatch.zsh and graph.json; run 1's home is cleaned, so its shape is rebuilt from pipeline:run and PROGRAM.md. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6).
 
 ## Next step
 
