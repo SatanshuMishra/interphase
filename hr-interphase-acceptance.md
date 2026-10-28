@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T11:55:49.935Z
+Updated: 2026-10-28T12:35:45.624Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head df43964) is in review round 2: its round 1 conformance audit judged 5.1 to 5.5 MET, and every round 1 blocker and advisory has a fix commit with a passing receipt test (S1 and C5 at fdf7f1e, C2 at 45e967f, C3 and C6 at 4a7efbf, C1, S3, S4 and C4 at df43964); the suite at df43964 runs 538 tests and fails only the four other-MSP pathway tests. Round 2's verdict is diagnose: the round 1 blockers are fixed; the advisory fix commit df43964 introduced one confirmed blocker, round 2 S1 (malformed record crashes script: a NUL in a probed path crashes surface_probe.py), and two advisories, round 2 C1 (redirections such as 2>&1 probed as executables) and S2 (keywords and wrapper builtins mask a missing executable); the dot-versus-ECMA divergence was rejected as not introduced by the fixes. A second diagnosis of that kind is running.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head df43964) is in review round 2: its round 1 conformance audit judged 5.1 to 5.5 MET, and every round 1 blocker and advisory has a fix commit with a passing receipt test (S1 and C5 at fdf7f1e, C2 at 45e967f, C3 and C6 at 4a7efbf, C1, S3, S4 and C4 at df43964); the suite at df43964 runs 538 tests and fails only the four other-MSP pathway tests. Round 2's verdict is diagnose: the round 1 blockers are fixed; the advisory fix commit df43964 introduced one confirmed blocker, round 2 S1 (malformed record crashes script: a NUL in a probed path crashes surface_probe.py), and two advisories, round 2 C1 (redirections such as 2>&1 probed as executables) and S2 (keywords and wrapper builtins mask a missing executable); the dot-versus-ECMA divergence was rejected as not introduced by the fixes. The second diagnosis classes the kind fixable: string contents an OS call or the UTF-8 encoder rejects (NUL, lone surrogate) crash check_record, render_record, read_back and surface_probe; the round 2 verdict is loop. One fix agent is reverting 3cebce3 and df43964 (O6) and then fixing that class with receipt tests/test_unencodable_record.py and the content and crash sweeps in review/checks/.
 
 ## Next step
 
-Record the round 2 diagnosis, then per O6 revert the advisory fix 3cebce3 plus df43964 and give one fresh fix agent the second attempt at round 1 advisories C1, S3, S4 and C4 with round 2 S1, C1 and S2 as constraints, then review round 3 on that fix diff.
+When it returns, verify its commits, receipt, sweeps and suite, then dispatch one fresh fix agent for the second attempt at round 1 advisories C1, S3, S4 and C4 that also meets round 2 advisories C1 (redirections) and S2 (keywords and wrappers), then review round 3 on the fix diff from df43964.
 
 Needs: D1.
 
