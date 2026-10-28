@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:33:17.239Z
+Updated: 2026-10-28T13:33:19.016Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -22,7 +22,7 @@ interphase handed off; ADR 0003 and five glossary terms are uncommitted in the c
 
 ## Next step
 
-When the fix agent returns, verify its commits, receipt test and suite, run the Green rerun-plan for acceptance-lines, clear stale assumptions, then ship both MSPs.
+When the suite at 294301f returns, run the Green rerun-plan for acceptance-lines, then ship both MSPs with acceptance-lines proven at 294301f.
 
 Needs: D1.
 
