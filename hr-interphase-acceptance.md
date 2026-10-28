@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T11:28:40.496Z
+Updated: 2026-10-28T11:39:40.173Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head df43964) is in review round 2: its round 1 conformance audit judged 5.1 to 5.5 MET, and every round 1 blocker and advisory has a fix commit with a passing receipt test (S1 and C5 at fdf7f1e, C2 at 45e967f, C3 and C6 at 4a7efbf, C1, S3, S4 and C4 at df43964); the suite at df43964 runs 538 tests and fails only the four other-MSP pathway tests. Round 2 judges the fix diff from 8f15979 (O6): the code reviewer reported C1 (MEDIUM, the builtin probe fix treats redirections such as 2>&1 as separators) and C2 (LOW, schema_check still lets . match \r and  ), saved in review/round-2/; the security reviewer is running.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head df43964) is in review round 2: its round 1 conformance audit judged 5.1 to 5.5 MET, and every round 1 blocker and advisory has a fix commit with a passing receipt test (S1 and C5 at fdf7f1e, C2 at 45e967f, C3 and C6 at 4a7efbf, C1, S3, S4 and C4 at df43964); the suite at df43964 runs 538 tests and fails only the four other-MSP pathway tests. Round 2 judges the fix diff from 8f15979 (O6): the code reviewer reported C1 (MEDIUM, the builtin probe fix treats redirections such as 2>&1 as separators) and C2 (LOW, schema_check still lets . match \r and  ), and the security reviewer reported S1 (MEDIUM, a NUL in a probed path crashes surface_probe.py), S2 (LOW, keywords and wrapper builtins pass the probe without probing the wrapped command) and S3 (LOW, same as C2); the validator is judging the three carried blockers and five candidates in review/round-2/acceptance-lines.candidates.md.
 
 ## Next step
 
