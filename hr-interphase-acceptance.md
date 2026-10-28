@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T10:38:04.539Z
+Updated: 2026-10-28T10:54:08.173Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its round 1 verdict is diagnose, with blockers C2 (non-atomic record rewrite), C3 (malformed record crashes script) and S1 (locked path alias accepted) and advisories C1, C4, C5, C6, S3 and S4; locked path alias accepted is diagnosed fixable and recorded (one path_key identity routed through every lock comparison, plus ECMA end anchors in schema_check, which also covers C5); non-atomic record rewrite is diagnosed fixable and recorded (a shared scripts/atomic_file.py replace used by surface_probe.py, render_record.py and tree_guard.py); the malformed-record diagnosis is running.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its round 1 verdict is loop: blockers S1 (locked path alias accepted), C2 (non-atomic record rewrite) and C3 (malformed record crashes script) are each diagnosed fixable, and advisories C1, C4, C5, C6, S3 and S4 are open. Under O5 one fresh fix agent per kind works in the MSP worktree, one at a time because their files overlap: S1 with C5 is running; C2, then C3 with C6, then C1, S3, S4 and C4 follow. Selecting checks and draft receipts are in review/checks/.
 
 ## Next step
 
-Save each diagnosis as review/round-1/acceptance-lines.<kind slug>.diagnosis.json, record it with pipeline diagnosis, rerun pipeline verdict, then fix each fixable kind with a receipt test plus every advisory on mitosis/acceptance-lines, and review round 2.
+When the S1 fix agent returns, check its receipt, selecting check and suite, then dispatch the C2 fix agent; after all four, run review round 2 on the fix diff (O6).
 
 Needs: D1.
 
