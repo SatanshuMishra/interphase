@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T11:39:40.173Z
+Updated: 2026-10-28T11:39:42.365Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -22,7 +22,7 @@ interphase handed off; ADR 0003 and five glossary terms are uncommitted in the c
 
 ## Next step
 
-Collect round 2 findings into review/round-2/acceptance-lines.findings.json, then run pipeline candidates, the validator when needed, pipeline record and pipeline verdict.
+Save the validator's verdicts as review/round-2/acceptance-lines.verdicts.json, run pipeline record and pipeline verdict, and per O6 revert a fix whose diff carries a confirmed blocker before its second attempt.
 
 Needs: D1.
 
