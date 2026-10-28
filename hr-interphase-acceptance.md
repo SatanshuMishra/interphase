@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T11:18:38.893Z
+Updated: 2026-10-28T11:18:40.670Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -22,7 +22,7 @@ interphase handed off; ADR 0003 and five glossary terms are uncommitted in the c
 
 ## Next step
 
-When the C3 fix agent returns, check its receipt, selecting check and suite, then dispatch the advisory fix agent for C1, S3, S4 and C4; after all four, run review round 2 on the fix diff (O6).
+When the advisory fix agent returns, check its tests and suite, then run review round 2 on the fix diff from 8f15979 (O6).
 
 Needs: D1.
 
