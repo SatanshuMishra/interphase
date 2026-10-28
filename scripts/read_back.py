@@ -102,8 +102,12 @@ def load_record(text):
     try:
         record = json.loads(text)
     except (ValueError, RecursionError):
-        return None
-    return record if isinstance(record, dict) else None
+        return (None, "record is not a JSON object")
+    if not isinstance(record, dict):
+        return (None, "record is not a JSON object")
+    if not check_record.check_items.is_unicode(record):
+        return (None, check_record.NOT_UNICODE)
+    return (record, None)
 
 
 def main(argv):
@@ -115,9 +119,9 @@ def main(argv):
     if text is None:
         print("cannot read: " + path, file=sys.stderr)
         return 2
-    record = load_record(text)
+    record, problem = load_record(text)
     if record is None:
-        print("record is not a JSON object: " + path, file=sys.stderr)
+        print("%s: %s" % (problem, path), file=sys.stderr)
         return 2
     print(read_back(record))
     return 0

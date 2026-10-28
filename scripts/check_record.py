@@ -56,6 +56,7 @@ PROBE_STATUSES = ("pass", "fail")
 STOP_KEYS = ("phase", "reason")
 OUTCOME_KEYS = ("store", "entries", "repeated")
 REPEATED_KEYS = ("kind", "count")
+NOT_UNICODE = "record holds text that is not valid Unicode"
 
 
 def load_sibling(name):
@@ -893,6 +894,8 @@ def check(text, complete=False):
         record = json.loads(text)
     except (ValueError, RecursionError) as exc:
         return (error("record is not valid JSON: %s" % exc),)
+    if not check_items.is_unicode(record):
+        return (error(NOT_UNICODE),)
     if not isinstance(record, dict):
         return (error("record is not a JSON object"),)
     seams = part(record, "seams")

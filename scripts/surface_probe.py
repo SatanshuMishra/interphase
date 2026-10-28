@@ -166,7 +166,7 @@ def run_probe(line, name, target, root, timeout):
         return PROBES[name](line, target, root, timeout)
     except TimedOut:
         return timed_out(timeout)
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         return ("fail", "cannot run the %s probe: %s" % (name, exc))
 
 

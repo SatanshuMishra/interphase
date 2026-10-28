@@ -92,7 +92,7 @@ def repository_names(root):
 def read_entries(store):
     try:
         text = store.read_bytes().decode("utf-8", "replace")
-    except OSError:
+    except (OSError, ValueError):
         return ()
     return tuple(entry for entry in (parsed(line) for line in text.splitlines() if line.strip()) if entry is not None)
 

@@ -57,6 +57,14 @@ def is_text(value):
     return isinstance(value, str) and value != ""
 
 
+def is_unicode(value):
+    try:
+        json.dumps(value, ensure_ascii=False).encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def is_text_list(value):
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
