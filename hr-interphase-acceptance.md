@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:33:23.955Z
+Updated: 2026-10-28T13:35:22.360Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -9,20 +9,20 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Done when
 
-- [ ] c1 P1 The record holds K1 acceptance lines: check_record.py validates them, and --complete refuses a criterion at a builder-runnable seam with no acceptance line.
-- [ ] c2 P2 Before the read-back, each acceptance line's surface is probed (command on PATH, Playwright present, vmlab capabilities, claude on PATH) and the result is stored in the record's probes; a failed probe becomes a read-back question in attended runs and an Assumption plus a stopped run in unattended ones.
-- [ ] c3 P3 The read-back lists each acceptance line in plain words.
-- [ ] c4 P4 The items file carries a first Lane with role: check-author whose Steps write each acceptance line's test, and every other Lane depends on it; its write-set is the locked paths, which the record lists as locked.
-- [ ] c5 P5 Before planning, interphase reads this repository's K6 outcome entries and lists repeated failure kinds under the spec's risks.
+- [x] c1 P1 The record holds K1 acceptance lines: check_record.py validates them, and --complete refuses a criterion at a builder-runnable seam with no acceptance line. evidence: its locked tests pass alone at mitosis/acceptance-lines 294301f (review/acceptance-lines.proofs.jsonl), the suite there fails only the four other-MSP pathway tests, and the round 1 conformance audit judged 5.1 MET
+- [x] c2 P2 Before the read-back, each acceptance line's surface is probed (command on PATH, Playwright present, vmlab capabilities, claude on PATH) and the result is stored in the record's probes; a failed probe becomes a read-back question in attended runs and an Assumption plus a stopped run in unattended ones. evidence: its locked tests pass alone at mitosis/acceptance-lines 294301f (review/acceptance-lines.proofs.jsonl), the suite there fails only the four other-MSP pathway tests, and the round 1 conformance audit judged 5.2 MET
+- [x] c3 P3 The read-back lists each acceptance line in plain words. evidence: its locked tests pass alone at mitosis/acceptance-lines 294301f (review/acceptance-lines.proofs.jsonl), the suite there fails only the four other-MSP pathway tests, and the round 1 conformance audit judged 5.3 MET
+- [x] c4 P4 The items file carries a first Lane with role: check-author whose Steps write each acceptance line's test, and every other Lane depends on it; its write-set is the locked paths, which the record lists as locked. evidence: its locked tests pass alone at mitosis/acceptance-lines 294301f (review/acceptance-lines.proofs.jsonl), the suite there fails only the four other-MSP pathway tests, and the round 1 conformance audit judged 5.4 MET
+- [x] c5 P5 Before planning, interphase reads this repository's K6 outcome entries and lists repeated failure kinds under the spec's risks. evidence: its locked tests pass alone at mitosis/acceptance-lines 294301f (review/acceptance-lines.proofs.jsonl), the suite there fails only the four other-MSP pathway tests, and the round 1 conformance audit judged 5.5 MET
 - [x] c6 P6 Each pathway playbook names the acceptance-line kinds it requires: feature (error, empty and permission states), bug (reproduction on the old code and a sweep of the same class), project (build and CI), prototype (judged lines with a rubric). evidence: the four locked tests in tests/test_pathway_line_kinds.py pass at mitosis/pathway-line-kinds 0ef62fe and the round 1 conformance audit judged 5.6 MET
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is green in round 3: every blocker is fixed, the suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests, and the validator confirmed three advisories introduced by 39bc600 (C1 a prefix command's option argument probed as the command, C3 trailing comment text probed, C6 the probe target and the probes read by two tokenisers). C1, C3 and C6 are fixed at 294301f (receipt tests/test_probe_round3_advisories.py at ea60e27; only scripts/surface_probe.py and that test changed, no locked file); under the Green rule these fixes get no review round. The suite and the receipt's failure on 39bc600 are being checked at 294301f. The acceptance-lines assumptions file holds the fix's probe-target readings.
+interphase handed off. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. Both MSPs are green with every advisory fixed: pathway-line-kinds at 0ef62fe (round 1), acceptance-lines at 27b3c97 (round 3 green at 39bc600; advisories C1, C3 and C6 fixed at 294301f; ADR 0003 and the five glossary terms committed at 27b3c97, where the suite fails only the four other-MSP pathway tests). The ship is starting.
 
 ## Next step
 
-When the suite at 294301f returns, run the Green rerun-plan for acceptance-lines, then ship both MSPs with acceptance-lines proven at 294301f.
+Save each MSP's pipeline comment, run promote, record the ship boundary, run SHIP=1 run.zsh --resume with both proven heads, then open, assign and comment both pull requests and bind their monitors.
 
 Needs: D1.
 
