@@ -97,7 +97,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 |---|---|---|
 | `name` | yes | Lowercase kebab-case. Unique in the file. |
 | `task` | yes | Complete instructions for the Step. Whoever builds it gets nothing else about it and never needs the spec. |
-| `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's own test files, except locked paths, which the check-author Step writes. |
+| `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's test files. |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`. It is the same on every Step. |
 | `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`, or in the `files` of a check-author Step it comes after. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven, and must be empty on the check-author Step. |
 | `after` | no | Names of Steps that must be finished first. |
