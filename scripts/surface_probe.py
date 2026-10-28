@@ -14,6 +14,19 @@ UNATTENDED = "--unattended"
 DEFAULT_TIMEOUT = 60.0
 ASSIGNMENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 NO_EXECUTABLE = "command names no executable"
+OPERATOR_CHARACTERS = frozenset("();<>|&")
+SEPARATOR_CHARACTERS = frozenset(";|&")
+OPENING_CHARACTERS = frozenset("(")
+SHELL_WORDS = frozenset(
+    (
+        ".", ":", "break", "continue", "eval", "exec", "exit", "export", "readonly", "return", "set", "shift",
+        "times", "trap", "unset",
+        "alias", "bg", "cd", "command", "false", "fc", "fg", "getopts", "hash", "jobs", "kill", "newgrp", "pwd",
+        "read", "true", "type", "ulimit", "umask", "unalias", "wait", "source",
+        "!", "{", "}", "case", "do", "done", "elif", "else", "esac", "fi", "for", "if", "in", "then", "until",
+        "while",
+    )
+)
 EXTRA_PROBES = {
     "browser": lambda target: (("playwright", "playwright"),),
     "desktop": lambda target: (("vmlab", target),),
@@ -42,14 +55,41 @@ class TimedOut(Exception):
 def command_words(command):
     if not check_items.is_text(command):
         return ()
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
     try:
-        return tuple(shlex.split(command))
+        return tuple(lexer)
     except ValueError:
         return ()
 
 
+def is_operator(word):
+    return word != "" and set(word) <= OPERATOR_CHARACTERS
+
+
+def is_separator(word):
+    return is_operator(word) and bool(set(word) & SEPARATOR_CHARACTERS)
+
+
+def segments(words):
+    bounds = (-1,) + tuple(index for index, word in enumerate(words) if is_separator(word)) + (len(words),)
+    return tuple(words[start + 1 : end] for start, end in zip(bounds, bounds[1:]))
+
+
+def segment_executable(segment):
+    return next(
+        (word for word in segment if not ASSIGNMENT_RE.match(word) and not set(word) <= OPENING_CHARACTERS),
+        None,
+    )
+
+
+def executables(command):
+    found = (segment_executable(segment) for segment in segments(command_words(command)))
+    return tuple(word for word in found if word is not None and not is_operator(word))
+
+
 def executable(command):
-    return next((word for word in command_words(command) if not ASSIGNMENT_RE.match(word)), None)
+    return next(iter(executables(command)), None)
 
 
 def command_target(line):
@@ -91,17 +131,39 @@ def timed_out(timeout):
     return ("fail", "timed out after %g seconds" % timeout)
 
 
+def is_inside(path, base):
+    return path == base or base in path.parents
+
+
+def probe_repository_file(word, root):
+    base = pathlib.Path(root).resolve()
+    joined = base / word
+    path = joined.parent.resolve() / joined.name
+    if not is_inside(path, base):
+        return ("fail", "%s is outside the repository" % word)
+    if path.is_file() and os.access(str(path), os.X_OK):
+        return ("pass", str(path))
+    return ("fail", "%s is not an executable file in the repository" % word)
+
+
+def probe_word(word, root):
+    if word in SHELL_WORDS:
+        return ("pass", "%s is a shell builtin" % word)
+    if "/" in word:
+        return probe_repository_file(word, root)
+    resolved = shutil.which(word)
+    return ("pass", resolved) if resolved else ("fail", "%s is not on PATH" % word)
+
+
 def probe_command(line, target, root, timeout):
-    found = executable(line.get("command"))
-    if found is None:
+    words = executables(line.get("command"))
+    if not words:
         return ("fail", NO_EXECUTABLE)
-    if "/" in found:
-        path = pathlib.Path(root) / found
-        if path.is_file() and os.access(str(path), os.X_OK):
-            return ("pass", str(path))
-        return ("fail", "%s is not an executable file in the repository" % found)
-    resolved = shutil.which(found)
-    return ("pass", resolved) if resolved else ("fail", "%s is not on PATH" % found)
+    results = tuple(probe_word(word, root) for word in dict.fromkeys(words))
+    failures = tuple(detail for status, detail in results if status == "fail")
+    if failures:
+        return ("fail", "; ".join(failures))
+    return ("pass", "; ".join(detail for _, detail in results))
 
 
 def probe_playwright(line, target, root, timeout):
