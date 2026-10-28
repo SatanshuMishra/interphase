@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T11:00:48.744Z
+Updated: 2026-10-28T11:18:38.893Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its round 1 verdict is loop: blockers S1 (locked path alias accepted), C2 (non-atomic record rewrite) and C3 (malformed record crashes script) are each diagnosed fixable, and advisories C1, C4, C5, C6, S3 and S4 are open. Under O5 one fresh fix agent per kind works in the MSP worktree, one at a time because their files overlap: S1 with C5 is fixed at fdf7f1e (receipt tests/test_locked_path_alias.py passes, selecting check empty, suite fails only the four other-MSP pathway tests); C2 is fixed at 45e967f (scripts/atomic_file.py; receipt tests/test_record_writes.py passes, selecting grep empty, same four pathway failures only); C3 with C6 is running; C1, S3, S4 and C4 follow. Selecting checks and draft receipts are in review/checks/.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its round 1 verdict is loop: blockers S1 (locked path alias accepted), C2 (non-atomic record rewrite) and C3 (malformed record crashes script) are each diagnosed fixable, and advisories C1, C4, C5, C6, S3 and S4 are open. Under O5 one fresh fix agent per kind works in the MSP worktree, one at a time because their files overlap: S1 with C5 is fixed at fdf7f1e (receipt tests/test_locked_path_alias.py passes, selecting check empty, suite fails only the four other-MSP pathway tests); C2 is fixed at 45e967f (scripts/atomic_file.py; receipt tests/test_record_writes.py passes, selecting grep empty, same four pathway failures only); C3 with C6 is fixed at 4a7efbf (scripts/record_seams.py; receipt tests/test_malformed_record.py passes, crash sweep empty, same four pathway failures only); the advisory fix agent for C1, S3, S4 and C4 is running. Selecting checks and draft receipts are in review/checks/.
 
 ## Next step
 
