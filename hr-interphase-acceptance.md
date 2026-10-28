@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T10:12:46.612Z
+Updated: 2026-10-28T10:13:27.346Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -14,15 +14,15 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 - [ ] c3 P3 The read-back lists each acceptance line in plain words.
 - [ ] c4 P4 The items file carries a first Lane with role: check-author whose Steps write each acceptance line's test, and every other Lane depends on it; its write-set is the locked paths, which the record lists as locked.
 - [ ] c5 P5 Before planning, interphase reads this repository's K6 outcome entries and lists repeated failure kinds under the spec's risks.
-- [ ] c6 P6 Each pathway playbook names the acceptance-line kinds it requires: feature (error, empty and permission states), bug (reproduction on the old code and a sweep of the same class), project (build and CI), prototype (judged lines with a rubric).
+- [x] c6 P6 Each pathway playbook names the acceptance-line kinds it requires: feature (error, empty and permission states), bug (reproduction on the old code and a sweep of the same class), project (build and CI), prototype (judged lines with a rubric). evidence: the four locked tests in tests/test_pathway_line_kinds.py pass at mitosis/pathway-line-kinds 0ef62fe and the round 1 conformance audit judged 5.6 MET
 
 ## Where things stand
 
-interphase handed off (record status handed-off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP). FEATURE branch feat/hr-interphase-acceptance is cut at 57ee015. The O2 check author committed ten locked files at ca3b339 on FEATURE (30 tests, each failing for the absent behaviour; the 458 old tests pass); receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d is in receipts-lock.txt and CHARTER.md lists the ten files under - Locked:. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5, head 8f15979) and pathway-line-kinds (P6, head 0ef62fe), both built and committed. Review round 1 is running: code-reviewer, conformance-auditor and security-reviewer on acceptance-lines, code-reviewer and conformance-auditor on pathway-line-kinds.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its code and security reviews are still running.
 
 ## Next step
 
-Collect round 1 findings per MSP into review/round-1/<msp>.findings.json, then run pipeline candidates, the validator, pipeline record and pipeline verdict.
+Collect the acceptance-lines round 1 findings into review/round-1/acceptance-lines.findings.json, then run pipeline candidates, the validator, pipeline record and pipeline verdict.
 
 Needs: D1.
 
