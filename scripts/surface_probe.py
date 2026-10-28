@@ -1,4 +1,5 @@
 import importlib.util
+import itertools
 import json
 import os
 import pathlib
@@ -23,7 +24,35 @@ CASE_ARM_SEPARATORS = frozenset((";;", ";&", ";;&"))
 PREFIX_WORDS = frozenset(
     ("!", "{", "}", "(", ")", "if", "then", "elif", "else", "fi", "do", "done", "while", "until", "esac", "in")
 )
-PREFIX_COMMANDS = frozenset(("exec", "command", "builtin", "eval", "nohup", "env", "time"))
+NO_OPTIONS = {"flags": "", "valued": "", "long_flags": frozenset(), "long_valued": frozenset()}
+PREFIX_OPTIONS = {
+    "env": {
+        "flags": "i0v",
+        "valued": "uCP",
+        "long_flags": frozenset(
+            (
+                "-", "--ignore-environment", "--null", "--debug", "--default-signal", "--ignore-signal",
+                "--block-signal", "--list-signal-handling",
+            )
+        ),
+        "long_valued": frozenset(("--unset", "--chdir")),
+    },
+    "time": {
+        "flags": "pavqlh",
+        "valued": "fo",
+        "long_flags": frozenset(("--append", "--portability", "--verbose", "--quiet")),
+        "long_valued": frozenset(("--format", "--output")),
+    },
+    "exec": {**NO_OPTIONS, "flags": "cl", "valued": "a"},
+    "command": {**NO_OPTIONS, "flags": "pvV"},
+    "builtin": NO_OPTIONS,
+    "eval": NO_OPTIONS,
+    "nohup": NO_OPTIONS,
+}
+PREFIX_COMMANDS = frozenset(PREFIX_OPTIONS)
+END_OF_OPTIONS = "--"
+COMMENT_START = "#"
+SHELL_PIECE_RE = re.compile(r"'[^']*'?|\"(?:\\.|[^\"\\])*\"?|\\.?|\s+|[();<>|&]|#|[^'\"\\\s();<>|&#]+", re.S)
 SOURCE_COMMANDS = frozenset(("source", "."))
 POSIX_BUILTINS = frozenset(
     (
@@ -80,10 +109,35 @@ def operator_pieces(token):
     return (token,)
 
 
+def ends_a_word(piece):
+    return piece.isspace() or piece in OPERATOR_CHARACTERS
+
+
+def comment_offset(command):
+    pieces = tuple(SHELL_PIECE_RE.findall(command))
+    offsets = tuple(itertools.accumulate((len(piece) for piece in pieces), initial=0))
+    return next(
+        (
+            offsets[position]
+            for position, piece in enumerate(pieces)
+            if piece == COMMENT_START and (position == 0 or ends_a_word(pieces[position - 1]))
+        ),
+        None,
+    )
+
+
+def without_comments(command):
+    start = comment_offset(command)
+    if start is None:
+        return command
+    line_end = command.find("\n", start)
+    return command[:start] if line_end < 0 else command[:start] + without_comments(command[line_end:])
+
+
 def shell_tokens(command):
     if not check_items.is_text(command):
         return ()
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=OPERATOR_CHARACTERS)
+    lexer = shlex.shlex(without_comments(command), posix=True, punctuation_chars=OPERATOR_CHARACTERS)
     lexer.whitespace_split = True
     lexer.commenters = ""
     try:
@@ -134,46 +188,83 @@ def is_prefix_word(word):
     return word in PREFIX_WORDS or bool(ASSIGNMENT_RE.match(word))
 
 
-def is_prefix_argument(word):
-    return word.startswith("-") or bool(ASSIGNMENT_RE.match(word))
+def short_option_width(cluster, options):
+    if not cluster:
+        return None
+    head, tail = cluster[0], cluster[1:]
+    if head in options["valued"]:
+        return 1 if tail else 2
+    if head in options["flags"]:
+        return short_option_width(tail, options) if tail else 1
+    return None
 
 
-def past_prefix_commands(words):
-    if words and words[0] in PREFIX_COMMANDS:
-        return past_prefix_commands(skip_while(words[1:], is_prefix_argument))
-    return words
+def long_option_width(word, options):
+    name, equals, _ = word.partition("=")
+    if name in options["long_valued"]:
+        return 1 if equals else 2
+    return 1 if name in options["long_flags"] else None
 
 
-def command_part(separator, words):
-    rest = skip_while(after_pattern(words) if separator in CASE_ARM_SEPARATORS else words, is_prefix_word)
-    if not rest or rest[0] == "for":
-        return ()
-    if rest[0] == "case":
-        return past_prefix_commands(skip_while(after_pattern(rest), is_prefix_word)) if ")" in rest else ()
-    return past_prefix_commands(rest)
+def option_width(word, options):
+    if word == "-" or word.startswith("--"):
+        return long_option_width(word, options)
+    return short_option_width(word[1:], options)
 
 
 def segment_probe(words):
     if not words:
         return None
+    if words[0] in PREFIX_COMMANDS:
+        return prefix_options_probe(words[0], words[1:])
     if words[0] in SOURCE_COMMANDS:
         return ("source", words[1] if len(words) > 1 else None)
     return ("executable", words[0])
 
 
+def prefix_options_probe(prefix, words):
+    if not words:
+        return None
+    word = words[0]
+    if word == END_OF_OPTIONS:
+        return segment_probe(words[1:])
+    if ASSIGNMENT_RE.match(word):
+        return prefix_options_probe(prefix, words[1:])
+    if not word.startswith("-"):
+        return segment_probe(words)
+    width = option_width(word, PREFIX_OPTIONS[prefix])
+    if width is None:
+        return ("unread", prefix)
+    return prefix_options_probe(prefix, words[width:])
+
+
+def command_part_probe(separator, words):
+    rest = skip_while(after_pattern(words) if separator in CASE_ARM_SEPARATORS else words, is_prefix_word)
+    if not rest or rest[0] == "for":
+        return None
+    if rest[0] == "case":
+        return segment_probe(skip_while(after_pattern(rest), is_prefix_word)) if ")" in rest else None
+    return segment_probe(rest)
+
+
 def command_probes(command):
     found = (
-        segment_probe(command_part(separator, without_redirections(words)))
+        command_part_probe(separator, without_redirections(words))
         for separator, words in segments(shell_tokens(command))
     )
     return tuple(dict.fromkeys(probe for probe in found if probe is not None))
 
 
+def first_probed_word(command):
+    return next((word for _, word in command_probes(command) if word is not None), None)
+
+
 def command_target(line):
-    found = executable(line.get("command"))
+    command = line.get("command")
+    probed = first_probed_word(command)
+    found = probed if probed is not None else executable(command)
     if found is not None:
         return found
-    command = line.get("command")
     return command.strip() if check_items.is_text(command) and command.strip() else "command"
 
 
@@ -239,13 +330,18 @@ def probe_source(word, root):
     return probe_repository_file(word, root, False)
 
 
+def probe_unread(word, root):
+    return ("pass", "%s takes an option the probe does not read" % word)
+
+
+SEGMENT_PROBES = {"executable": probe_executable, "source": probe_source, "unread": probe_unread}
+
+
 def probe_command(line, target, root, timeout):
     probes = command_probes(line.get("command"))
     if not probes:
         return ("fail", NO_EXECUTABLE)
-    results = tuple(
-        probe_source(word, root) if kind == "source" else probe_executable(word, root) for kind, word in probes
-    )
+    results = tuple(SEGMENT_PROBES[kind](word, root) for kind, word in probes)
     failures = tuple(detail for status, detail in results if status == "fail")
     if failures:
         return ("fail", "; ".join(failures))
