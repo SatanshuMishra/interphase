@@ -15,6 +15,7 @@ CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 SEAMS_HEAD = "Seams:"
 LINES_HEAD = "Acceptance lines:"
+RISKS = "### Risks"
 CHECK_AUTHOR = "check-author"
 CHECK_AUTHOR_OPENING = (
     "Write the acceptance tests below before anything is built, and never write the code they test. "
@@ -186,6 +187,23 @@ def assumption_problems(text, known):
     return tuple("relies on %s, which is not an intent line of the spec" % name for name in cited if name not in known)
 
 
+def risks_text(lines):
+    starts = tuple(number for number, line in enumerate(lines, start=1) if line.rstrip() == RISKS)
+    boundaries = tuple(
+        number for number, line in enumerate(lines, start=1) if check_spec.UP_TO_LEVEL_THREE.match(line)
+    )
+    return one_line("".join(line for start in starts for line in check_spec.section_body(lines, start, boundaries)))
+
+
+def risk_errors(record, lines):
+    listed_risks = risks_text(lines)
+    return tuple(
+        "repeated failure kind %s is not listed under Risks" % entry["kind"]
+        for entry in record["outcomes"]["repeated"]
+        if one_line(entry["kind"]) not in listed_risks
+    )
+
+
 def amendment_errors(steps, amendment):
     if amendment is None or steps:
         return ()
@@ -337,6 +355,7 @@ def render(record_text, spec_text, spec_path, amendment=None):
         + number_errors(record["criteria"], sections)
         + amendment_errors(steps, amendment)
         + assumption_errors(steps, lines)
+        + risk_errors(record, lines)
     )
     if errors:
         return (errors, None, None)

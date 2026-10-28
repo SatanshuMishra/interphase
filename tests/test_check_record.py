@@ -207,7 +207,7 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
                 self.assertTrue(any(fragment in message for message in errors), errors)
 
     def test_missing_parts_warn_until_complete(self):
-        empty = {"status": "in-progress", "seams": [], "criteria": [], "steps": []}
+        empty = {"status": "in-progress", "seams": [], "criteria": [], "steps": [], "outcomes": OUTCOMES}
         expected = ("record has no seams", "record has no criteria", "record has no steps")
         loose = self.check(empty, False)
         self.assertEqual(messages(loose, "warning"), expected)
@@ -849,6 +849,11 @@ class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
         for outcomes, message in variants:
             with self.subTest(message=message):
                 self.assertEqual(self.errors({**base_record(), "outcomes": outcomes}, False), (message,))
+
+    def test_complete_requires_outcomes(self):
+        unread = {key: value for key, value in base_record().items() if key != "outcomes"}
+        self.assertEqual(self.check(unread, False), ())
+        self.assertEqual(self.errors(unread, True), ("record has no outcomes; run outcomes.py before planning",))
 
 
 class AmendmentRecordTest(RecordFixture, unittest.TestCase):

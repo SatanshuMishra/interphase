@@ -55,6 +55,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - When a finding needs something only the user can provide, such as their device, their presence or repeated measurement, put it in the next round and carry on with every other phase. Never end a turn only to wait for it. If it is still unavailable when you write the spec, or the run is unattended, keep the finding and mark it unconfirmed.
 - Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - Treat every fact found here as a question not asked.
+- Before planning, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/outcomes.py" --repo . --record docs/specs/<slug>.record.json`. It reads this repository's outcome entries from the trajectory store and writes the failure kinds seen at least twice to the record's `outcomes`. Treat every repeated failure kind it prints as a risk the design must answer.
 - When the request is small, end the phase by checking the conditions in `${CLAUDE_PLUGIN_ROOT}/core/brief.md` and choosing the lane.
 
 ## Phase 4: Interview
@@ -104,6 +105,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Copy the intent lines of the decisions file into the Intent section word for word.
 - Write each decision once. Keep every numbered heading exactly as the template has it.
 - Write every reading you chose without the user's answer into Assumptions, as the section After the interview of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` says.
+- List every repeated failure kind of the record's `outcomes` under Risks, then every other risk, or `- None` when there is none. The render script refuses a spec that leaves a repeated failure kind out of Risks.
 - Write each Step's task into its entry in the record, following the section "Writing a task" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the Test seams section, the agreed seams followed by one numbered heading per criterion such as `### 5.1 <short name>`, and the items file, with the spec's absolute path and SHA-256 in every Step's `source`.
 - Rerun the render script after any edit to the record or the spec; it rewrites both.
@@ -135,6 +137,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.
 - Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.
 - When the record was written by an earlier release, rewrite it to this release's shape: turn each entry of `environments` into a seam with `name`, `interface` set to its `what`, `catches`, `misses` and `builder_runs`; give each criterion the `seam` its tests ran at and remove its `where`, `facts` and `gives_way`; remove each test's `env` and every `gives-way:` entry from its `covers`; remove `facts`, `environments`, `reviews` and `open_issues` from the record; keep a criterion's `domains` only when it is security-sensitive or exists to refuse something, setting `case_table` and removing each domain's `fact`, and otherwise remove its domains and every test's `covers`.
+- Before the complete check, an earlier release's record also gains acceptance lines, a locked list, probes and outcomes: give each criterion at a seam the builder runs its acceptance lines as in phase 4, naming each in its rows' `check`, list every row's test file in `locked`, run the surface probes as in phase 6, and run `outcomes.py` as in phase 3.
 - When the spec was written by an earlier release, rename its `Acceptance criteria` heading to `Test seams`, keeping its number, and skip the spec check below, which knows only this release's templates.
 - Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
 - Add the missing classes and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.

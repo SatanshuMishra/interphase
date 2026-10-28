@@ -871,9 +871,9 @@ def is_repeated(entry):
     return is_entry(entry, REPEATED_KEYS) and check_items.is_text(entry["kind"]) and is_count(entry["count"], 2)
 
 
-def check_outcomes(record):
+def check_outcomes(record, complete):
     if "outcomes" not in record:
-        return ()
+        return (error("record has no outcomes; run outcomes.py before planning"),) if complete else ()
     outcomes = record["outcomes"]
     if not is_entry(outcomes, OUTCOME_KEYS):
         return (error("record outcomes is not an object with exactly store, entries and repeated"),)
@@ -912,7 +912,7 @@ def check(text, complete=False):
         + check_surface_probes(record, seams, complete)
         + check_stop(record)
         + check_stopped(record, complete)
-        + check_outcomes(record)
+        + check_outcomes(record, complete)
         + check_rounds(record)
         + check_missing_parts(record, complete)
     )
