@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:03:05.688Z
+Updated: 2026-10-28T13:11:58.118Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head df43964) is in review round 2: its round 1 conformance audit judged 5.1 to 5.5 MET, and every round 1 blocker and advisory has a fix commit with a passing receipt test (S1 and C5 at fdf7f1e, C2 at 45e967f, C3 and C6 at 4a7efbf, C1, S3, S4 and C4 at df43964); the suite at df43964 runs 538 tests and fails only the four other-MSP pathway tests. Round 2's verdict is diagnose: the round 1 blockers are fixed; the advisory fix commit df43964 introduced one confirmed blocker, round 2 S1 (malformed record crashes script: a NUL in a probed path crashes surface_probe.py), and two advisories, round 2 C1 (redirections such as 2>&1 probed as executables) and S2 (keywords and wrapper builtins mask a missing executable); the dot-versus-ECMA divergence was rejected as not introduced by the fixes. The second diagnosis classes the kind fixable: string contents an OS call or the UTF-8 encoder rejects (NUL, lone surrogate) crash check_record, render_record, read_back and surface_probe; the round 2 verdict is loop. O6 reverted df43964 and its receipts (691d90c, bd887cc), and the crash class is fixed at 8a38af9 (receipt tests/test_unencodable_record.py passes; content and crash sweeps empty; suite 533 tests, only the four other-MSP pathway failures). One fresh fix agent is making the second and last attempt at advisories C1, S2, S3, S4 and C4 (segment-aware command probe with redirections and keyword prefixes, contained probe paths, refused unreadable store, aligned files prose).
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is in review round 3: round 1's conformance audit judged 5.1 to 5.5 MET; round 1's blockers are fixed; round 2's confirmed blocker (malformed record crashes script) is fixed at 8a38af9 after O6 reverted the faulty advisory fix; the second and last attempt at advisories C1, S2, S3, S4 and C4 is at 35ac082 and 39bc600. The suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests. Round 3's code and security reviewers are running on the fix diff from df43964 (O6).
 
 ## Next step
 
-When it returns, verify its commits, tests and suite, then review round 3 on the fix diff from df43964 (O6).
+When both reviewers return, collect round 3 findings, then run candidates, the validator, record and verdict; an advisory that fails again is blocked and ships in a draft.
 
 Needs: D1.
 
