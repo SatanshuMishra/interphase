@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T09:13:42.559Z
+Updated: 2026-10-28T09:38:22.352Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -22,7 +22,7 @@ interphase handed off (record status handed-off; ADR 0003 and five glossary term
 
 ## Next step
 
-Cut the FEATURE branch with pipeline feature-branch, dispatch the O2 check author to commit the locked tests on it, lock them with receipts lock, then plan and build with ~/.mitosis/interphase/hr-interphase-acceptance/run.zsh.
+Run the first build: ~/.mitosis/interphase/hr-interphase-acceptance/run.zsh in the background (no SHIP), then read mitosis's JSON result and run the locked checks at each MSP head (O4).
 
 Needs: D1.
 
