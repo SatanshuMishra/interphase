@@ -281,8 +281,18 @@ class CoreBriefTest(unittest.TestCase):
         expected = (
             ("- Phase 4:", ("ask the intent round", "only for a question that passes the hard bar", "the one seam")),
             ("- Phase 5:", ("skip the pre-mortem", "The Unchanged statements are the Out of scope section.")),
-            ("- Phase 6:", ("one Step per item",)),
-            ("- Phase 7:", ("read back only the intent", "ask for the one approval")),
+            (
+                "- Phase 6:",
+                (
+                    "one Step per item",
+                    '/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`',
+                    "with `--unattended` in an unattended run, before the complete check",
+                ),
+            ),
+            (
+                "- Phase 7:",
+                ("read back only the intent", "as a question, each failed probe that blocks", "ask for the one approval"),
+            ),
             (
                 "- Phase 8:",
                 ("copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template",),

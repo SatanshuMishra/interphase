@@ -766,9 +766,32 @@ class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
 
 
 class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
-    def test_a_stopped_record_with_its_stop_passes(self):
+    def test_a_stopped_record_with_its_stop_has_the_shape_but_is_not_complete(self):
         stop = {"phase": "probe", "reason": "the claude probe of C1.1 failed"}
-        self.assertEqual(self.check({**base_record(), "status": "stopped", "stop": stop}, True), ())
+        record = {**base_record(), "status": "stopped", "stop": stop}
+        self.assertEqual(self.check(record, False), ())
+        self.assertEqual(self.errors(record, True), ("record status is stopped: the claude probe of C1.1 failed",))
+
+    def test_a_failed_probe_at_a_seam_the_builder_cannot_run_is_a_warning(self):
+        phone_line = {
+            "id": "C2.1",
+            "kind": "exact",
+            "surface": {"family": "mobile", "target": "android"},
+            "command": "python3 tests/drive_phone.py",
+            "pass": "the phone shows the total",
+        }
+        failed = {"check": "C2.1", "probe": "vmlab", "target": "android", "status": "fail", "detail": "vmlab is not on PATH"}
+        record = change(with_phone(), "criteria", 1, acceptance=[phone_line])
+        probed = {**record, "probes": [APP_PROBE, {**APP_PROBE, "check": "C2.1"}, failed]}
+        findings = self.check(probed, True)
+        self.assertEqual(messages(findings, "error"), ())
+        self.assertEqual(
+            messages(findings, "warning"),
+            (
+                "criterion 5.2 sits at a seam the builder cannot run, and the vmlab probe of C2.1 failed: "
+                "vmlab is not on PATH",
+            ),
+        )
 
     def test_stop_goes_with_the_stopped_status(self):
         stop = {"phase": "probe", "reason": "the claude probe of C1.1 failed"}

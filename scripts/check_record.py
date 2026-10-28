@@ -66,6 +66,7 @@ def load_sibling(name):
 
 check_items = load_sibling("check_items")
 schema_check = load_sibling("schema_check")
+surface_probe = load_sibling("surface_probe")
 K1 = schema_check.load("k1-acceptance")
 K2_LOCKED = schema_check.subschema(schema_check.load("k2-locked"), "/properties/locked")
 ITEM_STEP_CHECKS = (
@@ -793,6 +794,59 @@ def check_probes(record):
     return tuple(finding for index, entry in enumerate(probes) for finding in check_probe(index, entry))
 
 
+def stored_probes(record):
+    probes = record.get("probes")
+    return {
+        (entry["check"], entry["probe"], entry["target"]): entry
+        for entry in (probes if isinstance(probes, list) else ())
+        if is_entry(entry, PROBE_KEYS) and all(check_items.is_text(entry[key]) for key in PROBE_KEYS)
+    }
+
+
+def check_probed(who, criterion, line, name, target, stored, builders):
+    entry = stored.get((line["id"], name, target))
+    if entry is None:
+        return (error("acceptance line %s has no %s probe for %s; run surface_probe.py" % (line["id"], name, target)),)
+    if entry["status"] != "fail":
+        return ()
+    if criterion.get("seam") in builders:
+        return (
+            error(
+                "%s sits at a seam the builder runs, but the %s probe of %s failed: %s"
+                % (who, name, line["id"], entry["detail"])
+            ),
+        )
+    return (
+        warning(
+            "%s sits at a seam the builder cannot run, and the %s probe of %s failed: %s"
+            % (who, name, line["id"], entry["detail"])
+        ),
+    )
+
+
+def check_surface_probes(record, seams, complete):
+    if not complete:
+        return ()
+    stored = stored_probes(record)
+    builders = builder_seams(seams)
+    criteria = part(record, "criteria")
+    return tuple(
+        finding
+        for criterion, line, name, target in surface_probe.planned(record)
+        for finding in check_probed(
+            criterion_label(criteria.index(criterion), criterion), criterion, line, name, target, stored, builders
+        )
+    )
+
+
+def check_stopped(record, complete):
+    if not complete or record.get("status") != STOPPED:
+        return ()
+    stop = record.get("stop")
+    reason = stop.get("reason") if isinstance(stop, dict) else None
+    return (error("record status is stopped: %s" % (reason if check_items.is_text(reason) else "no stop reason")),)
+
+
 def check_stop(record):
     stopped = record.get("status") == STOPPED
     if "stop" not in record:
@@ -847,7 +901,9 @@ def check(text, complete=False):
         + check_steps(steps, criteria)
         + check_locked(record, criteria, steps, complete)
         + check_probes(record)
+        + check_surface_probes(record, seams, complete)
         + check_stop(record)
+        + check_stopped(record, complete)
         + check_outcomes(record)
         + check_rounds(record)
         + check_missing_parts(record, complete)

@@ -116,6 +116,18 @@ class CorePhasesTest(unittest.TestCase):
         for phrase in ("gitignore", "info/exclude", "check-ignore", "ignored"):
             self.assertNotIn(phrase, text)
 
+    def test_phase_6_probes_every_surface_before_the_complete_check(self):
+        design = phase_body("## Phase 6: Design the Steps")
+        probe = '/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run.'
+        self.assertIn(probe, design)
+        self.assertLess(design.index(probe), design.index("--complete docs/specs/<slug>.record.json"))
+        for phrase in (
+            "In an attended run, each failed probe that blocks becomes a question of the read-back.",
+            "a failed probe at a seam the builder cannot run blocks nothing, because that criterion is already unproven.",
+            "In an unattended run, a failed probe that blocks stops the run: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 says, report the stop and the record's stop reason, and stop.",
+        ):
+            self.assertIn(phrase, design)
+
     def test_phases_design_steps_before_the_read_back(self):
         design = phase_body("## Phase 6: Design the Steps")
         self.assertIn(

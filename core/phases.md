@@ -83,6 +83,9 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Settle what needs the whole picture: files two Steps share, package export files, interfaces two Steps share, and the order the Steps are built in.
 - Make sure every acceptance criterion at a seam the builder runs has acceptance lines and a Step whose test implements each line, every criterion at a seam the builder cannot run is marked unproven with the reason, and every Step proves at least one criterion.
 - Ask any Step question only the user can answer in the same rounds as the rest.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run. It probes the surface of every acceptance line within a time limit and stores each result in the record's `probes`. A failed probe of a line at a seam the builder runs blocks; a failed probe at a seam the builder cannot run blocks nothing, because that criterion is already unproven.
+- In an attended run, each failed probe that blocks becomes a question of the read-back.
+- In an unattended run, a failed probe that blocks stops the run: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 says, report the stop and the record's stop reason, and stop.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error.
 
 ## Phase 7: Read back

@@ -156,6 +156,9 @@ class QuestioningTest(unittest.TestCase):
             "a size limit and a file-type check",
             "virus scanning, encryption at rest, an access audit log and a retention rule",
             "A run that starts unattended stays unattended",
+            "When a surface probe of Phase 6 fails for a line at a seam the builder runs, the run cannot prove that criterion here, so it stops instead of guessing",
+            "write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file",
+            "report the stop and the record's stop reason, and stop.",
         ):
             self.assertIn(phrase, body)
         for held_out in ("payroll", "allotment", "sign-in", "sign in", "accounts"):
