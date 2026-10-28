@@ -49,6 +49,8 @@ Sort every gap before writing the spec: a gap that passes the hard bar of `${CLA
 
 ## Acceptance
 
+- Give every screen state a judged acceptance line with a rubric and three trials.
+
 Write one check per screen state. Add a screenshot of the built screen compared with the mockup; it expects the corrected behaviour where the build corrects a standard violation. Number each check under the Test seams section, such as `5.1`, and place it at an agreed seam.
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.

@@ -33,6 +33,7 @@ Propose two or three approaches with their trade-offs as one frontier question, 
 
 ## Acceptance
 
+- Give every behaviour acceptance lines for its error state, its empty state and its permission state.
 - Write Given, When, Then for each user story.
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.

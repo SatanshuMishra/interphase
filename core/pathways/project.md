@@ -35,6 +35,7 @@ Propose two or three stacks with their trade-offs as one frontier question, the 
 
 ## Acceptance
 
+- Give the foundations acceptance lines for the build and for CI.
 - Write Given, When, Then for each user story.
 - Write rules and error handling as "WHEN <event>, THE SYSTEM SHALL <response>" sentences.
 - Make every criterion pass or fail with no judgement call.
