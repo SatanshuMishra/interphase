@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:36:03.910Z
+Updated: 2026-10-28T13:36:08.167Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -22,9 +22,9 @@ interphase handed off. FEATURE branch feat/hr-interphase-acceptance holds the te
 
 ## Next step
 
-Save each MSP's pipeline comment, run promote, record the ship boundary, run SHIP=1 run.zsh --resume with both proven heads, then open, assign and comment both pull requests and bind their monitors.
+Run SHIP=1 ~/.mitosis/interphase/hr-interphase-acceptance/run.zsh --resume --proven-head acceptance-lines=27b3c97c5777215d16adde0a4cfeab33ac8765d8 --proven-head pathway-line-kinds=0ef62fe0eb3494f27ce5d0060a34bbd700ffd058, then open both pull requests ready with mitosis's title and body, assign them, post review/<msp>.comment.md, bind each to the app's monitor with auto-fix, park at awaiting-merge and update run 3's PROGRAM.md row.
 
-Needs: D1.
+Needs: D1, D2.
 
 ## Decisions in force
 
