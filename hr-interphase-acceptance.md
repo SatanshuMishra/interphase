@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: parked
-Updated: 2026-10-28T19:10:41.981Z
+Updated: 2026-10-28T19:24:07.904Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-Integration: MSP pull requests 55 and 56 merged into feat/hr-interphase-acceptance (da50a0f, 71678de) and pipeline integration-ready reports ready. lighthouse:test run 1 is starting against core main with results in the run home's lighthouse/run-1.
+Integration: MSP pull requests 55 and 56 merged into feat/hr-interphase-acceptance (da50a0f, 71678de) and pipeline integration-ready reports ready. lighthouse run 1 died with a force-quit of Claude Code and left no findings, so run 2 runs fresh (no --previous) against core main with results in the run home's lighthouse/run-2.
 
 ## Next step
 
