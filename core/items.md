@@ -19,7 +19,7 @@ The glossary and the ADRs live outside the spec folder, as `${CLAUDE_PLUGIN_ROOT
 
 ## Interview record
 
-Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, `seams`, `criteria` and `steps`, an optional `rounds` list, a `locked` list once a criterion has acceptance lines, and a `status`:
+Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, `seams`, `criteria` and `steps`, an optional `rounds` list, a `locked` list once a criterion has acceptance lines, a `probes` list once `surface_probe.py` has run, an `outcomes` object once `outcomes.py` has run, a `stop` object (`phase` and `reason`) with the status `stopped` once a failed probe stops an unattended run, and a `status`:
 
 | Key | Each entry |
 |---|---|
@@ -49,7 +49,7 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 |---|---|---|
 | `name` | yes | lowercase kebab-case, unique in the file |
 | `task` | yes | complete, self-contained instructions; whoever builds the Step receives nothing else about it and never needs the spec |
-| `files` | yes | non-empty list of repository-relative paths the Step may create or change, including its test files |
+| `files` | yes | non-empty list of repository-relative paths the Step may create or change, including its own test files, except locked paths, which the check-author Step writes |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`, identical on every Step |
 | `acceptance` | yes | list of `{"file": "<test file>", "test": "<test name>"}`; each file is also in `files`, or in the `files` of a check-author Step it comes after; each test fails before the Step and passes after; an empty list is allowed only when every criterion the Step claims is marked unproven, and is required on the check-author Step |
 | `after` | no | names of Steps that must be finished first |

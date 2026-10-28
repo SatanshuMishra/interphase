@@ -14,6 +14,24 @@ UNATTENDED = "--unattended"
 DEFAULT_TIMEOUT = 60.0
 ASSIGNMENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 NO_EXECUTABLE = "command names no executable"
+OPERATOR_CHARACTERS = "();<>|&"
+CONTROL_CHARACTERS = frozenset(";|&")
+REDIRECTION_CHARACTERS = frozenset("<>")
+OPERATOR_PIECE_RE = re.compile(r"[;|&]+|[()]")
+FILE_DESCRIPTOR_RE = re.compile(r"[0-9]+")
+CASE_ARM_SEPARATORS = frozenset((";;", ";&", ";;&"))
+PREFIX_WORDS = frozenset(
+    ("!", "{", "}", "(", ")", "if", "then", "elif", "else", "fi", "do", "done", "while", "until", "esac", "in")
+)
+PREFIX_COMMANDS = frozenset(("exec", "command", "builtin", "eval", "nohup", "env", "time"))
+SOURCE_COMMANDS = frozenset(("source", "."))
+POSIX_BUILTINS = frozenset(
+    (
+        ":", "[", "alias", "bg", "break", "cd", "continue", "echo", "exit", "export", "false", "fc", "fg",
+        "getopts", "hash", "jobs", "kill", "newgrp", "printf", "pwd", "read", "readonly", "return", "set",
+        "shift", "test", "times", "trap", "true", "type", "ulimit", "umask", "unalias", "unset", "wait",
+    )
+)
 EXTRA_PROBES = {
     "browser": lambda target: (("playwright", "playwright"),),
     "desktop": lambda target: (("vmlab", target),),
@@ -50,6 +68,105 @@ def command_words(command):
 
 def executable(command):
     return next((word for word in command_words(command) if not ASSIGNMENT_RE.match(word)), None)
+
+
+def is_operator(token):
+    return token != "" and set(token) <= set(OPERATOR_CHARACTERS)
+
+
+def operator_pieces(token):
+    if is_operator(token) and not set(token) & REDIRECTION_CHARACTERS:
+        return tuple(OPERATOR_PIECE_RE.findall(token))
+    return (token,)
+
+
+def shell_tokens(command):
+    if not check_items.is_text(command):
+        return ()
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=OPERATOR_CHARACTERS)
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    try:
+        tokens = tuple(lexer)
+    except ValueError:
+        return ()
+    return tuple(piece for token in tokens for piece in operator_pieces(token))
+
+
+def is_control(token):
+    return token != "" and set(token) <= CONTROL_CHARACTERS
+
+
+def is_redirection(token):
+    return is_operator(token) and bool(set(token) & REDIRECTION_CHARACTERS)
+
+
+def segments(tokens):
+    bounds = (-1,) + tuple(index for index, token in enumerate(tokens) if is_control(token)) + (len(tokens),)
+    return tuple((tokens[start] if start >= 0 else "", tokens[start + 1 : end]) for start, end in zip(bounds, bounds[1:]))
+
+
+def redirected_positions(words):
+    return frozenset(
+        position
+        for index, word in enumerate(words)
+        if is_redirection(word)
+        for position in (index - 1, index, index + 1)
+        if position != index - 1 or (index > 0 and FILE_DESCRIPTOR_RE.fullmatch(words[index - 1]))
+    )
+
+
+def without_redirections(words):
+    dropped = redirected_positions(words)
+    return tuple(word for index, word in enumerate(words) if index not in dropped)
+
+
+def after_pattern(words):
+    return words[words.index(")") + 1 :] if ")" in words else words
+
+
+def skip_while(words, skipped):
+    position = next((index for index, word in enumerate(words) if not skipped(word)), len(words))
+    return words[position:]
+
+
+def is_prefix_word(word):
+    return word in PREFIX_WORDS or bool(ASSIGNMENT_RE.match(word))
+
+
+def is_prefix_argument(word):
+    return word.startswith("-") or bool(ASSIGNMENT_RE.match(word))
+
+
+def past_prefix_commands(words):
+    if words and words[0] in PREFIX_COMMANDS:
+        return past_prefix_commands(skip_while(words[1:], is_prefix_argument))
+    return words
+
+
+def command_part(separator, words):
+    rest = skip_while(after_pattern(words) if separator in CASE_ARM_SEPARATORS else words, is_prefix_word)
+    if not rest or rest[0] == "for":
+        return ()
+    if rest[0] == "case":
+        return past_prefix_commands(skip_while(after_pattern(rest), is_prefix_word)) if ")" in rest else ()
+    return past_prefix_commands(rest)
+
+
+def segment_probe(words):
+    if not words:
+        return None
+    if words[0] in SOURCE_COMMANDS:
+        return ("source", words[1] if len(words) > 1 else None)
+    return ("executable", words[0])
+
+
+def command_probes(command):
+    found = (
+        segment_probe(command_part(separator, without_redirections(words)))
+        for separator, words in segments(shell_tokens(command))
+    )
+    return tuple(dict.fromkeys(probe for probe in found if probe is not None))
 
 
 def command_target(line):
@@ -91,17 +208,48 @@ def timed_out(timeout):
     return ("fail", "timed out after %g seconds" % timeout)
 
 
+def is_inside_repository(word, root):
+    parent = (pathlib.Path(root) / word).parent.resolve()
+    base = pathlib.Path(root).resolve()
+    return parent == base or base in parent.parents
+
+
+def probe_repository_file(word, root, runnable):
+    path = pathlib.Path(root) / word
+    if not is_inside_repository(word, root):
+        return ("fail", "%s is outside the repository" % word)
+    if path.is_file() and (not runnable or os.access(str(path), os.X_OK)):
+        return ("pass", str(path))
+    kind = "an executable file" if runnable else "a file"
+    return ("fail", "%s is not %s in the repository" % (word, kind))
+
+
+def probe_executable(word, root):
+    if word in POSIX_BUILTINS:
+        return ("pass", "%s is a shell builtin" % word)
+    if "/" in word:
+        return probe_repository_file(word, root, True)
+    resolved = shutil.which(word)
+    return ("pass", resolved) if resolved else ("fail", "%s is not on PATH" % word)
+
+
+def probe_source(word, root):
+    if word is None:
+        return ("fail", "source names no file")
+    return probe_repository_file(word, root, False)
+
+
 def probe_command(line, target, root, timeout):
-    found = executable(line.get("command"))
-    if found is None:
+    probes = command_probes(line.get("command"))
+    if not probes:
         return ("fail", NO_EXECUTABLE)
-    if "/" in found:
-        path = pathlib.Path(root) / found
-        if path.is_file() and os.access(str(path), os.X_OK):
-            return ("pass", str(path))
-        return ("fail", "%s is not an executable file in the repository" % found)
-    resolved = shutil.which(found)
-    return ("pass", resolved) if resolved else ("fail", "%s is not on PATH" % found)
+    results = tuple(
+        probe_source(word, root) if kind == "source" else probe_executable(word, root) for kind, word in probes
+    )
+    failures = tuple(detail for status, detail in results if status == "fail")
+    if failures:
+        return ("fail", "; ".join(failures))
+    return ("pass", "; ".join(detail for _, detail in results))
 
 
 def probe_playwright(line, target, root, timeout):

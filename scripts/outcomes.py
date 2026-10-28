@@ -92,8 +92,10 @@ def repository_names(root):
 def read_entries(store):
     try:
         text = store.read_bytes().decode("utf-8", "replace")
-    except (OSError, ValueError):
+    except FileNotFoundError:
         return ()
+    except (OSError, ValueError):
+        return None
     return tuple(entry for entry in (parsed(line) for line in text.splitlines() if line.strip()) if entry is not None)
 
 
@@ -133,10 +135,9 @@ def repeated_kinds(entries):
     ]
 
 
-def outcomes(root):
-    store = find_store(root)
+def outcomes(root, store, stored):
     names = repository_names(root)
-    entries = tuple(entry for entry in read_entries(store) if is_k6(entry, names))
+    entries = tuple(entry for entry in stored if is_k6(entry, names))
     return {"store": os.path.abspath(str(store)), "entries": len(entries), "repeated": repeated_kinds(entries)}
 
 
@@ -159,7 +160,13 @@ def main(argv):
     if record is None:
         print("cannot read a JSON object from: " + record_path, file=sys.stderr)
         return 2
-    found = outcomes(pathlib.Path(os.path.abspath(root)))
+    repository = pathlib.Path(os.path.abspath(root))
+    store = find_store(repository)
+    stored = read_entries(store)
+    if stored is None:
+        print("cannot read the trajectory store: " + os.path.abspath(str(store)), file=sys.stderr)
+        return 2
+    found = outcomes(repository, store, stored)
     if not surface_probe.write_record(record_path, {**record, "outcomes": found}):
         print("cannot write: " + record_path, file=sys.stderr)
         return 2
