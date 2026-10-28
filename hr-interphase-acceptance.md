@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:36:08.167Z
+Updated: 2026-10-28T13:37:46.141Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. Both MSPs are green with every advisory fixed: pathway-line-kinds at 0ef62fe (round 1), acceptance-lines at 27b3c97 (round 3 green at 39bc600; advisories C1, C3 and C6 fixed at 294301f; ADR 0003 and the five glossary terms committed at 27b3c97, where the suite fails only the four other-MSP pathway tests). The ship is starting.
+Both MSPs are shipped as ready pull requests into feat/hr-interphase-acceptance, assigned to the owner, each with its review comment and the app's auto-fix monitor on: acceptance-lines is https://github.com/SatanshuMishra/interphase/pull/55 (head 27b3c97), pathway-line-kinds is https://github.com/SatanshuMishra/interphase/pull/56 (head 0ef62fe). Run 3's PROGRAM.md row says awaiting-merge with both links. The run waits for the owner to merge both.
 
 ## Next step
 
@@ -49,3 +49,4 @@ Needs: D1, D2.
 - Run home files: CHARTER.md, worker-rules.txt, dispatch.zsh, feature.json, graph.json, check-tree (temporary check-author worktree)
 - Review record: run home review/ (obligations, assumptions, proofs per MSP; round-<n>/ findings, verdicts, diagnoses) and rounds.md (one line per round)
 - MSP worktrees: ~/.mitosis/runs/interphase/hr-interphase-acceptance/trees/<msp>
+- Pull requests: https://github.com/SatanshuMishra/interphase/pull/55 (acceptance-lines) and https://github.com/SatanshuMishra/interphase/pull/56 (pathway-line-kinds)
