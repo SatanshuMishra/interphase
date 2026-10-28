@@ -117,14 +117,31 @@ class CorePhasesTest(unittest.TestCase):
             self.assertNotIn(phrase, text)
 
     def test_phases_design_steps_before_the_read_back(self):
+        design = phase_body("## Phase 6: Design the Steps")
         self.assertIn(
-            "every acceptance criterion has a Step whose test proves it at an agreed seam the builder runs",
-            phase_body("## Phase 6: Design the Steps"),
+            "every acceptance criterion at a seam the builder runs has acceptance lines and a Step whose test implements each line",
+            design,
+        )
+        self.assertIn(
+            "every criterion at a seam the builder cannot run is marked unproven with the reason", design
         )
         self.assertIn("How the work is cut", phase_body("## Phase 7: Read back"))
         self.assertIn(
             "Never derive the Steps by reading them back out of the spec.",
             phase_body("## Phase 8: Write the spec and the Steps"),
+        )
+
+    def test_rows_implement_acceptance_lines_held_in_the_locked_list(self):
+        interview = phase_body("## Phase 4: Interview")
+        self.assertIn("line k of criterion 5.m has the id `C<m>.<k>`", interview)
+        self.assertIn(
+            "Name in each test row's `check` the acceptance line it implements, and add the row's test file to the "
+            "record's `locked` list. The owning Step lists the files it changes but never a locked test file.",
+            interview,
+        )
+        self.assertIn(
+            "add the row's test file to the record's `locked` list rather than to the new Step's files",
+            phase_body("## Amend a handed-off spec"),
         )
 
     def test_intake_owns_the_spec_files_the_glossary_and_the_adrs(self):

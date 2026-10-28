@@ -126,12 +126,42 @@ def conditions(text):
     )
 
 
-def report_test(name, step, given, expect):
-    return {"file": "tests/test_report.py", "name": name, "given": given, "expect": expect, "step": step}
+def report_test(name, step, given, expect, check):
+    return {
+        "file": "tests/test_report.py",
+        "name": name,
+        "given": given,
+        "expect": expect,
+        "step": step,
+        "check": check,
+    }
+
+
+def report_line(line_id):
+    return {
+        "id": line_id,
+        "kind": "exact",
+        "surface": {"family": "cli", "target": "python3"},
+        "command": "python3 -m unittest tests.test_report",
+        "pass": "the tests pass",
+    }
 
 
 def criterion(number, title, text, tests, **extra):
-    return {"number": number, "title": title, "text": text, "seam": "report", "tests": list(tests), **extra}
+    line_id = "C%s.1" % number.partition(".")[2]
+    return {
+        "number": number,
+        "title": title,
+        "text": text,
+        "seam": "report",
+        "acceptance": [report_line(line_id)],
+        "tests": list(tests),
+        **extra,
+    }
+
+
+def report_probe(line_id):
+    return {"check": line_id, "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
 
 
 def brief_record():
@@ -157,12 +187,14 @@ def brief_record():
                         "total-row",
                         "products with quantities 2 and 3",
                         "the last row holds 5",
+                        "C1.1",
                     ),
                     report_test(
                         "test_total_row_without_products",
                         "total-row",
                         "no products",
                         "the last row holds 0",
+                        "C1.1",
                     ),
                 ),
             ),
@@ -176,6 +208,7 @@ def brief_record():
                         "low-stock-order",
                         "low-stock products Pears then Apples",
                         "Apples is listed before Pears",
+                        "C2.1",
                     ),
                 ),
             ),
@@ -183,18 +216,21 @@ def brief_record():
         "steps": [
             {
                 "name": "total-row",
-                "files": ["src/report.py", "tests/test_report.py"],
+                "files": ["src/report.py"],
                 "criteria": ["5.1"],
                 "task": "End the stock report with a row holding the sum of all quantities.",
             },
             {
                 "name": "low-stock-order",
-                "files": ["src/report.py", "tests/test_report.py"],
+                "files": ["src/report.py"],
                 "criteria": ["5.2"],
                 "task": "Sort the low-stock list by product name, as stock_rows sorts the stock report.",
                 "after": ["total-row"],
             },
         ],
+        "locked": ["tests/test_report.py"],
+        "probes": [report_probe("C1.1"), report_probe("C2.1")],
+        "outcomes": {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []},
     }
 
 

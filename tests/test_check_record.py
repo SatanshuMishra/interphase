@@ -13,7 +13,9 @@ TEST_ENTRY = {
     "given": "a total of 3",
     "expect": "3 is returned",
     "step": "build-app",
+    "check": "C1.1",
 }
+UNCHECKED_ENTRY = {key: value for key, value in TEST_ENTRY.items() if key != "check"}
 PRESENT_ENTRY = {**TEST_ENTRY, "name": "test_present", "given": "a total of 4", "expect": "4 is returned"}
 PAYLOAD_DOMAIN = {
     "name": "payload",
@@ -36,6 +38,15 @@ PHONE_SEAM = {
     "misses": "a wrong total",
     "builder_runs": False,
 }
+APP_LINE = {
+    "id": "C1.1",
+    "kind": "exact",
+    "surface": {"family": "cli", "target": "python3"},
+    "command": "python3 -m unittest tests.test_app",
+    "pass": "the test passes",
+}
+APP_PROBE = {"check": "C1.1", "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
+OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
 PHONE_CRITERION = {
     "number": "5.2",
     "title": "The total shows on the phone",
@@ -56,17 +67,21 @@ def base_record():
                 "title": "The total adds up",
                 "text": "Given a total, when the app returns it, then it is unchanged.",
                 "seam": "unit-tests",
+                "acceptance": [APP_LINE],
                 "tests": [TEST_ENTRY],
             }
         ],
         "steps": [
             {
                 "name": "build-app",
-                "files": ["src/app.py", "tests/test_app.py"],
+                "files": ["src/app.py"],
                 "criteria": ["5.1"],
                 "task": "Build the app.",
             }
         ],
+        "locked": ["tests/test_app.py"],
+        "probes": [APP_PROBE],
+        "outcomes": OUTCOMES,
     }
 
 
@@ -443,13 +458,15 @@ class ProofRuleRecordTest(RecordFixture, unittest.TestCase):
 
     def test_untested_criterion_at_a_runnable_seam_warns_until_complete(self):
         record = with_criterion(tests=[])
-        message = "criterion 5.1 has no test and is not marked unproven"
+        message = "criterion 5.1 acceptance line C1.1 is implemented by no test"
         self.assertEqual(self.check(record, False), (("warning", message),))
         self.assertEqual(self.check(record, True), (("error", message),))
 
-    def test_unproven_criterion_at_a_runnable_seam_without_tests_passes(self):
-        record = with_criterion(tests=[], unproven="the total depends on a live exchange rate")
-        self.assertEqual(self.check(record, True), ())
+    def test_unproven_criterion_at_a_runnable_seam_without_an_acceptance_line_is_refused(self):
+        record = without(with_criterion(tests=[], unproven="a live exchange rate"), "criteria", 0, "acceptance")
+        message = "criterion 5.1 sits at a seam the builder runs and has no acceptance line"
+        self.assertEqual(self.check(record, False), (("warning", message),))
+        self.assertEqual(self.check(record, True), (("error", message),))
 
     def test_unproven_criterion_with_tests_at_a_runnable_seam_is_an_error(self):
         record = with_criterion(unproven="needs the phone", tests=[TEST_ENTRY, PRESENT_ENTRY])
@@ -474,8 +491,9 @@ class ProofRuleRecordTest(RecordFixture, unittest.TestCase):
         self.assertEqual(out, "error: " + message + "\n")
 
     def test_tests_do_not_prove_a_criterion_at_an_unrunnable_seam(self):
-        record = change(with_phone(), "criteria", 1, tests=[{**TEST_ENTRY, "name": "test_drawn"}])
-        record = without(record, "criteria", 1, "unproven")
+        drawn = {**UNCHECKED_ENTRY, "name": "test_drawn", "file": "tests/test_drawn.py"}
+        record = change(with_phone(), "criteria", 1, tests=[drawn])
+        record = change(without(record, "criteria", 1, "unproven"), "steps", 0, files=["src/app.py", "tests/test_drawn.py"])
         self.assertEqual(
             self.errors(record, True),
             ("criterion 5.2 sits at a seam the builder cannot run and is not marked unproven",),
@@ -687,6 +705,118 @@ class CaseTableRecordTest(RecordFixture, unittest.TestCase):
         self.assertEqual(
             self.errors(with_criterion(tests=[test]), False), ("criterion 5.1 test 'test_total' has unknown key 'asserts'",)
         )
+
+
+class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
+    def unlined(self):
+        record = without(with_criterion(tests=[UNCHECKED_ENTRY]), "criteria", 0, "acceptance")
+        return change(record, "steps", 0, files=["src/app.py", "tests/test_app.py"])
+
+    def test_check_without_acceptance_lines_is_an_unknown_key(self):
+        record = change(self.unlined(), "criteria", 0, tests=[TEST_ENTRY])
+        self.assertIn("criterion 5.1 test 'test_total' has unknown key 'check'", self.errors(record, False))
+
+    def test_check_naming_an_unknown_line_is_an_error(self):
+        record = with_criterion(tests=[TEST_ENTRY, {**PRESENT_ENTRY, "check": "C1.2"}])
+        self.assertEqual(
+            self.errors(record, False), ("criterion 5.1 test 'test_present' names unknown acceptance line C1.2",)
+        )
+
+    def test_row_without_check_warns_until_complete(self):
+        record = with_criterion(tests=[TEST_ENTRY, {**UNCHECKED_ENTRY, "name": "test_present"}])
+        message = "criterion 5.1 test 'test_present' names no acceptance line in check"
+        self.assertEqual(self.check(record, False), (("warning", message),))
+        self.assertEqual(self.check(record, True), (("error", message),))
+
+    def test_acceptance_that_is_not_a_non_empty_list_is_an_error(self):
+        for value in ([], "C1.1", None):
+            with self.subTest(value=value):
+                self.assertIn(
+                    "criterion 5.1 has acceptance that is not a non-empty list of K1 lines",
+                    self.errors(with_criterion(acceptance=value), False),
+                )
+
+    def test_record_without_locked_warns_until_complete(self):
+        record = {key: value for key, value in base_record().items() if key != "locked"}
+        message = "record has no locked list, but criteria have acceptance lines"
+        self.assertEqual(self.check(record, False), (("warning", message),))
+        self.assertEqual(self.check(record, True), (("error", message),))
+
+    def test_rows_without_acceptance_lines_keep_the_step_file_rule(self):
+        record = {key: value for key, value in self.unlined().items() if key not in ("locked", "probes")}
+        self.assertEqual(
+            self.check(record, True),
+            (("error", "criterion 5.1 sits at a seam the builder runs and has no acceptance line"),),
+        )
+        moved = change(record, "steps", 0, files=["src/app.py"])
+        self.assertIn(
+            "criterion 5.1 test 'test_total' has file 'tests/test_app.py', which is not in the files of step 'build-app'",
+            self.errors(moved, False),
+        )
+
+    def test_a_locked_row_file_in_its_step_is_an_error(self):
+        record = change(base_record(), "steps", 0, files=["src/app.py", "tests/test_app.py"])
+        self.assertEqual(
+            self.errors(record, False),
+            (
+                "criterion 5.1 test 'test_total' has file tests/test_app.py, which step 'build-app' lists in its files",
+                "step 'build-app' lists locked path tests/test_app.py",
+            ),
+        )
+
+
+class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
+    def test_a_stopped_record_with_its_stop_passes(self):
+        stop = {"phase": "probe", "reason": "the claude probe of C1.1 failed"}
+        self.assertEqual(self.check({**base_record(), "status": "stopped", "stop": stop}, True), ())
+
+    def test_stop_goes_with_the_stopped_status(self):
+        stop = {"phase": "probe", "reason": "the claude probe of C1.1 failed"}
+        variants = (
+            ({**base_record(), "status": "stopped"}, "record status is 'stopped' but the record has no stop"),
+            ({**base_record(), "stop": stop}, "record has stop but its status is not 'stopped'"),
+            (
+                {**base_record(), "status": "stopped", "stop": {"phase": "probe"}},
+                "record stop is not an object with exactly non-empty string phase and reason",
+            ),
+        )
+        for record, message in variants:
+            with self.subTest(message=message):
+                self.assertEqual(self.errors(record, False), (message,))
+
+    def test_probes_of_the_wrong_shape_are_errors(self):
+        variants = (
+            ({**base_record(), "probes": {}}, "record probes is not a list"),
+            (
+                {**base_record(), "probes": [{**APP_PROBE, "status": "skipped"}]},
+                "record probes entry 1 has status 'skipped', which is not 'pass' or 'fail'",
+            ),
+            (
+                {**base_record(), "probes": [{**APP_PROBE, "detail": ""}]},
+                "record probes entry 1 is not an object with exactly non-empty string check, probe, target, status, detail",
+            ),
+        )
+        for record, message in variants:
+            with self.subTest(message=message):
+                self.assertEqual(self.errors(record, False), (message,))
+
+    def test_outcomes_of_the_wrong_shape_are_errors(self):
+        self.assertEqual(
+            self.check({**base_record(), "outcomes": {**OUTCOMES, "repeated": [{"kind": "flaky", "count": 2}]}}, True), ()
+        )
+        variants = (
+            ({**OUTCOMES, "note": "x"}, "record outcomes is not an object with exactly store, entries and repeated"),
+            ({**OUTCOMES, "store": ""}, "record outcomes has store that is not a non-empty string"),
+            ({**OUTCOMES, "entries": -1}, "record outcomes has entries that is not an integer of at least 0"),
+            (
+                {**OUTCOMES, "repeated": [{"kind": "flaky", "count": 1}]},
+                "record outcomes has repeated that is not a list of objects with exactly a non-empty string kind "
+                "and an integer count of at least 2",
+            ),
+        )
+        for outcomes, message in variants:
+            with self.subTest(message=message):
+                self.assertEqual(self.errors({**base_record(), "outcomes": outcomes}, False), (message,))
 
 
 class AmendmentRecordTest(RecordFixture, unittest.TestCase):

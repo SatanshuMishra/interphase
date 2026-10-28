@@ -61,7 +61,9 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`: the intent round first, then frontier rounds until the frontier is empty.
 - Use the `## Questions` bank of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` as a checklist of branches the tree must reach; skip every question grounding already answered.
-- Design the seams and the Steps as the interview goes. When the user agrees a seam, write it to the record. When a requirement is settled, write its acceptance criterion to the record with its seam, the tests that prove it or the reason it is unproven, and an owning Step: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Design the seams and the Steps as the interview goes. When the user agrees a seam, write it to the record. When a requirement is settled, write its acceptance criterion to the record with its seam, its acceptance lines, the tests that implement them or the reason it is unproven, and an owning Step: what the Step builds and the files it changes. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Write each acceptance line as `${CLAUDE_PLUGIN_ROOT}/contracts/k1-acceptance.schema.json` states it: line k of criterion 5.m has the id `C<m>.<k>`, a `kind` of `exact` or `judged`, a `surface`, the `command` that decides it from the repository root and its `pass` condition, and a judged line also has a `rubric` and `trials` of 3.
+- Name in each test row's `check` the acceptance line it implements, and add the row's test file to the record's `locked` list. The owning Step lists the files it changes but never a locked test file.
 - Give a criterion a few rows, each a named test with what it is given and what it expects.
 - Write a case table only for behaviour that is security-sensitive, such as an input a person or outside software controls at a trust boundary or a result that could expose data, and for behaviour that exists to refuse something. Mark the criterion's `case_table` as `security` or `refusal`, add a domain for each input it reads, listing every class of that input the code tells apart that a real path can deliver, and give every class a row that covers it.
 - Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
@@ -79,7 +81,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 
 - Check the whole set of Steps against the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - Settle what needs the whole picture: files two Steps share, package export files, interfaces two Steps share, and the order the Steps are built in.
-- Make sure every acceptance criterion has a Step whose test proves it at an agreed seam the builder runs, or is marked unproven with the reason, and that every Step proves at least one criterion.
+- Make sure every acceptance criterion at a seam the builder runs has acceptance lines and a Step whose test implements each line, every criterion at a seam the builder cannot run is marked unproven with the reason, and every Step proves at least one criterion.
 - Ask any Step question only the user can answer in the same rounds as the rest.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error.
 
@@ -133,7 +135,8 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - When the spec was written by an earlier release, rename its `Acceptance criteria` heading to `Test seams`, keeping its number, and skip the spec check below, which knows only this release's templates.
 - Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
 - Add the missing classes and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
-- Give every new row's test to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
+- Name in each new row's `check` the acceptance line it implements, adding the line when its criterion has none for it, and add the row's test file to the record's `locked` list rather than to the new Step's files.
+- Give the work of the new rows to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
 - Fill every gap from the intent as the section After the interview says, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`.
 - Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.
 - Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.

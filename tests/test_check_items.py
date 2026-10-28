@@ -34,6 +34,15 @@ AMENDED_RECORD = {
             "title": "The total adds up",
             "text": "Given a total, when the app returns it, then it is unchanged.",
             "seam": "unit-tests",
+            "acceptance": [
+                {
+                    "id": "C1.1",
+                    "kind": "exact",
+                    "surface": {"family": "cli", "target": "python3"},
+                    "command": "python3 -m unittest tests.test_app",
+                    "pass": "the test passes",
+                }
+            ],
             "tests": [
                 {
                     "file": "tests/test_app.py",
@@ -41,6 +50,7 @@ AMENDED_RECORD = {
                     "given": "a total of 3",
                     "expect": "3 is returned",
                     "step": "build-app",
+                    "check": "C1.1",
                 }
             ],
         },
@@ -49,6 +59,15 @@ AMENDED_RECORD = {
             "title": "A negative total is zero",
             "text": "Given a negative total, when the app returns it, then it is zero.",
             "seam": "unit-tests",
+            "acceptance": [
+                {
+                    "id": "C2.1",
+                    "kind": "exact",
+                    "surface": {"family": "cli", "target": "python3"},
+                    "command": "python3 -m unittest tests.test_fix",
+                    "pass": "the test passes",
+                }
+            ],
             "tests": [
                 {
                     "file": "tests/test_fix.py",
@@ -56,6 +75,7 @@ AMENDED_RECORD = {
                     "given": "a total of -3",
                     "expect": "0 is returned",
                     "step": "fix-app",
+                    "check": "C2.1",
                 }
             ],
         },
@@ -63,19 +83,25 @@ AMENDED_RECORD = {
     "steps": [
         {
             "name": "build-app",
-            "files": ["src/app.py", "tests/test_app.py"],
+            "files": ["src/app.py"],
             "criteria": ["5.1"],
             "task": "Build the app.",
         },
         {
             "name": "fix-app",
-            "files": ["src/app.py", "tests/test_fix.py"],
+            "files": ["src/app.py"],
             "criteria": ["5.2"],
             "task": "Return zero for a negative total.",
             "amendment": 1,
             "after": ["build-app"],
         },
     ],
+    "locked": ["tests/test_app.py", "tests/test_fix.py"],
+    "probes": [
+        {"check": check, "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
+        for check in ("C1.1", "C2.1")
+    ],
+    "outcomes": {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []},
 }
 
 

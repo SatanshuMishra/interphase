@@ -7,7 +7,9 @@ import sys
 USAGE = "usage: python3 check_record.py [--complete] RECORD"
 COMPLETE = "--complete"
 RECORD_KEYS = ("seams", "criteria", "steps")
-STATUSES = ("in-progress", "handed-off")
+STOPPED = "stopped"
+STATUSES = ("in-progress", "handed-off", STOPPED)
+OPTIONAL_RECORD_KEYS = ("status", "rounds", "locked", "probes", "stop", "outcomes")
 SEAM_KEYS = ("name", "interface", "catches", "misses", "builder_runs")
 CRITERION_KEYS = (
     "number",
@@ -19,12 +21,14 @@ CRITERION_KEYS = (
     "varies",
     "case_table",
     "domains",
+    "acceptance",
 )
 CRITERION_REQUIRED = ("number", "title", "text", "seam", "tests")
 CASE_TABLES = ("security", "refusal")
 DOMAIN_KEYS = ("name", "over", "classes")
 TEST_KEYS = ("file", "name", "given", "expect", "step")
 COVERS = "covers"
+CHECK = "check"
 VARIES = ("input", "output", "measured")
 POPULATION_KEYS = ("cases", "runs", "pass_rate")
 STEP_KEYS = (
@@ -46,16 +50,24 @@ RENDERED_KEYS = ("source", "acceptance", "spec_ref")
 NUMBER_RE = re.compile(r"[0-9]+\.[0-9]+")
 ROUND_KEYS = ("kind", "questions", "changed")
 ROUND_KINDS = ("intent", "frontier")
+PROBE_KEYS = ("check", "probe", "target", "status", "detail")
+PROBE_STATUSES = ("pass", "fail")
+STOP_KEYS = ("phase", "reason")
+OUTCOME_KEYS = ("store", "entries", "repeated")
+REPEATED_KEYS = ("kind", "count")
 
 
-def load_items_checker():
-    spec = importlib.util.spec_from_file_location("check_items", pathlib.Path(__file__).with_name("check_items.py"))
+def load_sibling(name):
+    spec = importlib.util.spec_from_file_location(name, pathlib.Path(__file__).with_name(name + ".py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-check_items = load_items_checker()
+check_items = load_sibling("check_items")
+schema_check = load_sibling("schema_check")
+K1 = schema_check.load("k1-acceptance")
+K2_LOCKED = schema_check.subschema(schema_check.load("k2-locked"), "/properties/locked")
 ITEM_STEP_CHECKS = (
     check_items.check_name,
     check_items.check_files,
@@ -125,7 +137,7 @@ def check_shape(record):
     unknown = tuple(
         error("record has unknown key %r" % key)
         for key in sorted(record)
-        if key not in RECORD_KEYS + ("status", "rounds")
+        if key not in RECORD_KEYS + OPTIONAL_RECORD_KEYS
     )
     absent = tuple(error("record lacks key %r" % key) for key in RECORD_KEYS if key not in record)
     not_lists = tuple(
@@ -255,14 +267,33 @@ def entry_label(who, position, test):
     return "%s test %r" % (who, name) if check_items.is_text(name) else "%s test %d" % (who, position + 1)
 
 
-def check_test_step(tag, test, number, by_name):
+def check_built_file(tag, test, step):
+    if test["file"] in check_items.step_files(step):
+        return ()
+    return (error("%s has file %r, which is not in the files of step %r" % (tag, test["file"], test["step"])),)
+
+
+def check_locked_file(tag, test, step, locked):
+    listed = (
+        (error("%s has file %s, which step %r lists in its files" % (tag, test["file"], test["step"])),)
+        if test["file"] in check_items.step_files(step)
+        else ()
+    )
+    unlocked = (
+        (error("%s has file %s, which is not in the record's locked list" % (tag, test["file"])),)
+        if locked is not None and test["file"] not in locked
+        else ()
+    )
+    return listed + unlocked
+
+
+def check_test_step(tag, test, criterion, by_name, locked):
     step = by_name.get(test["step"])
     if step is None:
         return (error("%s names unknown step %r" % (tag, test["step"])),)
+    number = criterion.get("number")
     outside = (
-        ()
-        if test["file"] in check_items.step_files(step)
-        else (error("%s has file %r, which is not in the files of step %r" % (tag, test["file"], test["step"])),)
+        check_locked_file(tag, test, step, locked) if has_lines(criterion) else check_built_file(tag, test, step)
     )
     unclaimed = (
         ()
@@ -329,30 +360,108 @@ def check_covers(tag, test, criterion):
     return tuple(finding for entry in covers for finding in check_cover(tag, entry, criterion))
 
 
-def check_test(who, position, test, criterion, by_name):
+def check_check(tag, test, criterion, complete):
+    if not has_lines(criterion):
+        return ()
+    if CHECK not in test:
+        return (missing("%s names no acceptance line in check" % tag, complete),)
+    if test[CHECK] in line_ids(criterion):
+        return ()
+    return (error("%s names unknown acceptance line %s" % (tag, test[CHECK])),)
+
+
+def check_test(who, position, test, criterion, by_name, locked, complete):
     tag = entry_label(who, position, test)
     if not well_formed(test):
         return (error("%s is not an object with non-empty string file, name, given, expect and step" % tag),)
     varying = "varies" in criterion
     tabled = "case_table" in criterion
-    allowed = TEST_KEYS + ((COVERS,) if tabled else ()) + (POPULATION_KEYS if varying else ())
+    allowed = (
+        TEST_KEYS
+        + ((COVERS,) if tabled else ())
+        + (POPULATION_KEYS if varying else ())
+        + ((CHECK,) if has_lines(criterion) else ())
+    )
     population = check_population(who, position, test) if varying else ()
     return (
         unknown_keys(tag, test, allowed)
         + check_covers(tag, test, criterion)
+        + check_check(tag, test, criterion, complete)
         + population
-        + check_test_step(tag, test, criterion.get("number"), by_name)
+        + check_test_step(tag, test, criterion, by_name, locked)
     )
 
 
-def check_tests(who, criterion, by_name):
+def check_tests(who, criterion, by_name, locked, complete):
     if "tests" not in criterion:
         return ()
     tests = criterion["tests"]
     if not isinstance(tests, list):
         return (error("%s has tests that is not a list" % who),)
     return tuple(
-        finding for position, test in enumerate(tests) for finding in check_test(who, position, test, criterion, by_name)
+        finding
+        for position, test in enumerate(tests)
+        for finding in check_test(who, position, test, criterion, by_name, locked, complete)
+    )
+
+
+def criterion_lines(criterion):
+    lines = criterion.get("acceptance") if isinstance(criterion, dict) else None
+    return tuple(lines) if isinstance(lines, list) else ()
+
+
+def has_lines(criterion):
+    return bool(criterion_lines(criterion))
+
+
+def line_ids(criterion):
+    return tuple(
+        line["id"]
+        for line in criterion_lines(criterion)
+        if isinstance(line, dict) and check_items.is_text(line.get("id"))
+    )
+
+
+def check_line_id(who, criterion, position, line):
+    number = criterion.get("number")
+    if not isinstance(line, dict) or not check_items.is_text(line.get("id")):
+        return ()
+    if not isinstance(number, str) or not NUMBER_RE.fullmatch(number):
+        return ()
+    expected = "C%s.%d" % (number.partition(".")[2], position)
+    if line["id"] == expected:
+        return ()
+    return (error("%s acceptance line %d has id %s; expected %s" % (who, position, line["id"], expected)),)
+
+
+def check_line(who, criterion, position, line):
+    shape = tuple(
+        error("%s acceptance line %d does not match K1: %s" % (who, position, message))
+        for message in schema_check.errors(K1, line)
+    )
+    return shape + check_line_id(who, criterion, position, line)
+
+
+def check_acceptance(who, criterion):
+    if "acceptance" not in criterion:
+        return ()
+    if not has_lines(criterion):
+        return (error("%s has acceptance that is not a non-empty list of K1 lines" % who),)
+    return tuple(
+        finding
+        for position, line in enumerate(criterion_lines(criterion), 1)
+        for finding in check_line(who, criterion, position, line)
+    )
+
+
+def check_implemented(who, criterion, complete):
+    if "unproven" in criterion:
+        return ()
+    named = frozenset(test.get(CHECK) for test in criterion_tests(criterion))
+    return tuple(
+        missing("%s acceptance line %s is implemented by no test" % (who, line_id), complete)
+        for line_id in unique(line_ids(criterion))
+        if line_id not in named
     )
 
 
@@ -459,23 +568,30 @@ def check_varies(who, criterion):
 def check_proof(who, criterion, builders, complete):
     runnable = check_items.is_text(criterion.get("seam")) and criterion["seam"] in builders
     tests = criterion_tests(criterion)
-    if "unproven" in criterion:
-        if runnable and tests:
-            return (
-                error(
-                    "%s is marked unproven but has tests at a seam the builder runs: %s"
-                    % (who, ", ".join(test["name"] for test in tests))
-                ),
-            )
-        return ()
+    unproven = "unproven" in criterion
     if not runnable:
+        if unproven:
+            return ()
         return (missing("%s sits at a seam the builder cannot run and is not marked unproven" % who, complete),)
-    if tests:
-        return ()
-    return (missing("%s has no test and is not marked unproven" % who, complete),)
+    tested = (
+        (
+            error(
+                "%s is marked unproven but has tests at a seam the builder runs: %s"
+                % (who, ", ".join(test["name"] for test in tests))
+            ),
+        )
+        if unproven and tests
+        else ()
+    )
+    unlined = (
+        ()
+        if has_lines(criterion)
+        else (missing("%s sits at a seam the builder runs and has no acceptance line" % who, complete),)
+    )
+    return tested + unlined
 
 
-def check_criterion(index, criterion, known, builders, by_name, complete):
+def check_criterion(index, criterion, known, builders, by_name, locked, complete):
     who = criterion_label(index, criterion)
     if not isinstance(criterion, dict):
         return (error("%s is not an object" % who),)
@@ -488,30 +604,34 @@ def check_criterion(index, criterion, known, builders, by_name, complete):
         + check_varies(who, criterion)
         + check_case_table(who, criterion)
         + check_domains(who, criterion)
-        + check_tests(who, criterion, by_name)
+        + check_acceptance(who, criterion)
+        + check_tests(who, criterion, by_name, locked, complete)
+        + check_implemented(who, criterion, complete)
         + check_proof(who, criterion, builders, complete)
         + check_coverage(who, criterion, complete)
     )
 
 
-def check_criteria(criteria, seams, steps, complete):
+def check_criteria(criteria, seams, steps, locked, complete):
     known = frozenset(seam_names(seams))
     builders = builder_seams(seams)
     by_name = steps_by_name(steps)
     per_criterion = tuple(
         finding
         for index, criterion in enumerate(criteria)
-        for finding in check_criterion(index, criterion, known, builders, by_name, complete)
+        for finding in check_criterion(index, criterion, known, builders, by_name, locked, complete)
     )
     numbers = criterion_numbers(criteria)
     repeated = tuple(error("criterion number %s is duplicated" % number) for number in duplicated(numbers))
+    ids = tuple(line_id for criterion in criteria for line_id in line_ids(criterion))
+    shared = tuple(error("acceptance line id %s is duplicated" % line_id) for line_id in duplicated(ids))
     claimed = frozenset(number for step in steps if isinstance(step, dict) for number in step_criteria(step))
     unclaimed = tuple(
         missing("criterion %s is claimed by no step" % number, complete)
         for number in unique(numbers)
         if number not in claimed
     )
-    return per_criterion + repeated + unclaimed
+    return per_criterion + repeated + shared + unclaimed
 
 
 def check_step_keys(who, step):
@@ -624,6 +744,92 @@ def check_rounds(record):
     return tuple(finding for index, entry in enumerate(rounds) for finding in check_round(index, entry))
 
 
+def record_locked(record):
+    if "locked" not in record:
+        return None
+    paths = record["locked"]
+    return frozenset(path for path in paths if isinstance(path, str)) if isinstance(paths, list) else frozenset()
+
+
+def check_locked(record, criteria, steps, complete):
+    if "locked" in record:
+        shape = tuple(
+            error("record locked does not match K2: %s" % message)
+            for message in schema_check.errors(K2_LOCKED, record["locked"])
+        )
+    elif any(has_lines(criterion) for criterion in criteria):
+        shape = (missing("record has no locked list, but criteria have acceptance lines", complete),)
+    else:
+        shape = ()
+    locked = record_locked(record) or frozenset()
+    written = tuple(
+        error("%s lists locked path %s" % (check_items.label(index, step), path))
+        for index, step in enumerate(steps)
+        if isinstance(step, dict)
+        for path in sorted(check_items.step_files(step) & locked)
+    )
+    return shape + written
+
+
+def is_entry(entry, keys):
+    return isinstance(entry, dict) and sorted(entry) == sorted(keys)
+
+
+def check_probe(index, entry):
+    who = "record probes entry %d" % (index + 1)
+    if not is_entry(entry, PROBE_KEYS) or not all(check_items.is_text(entry[key]) for key in PROBE_KEYS):
+        return (error("%s is not an object with exactly non-empty string %s" % (who, ", ".join(PROBE_KEYS))),)
+    if entry["status"] in PROBE_STATUSES:
+        return ()
+    return (error("%s has status %r, which is not 'pass' or 'fail'" % (who, entry["status"])),)
+
+
+def check_probes(record):
+    if "probes" not in record:
+        return ()
+    probes = record["probes"]
+    if not isinstance(probes, list):
+        return (error("record probes is not a list"),)
+    return tuple(finding for index, entry in enumerate(probes) for finding in check_probe(index, entry))
+
+
+def check_stop(record):
+    stopped = record.get("status") == STOPPED
+    if "stop" not in record:
+        return (error("record status is 'stopped' but the record has no stop"),) if stopped else ()
+    if not stopped:
+        return (error("record has stop but its status is not 'stopped'"),)
+    stop = record["stop"]
+    if is_entry(stop, STOP_KEYS) and all(check_items.is_text(stop[key]) for key in STOP_KEYS):
+        return ()
+    return (error("record stop is not an object with exactly non-empty string phase and reason"),)
+
+
+def is_repeated(entry):
+    return is_entry(entry, REPEATED_KEYS) and check_items.is_text(entry["kind"]) and is_count(entry["count"], 2)
+
+
+def check_outcomes(record):
+    if "outcomes" not in record:
+        return ()
+    outcomes = record["outcomes"]
+    if not is_entry(outcomes, OUTCOME_KEYS):
+        return (error("record outcomes is not an object with exactly store, entries and repeated"),)
+    repeated = outcomes["repeated"]
+    rules = (
+        ("store", check_items.is_text(outcomes["store"]), "a non-empty string"),
+        ("entries", is_count(outcomes["entries"], 0), "an integer of at least 0"),
+        (
+            "repeated",
+            isinstance(repeated, list) and all(is_repeated(entry) for entry in repeated),
+            "a list of objects with exactly a non-empty string kind and an integer count of at least 2",
+        ),
+    )
+    return tuple(
+        error("record outcomes has %s that is not %s" % (key, shape)) for key, valid, shape in rules if not valid
+    )
+
+
 def check(text, complete=False):
     try:
         record = json.loads(text)
@@ -637,8 +843,12 @@ def check(text, complete=False):
     return (
         check_shape(record)
         + check_seams(seams, criteria, complete)
-        + check_criteria(criteria, seams, steps, complete)
+        + check_criteria(criteria, seams, steps, record_locked(record), complete)
         + check_steps(steps, criteria)
+        + check_locked(record, criteria, steps, complete)
+        + check_probes(record)
+        + check_stop(record)
+        + check_outcomes(record)
         + check_rounds(record)
         + check_missing_parts(record, complete)
     )

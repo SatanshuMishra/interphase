@@ -61,7 +61,16 @@ ROW = {
     "given": "a total of 3",
     "expect": "3 is returned",
     "step": "build-app",
+    "check": "C1.1",
 }
+APP_LINE = {
+    "id": "C1.1",
+    "kind": "exact",
+    "surface": {"family": "cli", "target": "python3"},
+    "command": "python3 -m unittest tests.test_app",
+    "pass": "the test passes",
+}
+OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
 PAYLOAD = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
 PAYLOAD_ROWS = [
     {**ROW, "covers": ["payload: absent"]},
@@ -85,6 +94,10 @@ ITEM_FIELDS = frozenset(
         "assumptions",
     )
 )
+
+
+def probe(check):
+    return {"check": check, "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
 
 
 def record():
@@ -112,6 +125,7 @@ def record():
                 "title": "The total adds up",
                 "text": "Given a total, when the app returns it, then it is unchanged.",
                 "seam": "unit-tests",
+                "acceptance": [dict(APP_LINE)],
                 "tests": [dict(ROW)],
             },
             {
@@ -126,7 +140,7 @@ def record():
         "steps": [
             {
                 "name": "build-app",
-                "files": ["src/app.py", "tests/test_app.py"],
+                "files": ["src/app.py"],
                 "criteria": ["5.1"],
                 "task": "Build the app.",
                 "msp": "first",
@@ -138,6 +152,9 @@ def record():
                 "task": "Tune the app for the phone.",
             },
         ],
+        "locked": ["tests/test_app.py"],
+        "probes": [probe("C1.1")],
+        "outcomes": OUTCOMES,
     }
 
 
@@ -498,9 +515,10 @@ class SeamRenderTest(RenderFixture, unittest.TestCase):
             "title": "The total is shown",
             "text": "The app shows the total.",
             "seam": "unit-tests",
-            "tests": [{**ROW, "name": "test_total_is_shown"}],
+            "acceptance": [{**APP_LINE, "id": "C3.1"}],
+            "tests": [{**ROW, "name": "test_total_is_shown", "check": "C3.1"}],
         }
-        source = {**record(), "criteria": criteria + [shown]}
+        source = {**record(), "criteria": criteria + [shown], "probes": [probe("C1.1"), probe("C3.1")]}
         source = replace_step(source, 0, {**source["steps"][0], "criteria": ["5.1", "5.3"]})
         with tempfile.TemporaryDirectory() as folder:
             spec_text, items_text = self.rendered(folder, source)
