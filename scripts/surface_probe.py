@@ -31,6 +31,7 @@ def load_sibling(name):
 
 
 check_items = load_sibling("check_items")
+atomic_file = load_sibling("atomic_file")
 
 
 class TimedOut(Exception):
@@ -259,8 +260,8 @@ def read_record(path):
 
 def write_record(path, record):
     try:
-        pathlib.Path(path).write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    except OSError:
+        atomic_file.replace(path, (json.dumps(record, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    except (OSError, UnicodeEncodeError):
         return False
     return True
 

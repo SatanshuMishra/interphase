@@ -1,7 +1,9 @@
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
+import pathlib
 import posixpath
 import shutil
 import subprocess
@@ -43,6 +45,16 @@ CACHE_FOLDERS = frozenset((
 CACHE_FILE_NAMES = frozenset((".eslintcache", ".coverage"))
 CACHE_SUFFIXES = (".pyc", ".pyo", ".tsbuildinfo")
 UNTRACKED_OR_IGNORED = ("?? ", "!! ")
+
+
+def load_sibling(name):
+    spec = importlib.util.spec_from_file_location(name, pathlib.Path(__file__).with_name(name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+atomic_file = load_sibling("atomic_file")
 
 
 class UsageError(Exception):
@@ -308,9 +320,7 @@ def command_snapshot(args):
     state = dict(capture(repo, owned), owned=list(owned), caches=read_caches(repo))
     try:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-        with open(args.out, "w", encoding="utf-8") as handle:
-            json.dump(state, handle, indent=2, sort_keys=True)
-            handle.write("\n")
+        atomic_file.replace(args.out, (json.dumps(state, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     except OSError as error:
         raise UsageError(f"cannot write snapshot: {args.out}: {error}")
     return 0

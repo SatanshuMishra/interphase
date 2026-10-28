@@ -35,6 +35,7 @@ def load_sibling(name):
 
 check_record = load_sibling("check_record")
 check_spec = load_sibling("check_spec")
+atomic_file = load_sibling("atomic_file")
 
 
 def one_line(text):
@@ -396,7 +397,7 @@ def read_text(path):
 
 def write_bytes(path, data):
     try:
-        pathlib.Path(path).write_bytes(data)
+        atomic_file.replace(path, data)
     except OSError:
         return False
     return True
