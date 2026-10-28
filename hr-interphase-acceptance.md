@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:16:15.208Z
+Updated: 2026-10-28T13:27:50.614Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is in review round 3: round 1's conformance audit judged 5.1 to 5.5 MET; round 1's blockers are fixed; round 2's confirmed blocker (malformed record crashes script) is fixed at 8a38af9 after O6 reverted the faulty advisory fix; the second and last attempt at advisories C1, S2, S3, S4 and C4 is at 35ac082 and 39bc600. The suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests. Round 3 reviews the fix diff from df43964 (O6): neither reviewer marked a blocker; the candidates file holds carried P1, new MEDIUM C1 to C3 (prefix-option argument, quoted operator and trailing comment each probed as a command) and LOW advisories C4 to C6, S1 and S2. The validator is judging them.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is green in round 3: every blocker is fixed, the suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests, and the validator confirmed three advisories introduced by 39bc600 (C1 a prefix command's option argument probed as the command, C3 trailing comment text probed, C6 the probe target and the probes read by two tokenisers). One fresh fix agent is fixing C1, C3 and C6 in scripts/surface_probe.py with a receipt test; under the Green rule these fixes get no review round.
 
 ## Next step
 
-When both reviewers return, collect round 3 findings, then run candidates, the validator, record and verdict; an advisory that fails again is blocked and ships in a draft.
+When the fix agent returns, verify its commits, receipt test and suite, run the Green rerun-plan for acceptance-lines, clear stale assumptions, then ship both MSPs.
 
 Needs: D1.
 
