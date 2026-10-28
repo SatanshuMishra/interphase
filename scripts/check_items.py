@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import posixpath
 import re
 import sys
 
@@ -19,6 +20,7 @@ FIELDS = frozenset(
         "msp",
         "spec_ref",
         "assumptions",
+        "role",
     )
 )
 REQUIRED = ("name", "task", "files", "source", "acceptance")
@@ -28,6 +30,7 @@ HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(\d+(?:\.\d+)*)\.?[ \t]+(.*?)[ \t]*$")
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
 USAGE = "usage: python3 check_items.py [--amendment] ITEMS"
 CRITERIA_SECTION = "test seams"
+CHECK_AUTHOR = "check-author"
 AMENDMENT = "--amendment"
 UNCLAIMED = ("acceptance criterion ", " is claimed by no step's spec_ref")
 SCRIPT_EXTENSIONS = (".js", ".jsx", ".mjs", ".ts", ".tsx")
@@ -52,6 +55,14 @@ def warning(message):
 
 def is_text(value):
     return isinstance(value, str) and value != ""
+
+
+def is_unicode(value):
+    try:
+        json.dumps(value, ensure_ascii=False).encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def is_text_list(value):
@@ -105,16 +116,41 @@ def check_files(who, step):
     )
 
 
+def is_author(step):
+    return isinstance(step, dict) and step.get("role") == CHECK_AUTHOR
+
+
+def check_role(who, step):
+    if "role" in step and step["role"] != CHECK_AUTHOR:
+        return (error("%s has role %r; the only allowed role is %r" % (who, step["role"], CHECK_AUTHOR)),)
+    return ()
+
+
 def step_files(step):
     files = step.get("files")
     return frozenset(item for item in files if isinstance(item, str)) if isinstance(files, list) else frozenset()
 
 
-def check_acceptance_entry(who, entry, files):
-    if not isinstance(entry, dict) or not is_text(entry.get("file")) or not is_text(entry.get("test")):
+def path_key(path):
+    return posixpath.normpath(path).casefold()
+
+
+def path_keys(paths):
+    return frozenset(path_key(path) for path in paths)
+
+
+def shared_paths(paths, others):
+    keys = path_keys(others)
+    return tuple(path for path in sorted(paths) if path_key(path) in keys)
+
+
+def well_formed_entry(entry):
+    return isinstance(entry, dict) and is_text(entry.get("file")) and is_text(entry.get("test"))
+
+
+def check_acceptance_entry(who, entry):
+    if not well_formed_entry(entry):
         return (error("%s has an acceptance entry that is not an object with non-empty string file and test" % who),)
-    if entry["file"] not in files:
-        return (error("%s has acceptance file %r that is not in its files" % (who, entry["file"])),)
     return ()
 
 
@@ -124,10 +160,11 @@ def check_acceptance(who, step):
     acceptance = step["acceptance"]
     if not isinstance(acceptance, list):
         return (error("%s has acceptance that is not a list" % who),)
+    if is_author(step):
+        return (error("%s has role %s, so its acceptance must be empty" % (who, CHECK_AUTHOR)),) if acceptance else ()
     if not acceptance:
         return (warning("%s has an empty acceptance list" % who),)
-    files = step_files(step)
-    return tuple(finding for entry in acceptance for finding in check_acceptance_entry(who, entry, files))
+    return tuple(finding for entry in acceptance for finding in check_acceptance_entry(who, entry))
 
 
 def check_after_shape(who, step):
@@ -222,6 +259,7 @@ STEP_CHECKS = (
     check_labels,
     check_assumptions,
     check_spec_ref_shape,
+    check_role,
 )
 
 
@@ -349,7 +387,7 @@ def check_shared_files(steps, graph):
         for position, first in enumerate(named)
         for second in named[position + 1 :]
         if not linked(graph, first["name"], second["name"])
-        for path in sorted(step_files(first) & step_files(second))
+        for path in shared_paths(step_files(first), step_files(second))
     )
 
 
@@ -396,6 +434,62 @@ def check_export_files(steps, graph):
         for export in sorted(step_files(step))
         for finding in check_export_file(position, step, export, named, graph)
     )
+
+
+def authored_before(step, steps, graph):
+    before = reachable(graph, step["name"]) if isinstance(step.get("name"), str) else frozenset()
+    return frozenset(
+        path for _, other in named_steps(steps) if is_author(other) and other["name"] in before for path in step_files(other)
+    )
+
+
+def entries(step):
+    acceptance = step.get("acceptance")
+    return tuple(entry for entry in acceptance if well_formed_entry(entry)) if isinstance(acceptance, list) else ()
+
+
+def check_acceptance_files(steps, graph):
+    return tuple(
+        error(
+            "%s has acceptance file %r that is not in its files or the files of a %s step it comes after"
+            % (label(index, step), entry["file"], CHECK_AUTHOR)
+        )
+        for index, step in enumerate(steps)
+        if isinstance(step, dict)
+        for allowed in (path_keys(step_files(step) | authored_before(step, steps, graph)),)
+        for entry in entries(step)
+        if path_key(entry["file"]) not in allowed
+    )
+
+
+def check_author_order(steps):
+    first = next((index for index, step in enumerate(steps) if not is_author(step)), len(steps))
+    return tuple(
+        error(
+            "%s has role %s but comes after %s, which does not; %s steps come first"
+            % (label(index, step), CHECK_AUTHOR, label(first, steps[first]), CHECK_AUTHOR)
+        )
+        for index, step in enumerate(steps)
+        if index > first and is_author(step)
+    )
+
+
+def check_author_lane(steps):
+    authors = tuple(step for _, step in named_steps(steps) if is_author(step))
+    others = tuple((index, step) for index, step in enumerate(steps) if isinstance(step, dict) and not is_author(step))
+    unordered = tuple(
+        error("%s does not name %s step %r in its after" % (label(index, step), CHECK_AUTHOR, author["name"]))
+        for index, step in others
+        for author in authors
+        if author["name"] not in after_list(step)
+    )
+    written = tuple(
+        error("%s lists file %r, which %s step %r writes" % (label(index, step), path, CHECK_AUTHOR, author["name"]))
+        for index, step in others
+        for author in authors
+        for path in shared_paths(step_files(step), step_files(author))
+    )
+    return check_author_order(steps) + unordered + written
 
 
 def check_hazards(steps, graph):
@@ -566,6 +660,8 @@ def check_steps(steps):
         + check_cycles(graph)
         + check_sources(steps)
         + check_contracts(steps, graph)
+        + check_acceptance_files(steps, graph)
+        + check_author_lane(steps)
         + check_hazards(steps, graph)
         + check_spec(steps)
     )

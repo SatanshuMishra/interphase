@@ -36,8 +36,8 @@ In the brief lane, only these phases change. Every other phase and rule applies 
 
 - Phase 4: ask the intent round, and a frontier round only for a question that passes the hard bar. Agree the one seam the project already tests the change at.
 - Phase 5: skip the pre-mortem. The Unchanged statements are the Out of scope section.
-- Phase 6: design one Step per item.
-- Phase 7: read back only the intent, each item's Current, Expected and Unchanged statements, and the Steps, and ask for the one approval.
+- Phase 6: design one Step per item, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run, before the complete check.
+- Phase 7: read back only the intent, each item's Current, Expected and Unchanged statements, the Steps and the output of `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/read_back.py" --record docs/specs/<slug>.record.json` word for word, with each failed probe it lists as a question, and ask for the one approval.
 - Phase 8: copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.
 - Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md`, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json` and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. Do not dispatch the `interphase:spec-reviewer` agent.
 

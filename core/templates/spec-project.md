@@ -30,6 +30,10 @@ Date: {{date}}.
 
 {{each reading chosen without the user's answer, ending (relies on I<n>) for the intent line it rests on, or - None}}
 
+### Risks
+
+{{every repeated failure kind outcomes.py wrote to the record, then every other risk, or - None}}
+
 ## 5. Test seams
 
 {{written by the render script from the record: the agreed seams, then one numbered heading per acceptance criterion, 5.1, 5.2 and so on}}

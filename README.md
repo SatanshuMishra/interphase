@@ -97,9 +97,9 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 |---|---|---|
 | `name` | yes | Lowercase kebab-case. Unique in the file. |
 | `task` | yes | Complete instructions for the Step. Whoever builds it gets nothing else about it and never needs the spec. |
-| `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's test files. |
+| `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's own test files, except locked paths, which the check-author Step writes. |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`. It is the same on every Step. |
-| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven. |
+| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`, or in the `files` of a check-author Step it comes after. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven, and must be empty on the check-author Step. |
 | `after` | no | Names of Steps that must be finished first. |
 | `contract_group` | no | A shared label for Steps that are two halves of one interface. |
 | `type` | no | Only the value `contract`. It marks the one Step in a `contract_group` that defines the shared interface. Every other Step in that group reaches it through `after`. |
@@ -108,6 +108,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `msp` | no | A label that makes Steps ship together as one change. |
 | `spec_ref` | no, but interphase always sets it | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
 | `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. Each shows in the pull request that builds the Step. |
+| `role` | no | Only the value `check-author`. The render script writes one such Step first when the record has a `locked` list of test files: it writes every locked test from the acceptance lines and test rows before anything is built. Every other Step names it in `after`, and no other Step lists one of its files. |
 
 No other fields are allowed.
 

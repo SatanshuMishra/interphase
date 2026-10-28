@@ -19,14 +19,15 @@ The glossary and the ADRs live outside the spec folder, as `${CLAUDE_PLUGIN_ROOT
 
 ## Interview record
 
-Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, `seams`, `criteria` and `steps`, an optional `rounds` list, and a `status`:
+Keep the interview in `<slug>.record.json` from phase 1 to phase 10. Write to it the moment something is settled, so that nothing depends on the conversation. It is a JSON object with exactly these three lists, `seams`, `criteria` and `steps`, an optional `rounds` list, a `locked` list once a criterion has acceptance lines, a `probes` list once `surface_probe.py` has run, an `outcomes` object once `outcomes.py` has run, a `stop` object (`phase` and `reason`) with the status `stopped` once a failed probe stops an unattended run, and a `status`:
 
 | Key | Each entry |
 |---|---|
 | `seams` | `name` (lowercase kebab-case, unique), `interface` (the public interface tests observe behaviour at), `catches` (what tests there catch), `misses` (what they miss), `builder_runs` (`true` when whoever builds a Step can run tests there) |
-| `criteria` | `number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `tests` (each one row, with `file`, `name`, `given`, `expect`, `step` and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
-| `steps` | `name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref` |
+| `criteria` | `number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `acceptance` (its acceptance lines, each as `${CLAUDE_PLUGIN_ROOT}/contracts/k1-acceptance.schema.json` states it) for every criterion at a seam the builder runs, `tests` (each one row, with `file`, `name`, `given`, `expect`, `step`, `check` (the id of the acceptance line it implements) when the criterion has acceptance lines and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate` |
+| `steps` | `name` (never `check-author`, which the render script reserves), `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance`, `spec_ref` and `role` |
 | `rounds` | `kind` (`intent` or `frontier`), `questions` (the number of questions the round asked) and `changed` (the answers that differ from the recommended one) |
+| `locked` | the repository-relative path of every test file a row of a criterion with acceptance lines names, as `${CLAUDE_PLUGIN_ROOT}/contracts/k2-locked.schema.json` states it; no Step lists a locked path in its `files` |
 
 A record without rounds stays valid, because an unattended run holds no interview and a record from an earlier release has none.
 
@@ -38,7 +39,7 @@ In a case table, each domain lists the classes of one input that the code tells 
 
 Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" docs/specs/<slug>.record.json` after every question round. It confirms that every name resolves, and warns about anything still missing. Add `--complete` once the Steps are designed; anything missing is then an error.
 
-In phase 8, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the spec's Test seams section and the whole items file from the record: every Step's `acceptance`, `spec_ref` and `source`, and its task followed by every criterion it proves, word for word, with the seam it sits at.
+In phase 8, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the spec's Test seams section and the whole items file from the record: every Step's `acceptance`, `spec_ref` and `source`, and its task followed by every criterion it proves, word for word, with the seam it sits at. When the record has a `locked` list, it writes one more Step first: the check-author Step, with name and role `check-author`, which writes the locked tests before anything is built. Its `files` are the locked paths, its `acceptance` is empty, its `spec_ref` names every criterion with acceptance lines, and its task holds each such criterion with every acceptance line and test row. Every other Step comes after it.
 
 ## Items format
 
@@ -48,9 +49,9 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 |---|---|---|
 | `name` | yes | lowercase kebab-case, unique in the file |
 | `task` | yes | complete, self-contained instructions; whoever builds the Step receives nothing else about it and never needs the spec |
-| `files` | yes | non-empty list of repository-relative paths the Step may create or change, including its test files |
+| `files` | yes | non-empty list of repository-relative paths the Step may create or change, including its own test files, except locked paths, which the check-author Step writes |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`, identical on every Step |
-| `acceptance` | yes | list of `{"file": "<test file>", "test": "<test name>"}`; each file is also in `files`; each test fails before the Step and passes after; an empty list is allowed only when every criterion the Step claims is marked unproven |
+| `acceptance` | yes | list of `{"file": "<test file>", "test": "<test name>"}`; each file is also in `files`, or in the `files` of a check-author Step it comes after; each test fails before the Step and passes after; an empty list is allowed only when every criterion the Step claims is marked unproven, and is required on the check-author Step |
 | `after` | no | names of Steps that must be finished first |
 | `contract_group` | no | a shared label for Steps that are two halves of one interface |
 | `type` | no | only the value `contract`: marks the one Step in a `contract_group` that defines the shared interface; every other Step in that group reaches it through `after` |
@@ -59,8 +60,9 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 | `msp` | no | a label that makes Steps ship together as one change |
 | `spec_ref` | no, but always set it | list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`; it traces each criterion to a Step and never tells a builder to read the spec |
 | `assumptions` | no | readings chosen without the user's answer, each ending `(relies on I<n>)` for the intent line it rests on, the same line as in the spec's Assumptions |
+| `role` | no | only the value `check-author`: marks the Step the render script writes to author the locked tests; it comes before every Step without the role, every other Step names it in `after`, and no other Step lists one of its `files` |
 
-Use no other fields. The only value `type` may take is `contract`. The items file's fields do not change for varying behaviour: its population, runs and pass rate live in the record and in the task text.
+Use no other fields. The only value `type` may take is `contract`, and the only value `role` may take is `check-author`. The items file's fields do not change for varying behaviour: its population, runs and pass rate live in the record and in the task text.
 
 ## Designing Steps
 
@@ -76,7 +78,9 @@ Use no other fields. The only value `type` may take is `contract`. The items fil
 - Give a Step `after` naming every Step whose output it uses. Importing another Step's module does not order the two Steps by itself.
 - Give a package's export file, such as `__init__.py`, `index.ts` or `mod.rs`, to a Step that comes after every Step whose modules it exports.
 - Give two halves of one interface a shared `contract_group`. To let them be built at the same time, add a Step with `type: contract` that only defines the interface, and make the other halves come after it.
-- List in `files` every path the Step creates or changes, including its tests. A write outside `files` is reported as a fault.
+- List in `files` every path the Step creates or changes, including its tests, except a locked path. A write outside `files` is reported as a fault.
+- Write each criterion's acceptance lines to the record, and each test row that implements one with its `check`, and add the row's test file to the record's `locked` list.
+- Never design the check-author Step and never name a Step `check-author`. The render script writes it first from the record's `locked` list and puts it in every other Step's `after`, so the locked tests ship before anything is built and no later Step changes them.
 - Make every acceptance test fail against today's code. Never name a behaviour the code already has.
 - Load the code under test inside the test, never at import time, so a missing implementation fails the named test.
 - Set `complexity` to `simple` only for mechanical work with no assumptions. Only simple work may go to a cheaper builder.
