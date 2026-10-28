@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T10:27:50.724Z
+Updated: 2026-10-28T10:34:24.613Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its twelve findings (code C1 to C6, security S1 to S6; five MEDIUM) are in review/round-1/acceptance-lines.findings.json, and the validator is judging all twelve candidates.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 8f15979) is in review round 1: its conformance audit judged 5.1 to 5.5 MET; its round 1 verdict is diagnose, with blockers C2 (non-atomic record rewrite), C3 (malformed record crashes script) and S1 (locked path alias accepted) and advisories C1, C4, C5, C6, S3 and S4; three diagnosis agents are running, one per blocker kind.
 
 ## Next step
 
-Save the validator's verdicts as review/round-1/acceptance-lines.verdicts.json, then run pipeline record and pipeline verdict, and diagnose or fix as the verdict says.
+Save each diagnosis as review/round-1/acceptance-lines.<kind slug>.diagnosis.json, record it with pipeline diagnosis, rerun pipeline verdict, then fix each fixable kind with a receipt test plus every advisory on mitosis/acceptance-lines, and review round 2.
 
 Needs: D1.
 
