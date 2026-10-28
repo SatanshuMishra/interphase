@@ -89,6 +89,11 @@ class TemplatesTest(unittest.TestCase):
                 self.assertIn("- I1 Goal: <goal>", text)
                 self.assertIn("### Reuse and change", lines)
                 self.assertIn("### Assumptions", lines)
+                self.assertEqual(lines[lines.index("### Assumptions") + 4], "### Risks")
+                self.assertIn(
+                    "{{every repeated failure kind outcomes.py wrote to the record, then every other risk, or - None}}",
+                    lines,
+                )
                 self.assertIn("(relies on I<n>)", text)
                 self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/practices.md`", text)
                 self.assertIn("written by the render script from the record", text)

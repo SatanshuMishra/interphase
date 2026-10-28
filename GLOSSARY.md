@@ -36,3 +36,23 @@ Interphase's description of everything it records: its purpose and objectives, a
 
 **Parent run**:
 The run of whatever started this run, named as <plugin>/<run id>; a run started on its own has none.
+
+**Acceptance line**:
+One machine-readable statement of how a criterion is proven, in the program's K1 shape: an id C<m>.<k>, exact or judged, the surface it runs on, the command run from the repository root and what passing means.
+_Avoid_: acceptance test, check line
+
+**Locked list**:
+The record's list of the test files that implement acceptance lines; the check author writes them before the build and no other Step may change them.
+_Avoid_: frozen tests, protected files
+
+**Check author**:
+The one Step, rendered first in the items file with role check-author, that writes every acceptance line's test before anything is built and never writes the code under test.
+_Avoid_: test writer, referee Step
+
+**Surface probe**:
+A timed check, made before the read-back, that an acceptance line's surface can be driven here: its command on PATH, Playwright, a VMLab machine or claude.
+_Avoid_: environment check, readiness probe
+
+**Repeated failure kind**:
+A cause that two or more of this repository's failed outcome entries share, read from the trajectory store before planning and listed under the spec's Risks.
+_Avoid_: recurring bug, known issue

@@ -27,6 +27,7 @@ FIELDS = (
     "msp",
     "spec_ref",
     "assumptions",
+    "role",
 )
 
 STEP_FILES = ("core/items.md",)
@@ -147,12 +148,29 @@ class CoreItemsTest(unittest.TestCase):
         rows = section(read_guide(), "## Interview record").splitlines()
         cells = {
             "seams": "`name` (lowercase kebab-case, unique), `interface` (the public interface tests observe behaviour at), `catches` (what tests there catch), `misses` (what they miss), `builder_runs` (`true` when whoever builds a Step can run tests there)",
-            "criteria": "`number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `tests` (each one row, with `file`, `name`, `given`, `expect`, `step` and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate`",
-            "steps": "`name`, `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance` and `spec_ref`",
+            "criteria": "`number` (such as `5.3`, starting with the number of the spec's Test seams section), `title`, `text`, `seam` (the name of the agreed seam its tests sit at), `acceptance` (its acceptance lines, each as `${CLAUDE_PLUGIN_ROOT}/contracts/k1-acceptance.schema.json` states it) for every criterion at a seam the builder runs, `tests` (each one row, with `file`, `name`, `given`, `expect`, `step`, `check` (the id of the acceptance line it implements) when the criterion has acceptance lines and, when the criterion has a case table, `covers`), `unproven` (the reason) only when no test the builder runs can prove it, `varies` (`input`, `output` or `measured`) only when the behaviour differs from run to run, and, only for security-sensitive or refusal behaviour, `case_table` (`security` or `refusal`) with `domains` (each with `name`, `over` and `classes`) for the inputs it reads; each test of a varying criterion also carries `cases`, `runs` (at least 2) and `pass_rate`",
+            "steps": "`name` (never `check-author`, which the render script reserves), `files`, `criteria` (the numbers its tests prove), `task` once written, `amendment` (the number of the amendment that added it) only when an amendment added it, and any optional field of the items format except `source`, `acceptance`, `spec_ref` and `role`",
+            "locked": "the repository-relative path of every test file a row of a criterion with acceptance lines names, as `${CLAUDE_PLUGIN_ROOT}/contracts/k2-locked.schema.json` states it; no Step lists a locked path in its `files`",
         }
         for key, cell in cells.items():
             with self.subTest(key=key):
                 self.assertIn("| `" + key + "` | " + cell + " |", rows)
+
+    def test_items_guide_documents_the_check_author_step(self):
+        text = read_guide()
+        items = section(text, "## Items format")
+        self.assertIn("the only value `role` may take is `check-author`.", items)
+        record = section(text, "## Interview record")
+        self.assertIn("When the record has a `locked` list, it writes one more Step first: the check-author Step", record)
+        designing = section(text, "## Designing Steps").splitlines()
+        self.assertIn(
+            "- Never design the check-author Step and never name a Step `check-author`. The render script writes it first from the record's `locked` list and puts it in every other Step's `after`, so the locked tests ship before anything is built and no later Step changes them.",
+            designing,
+        )
+        self.assertIn(
+            "- List in `files` every path the Step creates or changes, including its tests, except a locked path. A write outside `files` is reported as a fault.",
+            designing,
+        )
 
     def test_items_guide_explains_case_tables(self):
         paragraphs = section(read_guide(), "## Interview record").split("\n\n")

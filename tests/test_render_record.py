@@ -38,10 +38,14 @@ PHONE_SEAM_LINE = (
 )
 SEAMS_LIST = "Seams:\n" + UNIT_SEAM_LINE + "\n" + PHONE_SEAM_LINE
 UNIT_SEAM_TEXT = "Seam: `unit-tests`, the total_of function in src/app.py."
+APP_LINES = (
+    "Acceptance lines:\n- C1.1 (exact, cli python3): run `python3 -m unittest tests.test_app` "
+    "from the repository root; it passes when the test passes."
+)
 PHONE_SEAM_TEXT = "Seam: `phone-screen`, the total drawn on a Galaxy Note10+."
 BLOCK_5_1_HEAD = (
     "### 5.1 The total adds up\n\n"
-    "Given a total, when the app returns it, then it is unchanged.\n\n" + UNIT_SEAM_TEXT + "\n\n"
+    "Given a total, when the app returns it, then it is unchanged.\n\n" + UNIT_SEAM_TEXT + "\n\n" + APP_LINES + "\n\n"
 )
 PLAIN_HEAD = "| Test | Given | Expected |\n|---|---|---|\n"
 TOTAL_ROW = "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned |"
@@ -55,13 +59,30 @@ RENDERED_SPEC = (
     REQUEST + "## 5. Test seams\n\n" + SEAMS_LIST + "\n\n" + BLOCK_5_1 + "\n\n" + BLOCK_5_2 + "\n\n" + TAIL
 )
 PROVES = "Acceptance criteria this Step proves:"
+CHECK_AUTHOR_OPENING = (
+    "Write the acceptance tests below before anything is built, and never write the code they test. "
+    "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
+    "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
+    "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
+    "Once committed, these files are locked: no later Step may change them."
+)
+TOTAL_ROW_LINE = "- `tests/test_app.py` `test_total` (C1.1): given a total of 3; expects 3 is returned."
 ROW = {
     "file": "tests/test_app.py",
     "name": "test_total",
     "given": "a total of 3",
     "expect": "3 is returned",
     "step": "build-app",
+    "check": "C1.1",
 }
+APP_LINE = {
+    "id": "C1.1",
+    "kind": "exact",
+    "surface": {"family": "cli", "target": "python3"},
+    "command": "python3 -m unittest tests.test_app",
+    "pass": "the test passes",
+}
+OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
 PAYLOAD = {"name": "payload", "over": "the payload field agent_id", "classes": ["absent", "present"]}
 PAYLOAD_ROWS = [
     {**ROW, "covers": ["payload: absent"]},
@@ -83,8 +104,13 @@ ITEM_FIELDS = frozenset(
         "msp",
         "spec_ref",
         "assumptions",
+        "role",
     )
 )
+
+
+def probe(check):
+    return {"check": check, "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
 
 
 def record():
@@ -112,6 +138,7 @@ def record():
                 "title": "The total adds up",
                 "text": "Given a total, when the app returns it, then it is unchanged.",
                 "seam": "unit-tests",
+                "acceptance": [dict(APP_LINE)],
                 "tests": [dict(ROW)],
             },
             {
@@ -126,7 +153,7 @@ def record():
         "steps": [
             {
                 "name": "build-app",
-                "files": ["src/app.py", "tests/test_app.py"],
+                "files": ["src/app.py"],
                 "criteria": ["5.1"],
                 "task": "Build the app.",
                 "msp": "first",
@@ -138,6 +165,9 @@ def record():
                 "task": "Tune the app for the phone.",
             },
         ],
+        "locked": ["tests/test_app.py"],
+        "probes": [probe("C1.1")],
+        "outcomes": OUTCOMES,
     }
 
 
@@ -441,7 +471,8 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         cited = {**record()["steps"][0], "assumptions": ["Totals use whole numbers (relies on I1)."]}
         with tempfile.TemporaryDirectory() as folder:
             _, items_text = self.rendered(folder, replace_step(record(), 0, cited), intent_spec)
-        self.assertEqual(json.loads(items_text)[0]["assumptions"], ["Totals use whole numbers (relies on I1)."])
+        steps = {step["name"]: step for step in json.loads(items_text)}
+        self.assertEqual(steps["build-app"]["assumptions"], ["Totals use whole numbers (relies on I1)."])
 
     def test_rendering_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -498,19 +529,44 @@ class SeamRenderTest(RenderFixture, unittest.TestCase):
             "title": "The total is shown",
             "text": "The app shows the total.",
             "seam": "unit-tests",
-            "tests": [{**ROW, "name": "test_total_is_shown"}],
+            "acceptance": [{**APP_LINE, "id": "C3.1"}],
+            "tests": [{**ROW, "name": "test_total_is_shown", "check": "C3.1"}],
         }
-        source = {**record(), "criteria": criteria + [shown]}
+        source = {**record(), "criteria": criteria + [shown], "probes": [probe("C1.1"), probe("C3.1")]}
         source = replace_step(source, 0, {**source["steps"][0], "criteria": ["5.1", "5.3"]})
         with tempfile.TemporaryDirectory() as folder:
             spec_text, items_text = self.rendered(folder, source)
         self.assertEqual(
             spec_block(spec_text, "5.3"),
-            "### 5.3 The total is shown\n\nThe app shows the total.\n\n" + UNIT_SEAM_TEXT + "\n\n" + PLAIN_HEAD
+            "### 5.3 The total is shown\n\nThe app shows the total.\n\n" + UNIT_SEAM_TEXT + "\n\n"
+            + APP_LINES.replace("C1.1", "C3.1") + "\n\n" + PLAIN_HEAD
             + "| `tests/test_app.py` `test_total_is_shown` | a total of 3 | 3 is returned |",
         )
         task = {step["name"]: step["task"] for step in json.loads(items_text)}["build-app"]
         self.assertEqual(task.count(UNIT_SEAM_TEXT), 2)
+
+
+class LineSentenceTest(RenderFixture, unittest.TestCase):
+    def test_exact_line_is_one_sentence(self):
+        sentence = self.load("render_record").line_sentence(APP_LINE)
+        self.assertEqual("Acceptance lines:\n- " + sentence, APP_LINES)
+
+    def test_judged_line_joins_its_lines_and_drops_closing_full_stops(self):
+        line = {
+            "id": "C1.2",
+            "kind": "judged",
+            "surface": {"family": "agent", "target": "claude"},
+            "command": "python3 tests/judge.py",
+            "pass": "every trial\nmeets the rubric.",
+            "rubric": "The summary names\neach failing check.",
+            "trials": 3,
+        }
+        self.assertEqual(
+            self.load("render_record").line_sentence(line),
+            "C1.2 (judged, agent claude): run `python3 tests/judge.py` from the repository root three times "
+            "and judge each run against the rubric: The summary names each failing check; "
+            "it passes when every trial meets the rubric.",
+        )
 
 
 class CaseTableRenderTest(RenderFixture, unittest.TestCase):
@@ -685,10 +741,75 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             _, items_text = self.rendered(folder, amended(record()))
         items = json.loads(items_text)
-        self.assertEqual([item["name"] for item in items], ["build-app", "fix-app"])
+        self.assertEqual([item["name"] for item in items], ["check-author", "build-app", "fix-app"])
         for item in items:
             with self.subTest(step=item["name"]):
                 self.assertNotIn("amendment", item)
+
+
+def phone_only(source):
+    plain = {key: value for key, value in source.items() if key not in ("locked", "probes")}
+    return {**plain, "seams": source["seams"][1:], "criteria": source["criteria"][1:], "steps": source["steps"][1:]}
+
+
+class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
+    def items_of(self, source, argv=ARGV, spec_text=SPEC_TEXT):
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, source, spec_text, argv)
+        return json.loads(items_text)
+
+    def test_check_author_comes_first_with_the_locked_paths(self):
+        first = self.items_of(record())[0]
+        self.assertEqual(first["name"], "check-author")
+        self.assertEqual(first["role"], "check-author")
+        self.assertEqual(first["files"], ["tests/test_app.py"])
+        self.assertEqual(first["acceptance"], [])
+        self.assertEqual(first["spec_ref"], ["5.1"])
+        self.assertEqual(first["msp"], "check-author")
+
+    def test_check_author_task_holds_each_covered_block_and_its_rows(self):
+        first = self.items_of(record())[0]
+        self.assertEqual(first["task"], CHECK_AUTHOR_OPENING + "\n\n" + BLOCK_5_1 + "\n\n" + TOTAL_ROW_LINE)
+
+    def test_check_author_has_no_msp_when_no_step_has_one(self):
+        step = {key: value for key, value in record()["steps"][0].items() if key != "msp"}
+        first = self.items_of(replace_step(record(), 0, step))[0]
+        self.assertNotIn("msp", first)
+
+    def test_check_author_gathers_the_assumptions_of_covering_steps_once(self):
+        cited = "Totals use whole numbers (relies on I1)."
+        other = "The phone is charged (relies on I1)."
+        source = replace_step(record(), 0, {**record()["steps"][0], "assumptions": [cited, cited]})
+        source = replace_step(source, 1, {**source["steps"][1], "assumptions": [other]})
+        intent_spec = SPEC_TEXT.replace("## 4. Decisions", "## 2. Intent\n\n- I1 Goal: show the total.\n\n## 4. Decisions")
+        first = self.items_of(source, spec_text=intent_spec)[0]
+        self.assertEqual(first["assumptions"], [cited])
+
+    def test_every_other_item_names_check_author_first_in_after(self):
+        source = replace_step(record(), 1, {**record()["steps"][1], "after": ["build-app"]})
+        items = {item["name"]: item for item in self.items_of(source)}
+        self.assertEqual(items["build-app"]["after"], ["check-author"])
+        self.assertEqual(items["tune-app"]["after"], ["check-author", "build-app"])
+
+    def test_amendment_check_author_holds_only_locked_paths_with_covered_rows(self):
+        source = amended({**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]})
+        source = replace_step(source, 1, {**source["steps"][1], "criteria": ["5.1", "5.2"]})
+        items = self.items_of(source, argv=ARGV + ("--amendment", "1"))
+        self.assertEqual([item["name"] for item in items], ["check-author", "fix-app"])
+        self.assertEqual(items[0]["files"], ["tests/test_app.py"])
+        self.assertEqual(items[1]["after"], ["check-author"])
+
+    def test_full_render_check_author_holds_every_locked_path(self):
+        source = {**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]}
+        self.assertEqual(self.items_of(source)[0]["files"], ["tests/test_app.py", "tests/test_phone.py"])
+
+    def test_amendment_covering_no_lines_has_no_check_author(self):
+        items = self.items_of(amended(record()), argv=ARGV + ("--amendment", "1"))
+        self.assertEqual([item["name"] for item in items], ["fix-app"])
+
+    def test_record_without_a_locked_list_has_no_check_author(self):
+        items = self.items_of(phone_only(record()))
+        self.assertEqual([item["name"] for item in items], ["tune-app"])
 
 
 if __name__ == "__main__":

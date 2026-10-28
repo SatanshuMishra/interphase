@@ -47,6 +47,7 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
 
 ## Acceptance
 
+- Give the fault an acceptance line that reproduces it on the old code, and give every other place a sweep of the same class finds its own acceptance line.
 - Write a test that fails before the fix and passes after.
 - Give every place with the same fault its own test that fails before the fix.
 - Add checks that the unchanged behaviour still works.

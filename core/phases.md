@@ -55,13 +55,16 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - When a finding needs something only the user can provide, such as their device, their presence or repeated measurement, put it in the next round and carry on with every other phase. Never end a turn only to wait for it. If it is still unavailable when you write the spec, or the run is unattended, keep the finding and mark it unconfirmed.
 - Mark every behaviour the request touches that varies from run to run, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
 - Treat every fact found here as a question not asked.
+- Before planning, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/outcomes.py" --repo . --record docs/specs/<slug>.record.json`. It reads this repository's outcome entries from the trajectory store and writes the failure kinds seen at least twice to the record's `outcomes`. Treat every repeated failure kind it prints as a risk the design must answer.
 - When the request is small, end the phase by checking the conditions in `${CLAUDE_PLUGIN_ROOT}/core/brief.md` and choosing the lane.
 
 ## Phase 4: Interview
 
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`: the intent round first, then frontier rounds until the frontier is empty.
 - Use the `## Questions` bank of `${CLAUDE_PLUGIN_ROOT}/core/pathways/<pathway>.md` as a checklist of branches the tree must reach; skip every question grounding already answered.
-- Design the seams and the Steps as the interview goes. When the user agrees a seam, write it to the record. When a requirement is settled, write its acceptance criterion to the record with its seam, the tests that prove it or the reason it is unproven, and an owning Step: what the Step builds, the files it changes and the test that proves it. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Design the seams and the Steps as the interview goes. When the user agrees a seam, write it to the record. When a requirement is settled, write its acceptance criterion to the record with its seam, its acceptance lines, the tests that implement them or the reason it is unproven, and an owning Step: what the Step builds and the files it changes. Follow the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
+- Write each acceptance line as `${CLAUDE_PLUGIN_ROOT}/contracts/k1-acceptance.schema.json` states it: line k of criterion 5.m has the id `C<m>.<k>`, a `kind` of `exact` or `judged`, a `surface`, the `command` that decides it from the repository root and its `pass` condition, and a judged line also has a `rubric` and `trials` of 3.
+- Name in each test row's `check` the acceptance line it implements, and add the row's test file to the record's `locked` list. The owning Step lists the files it changes but never a locked test file.
 - Give a criterion a few rows, each a named test with what it is given and what it expects.
 - Write a case table only for behaviour that is security-sensitive, such as an input a person or outside software controls at a trust boundary or a result that could expose data, and for behaviour that exists to refuse something. Mark the criterion's `case_table` as `security` or `refusal`, add a domain for each input it reads, listing every class of that input the code tells apart that a real path can deliver, and give every class a row that covers it.
 - Write each criterion for a varying behaviour with its kind and its population, following `${CLAUDE_PLUGIN_ROOT}/core/variation.md`.
@@ -79,15 +82,18 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 
 - Check the whole set of Steps against the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 - Settle what needs the whole picture: files two Steps share, package export files, interfaces two Steps share, and the order the Steps are built in.
-- Make sure every acceptance criterion has a Step whose test proves it at an agreed seam the builder runs, or is marked unproven with the reason, and that every Step proves at least one criterion.
+- Make sure every acceptance criterion at a seam the builder runs has acceptance lines and a Step whose test implements each line, every criterion at a seam the builder cannot run is marked unproven with the reason, and every Step proves at least one criterion.
 - Ask any Step question only the user can answer in the same rounds as the rest.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run. It probes the surface of every acceptance line within a time limit and stores each result in the record's `probes`. A failed probe of a line at a seam the builder runs blocks; a failed probe at a seam the builder cannot run blocks nothing, because that criterion is already unproven.
+- In an attended run, each failed probe that blocks becomes a question of the read-back.
+- In an unattended run, a failed probe that blocks stops the run: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 says, report the stop and the record's stop reason, and stop.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error.
 
 ## Phase 7: Read back
 
 - In the brief lane, follow `${CLAUDE_PLUGIN_ROOT}/core/brief.md`.
 - Write a short note with five headings: Intent, What we decided, What is out of scope, How we will know it works, How the work is cut.
-- Under How we will know it works, name each seam and the criteria at it. Under How the work is cut, list each Step in plain language: what it builds, the criteria it proves and the Steps it comes after.
+- Under How we will know it works, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/read_back.py" --record docs/specs/<slug>.record.json` and carry its output word for word; each failed probe it lists is a question of the read-back. Under How the work is cut, list each Step in plain language: what it builds, the criteria it proves and the Steps it comes after.
 - Ask for approval with the AskUserQuestion tool, with the options "Approve" and "Change something". This is the only question the tool asks in a run.
 - When the user changes something, settle it in a frontier round and read back again. Loop until the user approves.
 - Save the approval to the decisions file. From here the run is autonomous to the end.
@@ -99,6 +105,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Copy the intent lines of the decisions file into the Intent section word for word.
 - Write each decision once. Keep every numbered heading exactly as the template has it.
 - Write every reading you chose without the user's answer into Assumptions, as the section After the interview of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` says.
+- List every repeated failure kind of the record's `outcomes` under Risks, then every other risk, or `- None` when there is none. The render script refuses a spec that leaves a repeated failure kind out of Risks.
 - Write each Step's task into its entry in the record, following the section "Writing a task" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`. Never derive the Steps by reading them back out of the spec.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render_record.py" --record docs/specs/<slug>.record.json --spec docs/specs/<slug>.md --items docs/specs/<slug>.items.json`. It writes the Test seams section, the agreed seams followed by one numbered heading per criterion such as `### 5.1 <short name>`, and the items file, with the spec's absolute path and SHA-256 in every Step's `source`.
 - Rerun the render script after any edit to the record or the spec; it rewrites both.
@@ -130,10 +137,12 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.
 - Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.
 - When the record was written by an earlier release, rewrite it to this release's shape: turn each entry of `environments` into a seam with `name`, `interface` set to its `what`, `catches`, `misses` and `builder_runs`; give each criterion the `seam` its tests ran at and remove its `where`, `facts` and `gives_way`; remove each test's `env` and every `gives-way:` entry from its `covers`; remove `facts`, `environments`, `reviews` and `open_issues` from the record; keep a criterion's `domains` only when it is security-sensitive or exists to refuse something, setting `case_table` and removing each domain's `fact`, and otherwise remove its domains and every test's `covers`.
+- Before the complete check, an earlier release's record also gains acceptance lines, a locked list, probes and outcomes: give each criterion at a seam the builder runs its acceptance lines as in phase 4, naming each in its rows' `check`, list every row's test file in `locked`, run the surface probes as in phase 6, and run `outcomes.py` as in phase 3.
 - When the spec was written by an earlier release, rename its `Acceptance criteria` heading to `Test seams`, keeping its number, and skip the spec check below, which knows only this release's templates.
 - Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
 - Add the missing classes and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
-- Give every new row's test to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
+- Name in each new row's `check` the acceptance line it implements, adding the line when its criterion has none for it, and add the row's test file to the record's `locked` list rather than to the new Step's files.
+- Give the work of the new rows to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
 - Fill every gap from the intent as the section After the interview says, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`.
 - Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.
 - Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.

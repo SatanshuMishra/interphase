@@ -112,6 +112,8 @@ When the user's instructions, in the conversation or in the project's written in
 - When only something outside the code can meet a requirement, such as the server in front of the app, still write its acceptance criterion, marked unproven with the reason when the builder cannot check it, and keep in the code every part the code can enforce and test.
 - When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.
 
+When a surface probe of Phase 6 fails for a line at a seam the builder runs, the run cannot prove that criterion here, so it stops instead of guessing: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, report the stop and the record's stop reason, and stop.
+
 Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule. If the hospital project cannot encrypt files yet, the spec requires what lets it.
 
 A run that starts unattended stays unattended, even when it switches from the brief lane to the full pathway.
