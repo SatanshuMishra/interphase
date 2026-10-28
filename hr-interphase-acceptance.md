@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T10:34:24.613Z
+Updated: 2026-10-28T10:34:50.852Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -46,3 +46,5 @@ Needs: D1.
 - Program thread: harness-redesign in the pipeline repository
 - Spec, decisions, record, items: docs/specs/hr-interphase-acceptance.* in the interphase checkout
 - Run home files: CHARTER.md, worker-rules.txt, dispatch.zsh, feature.json, graph.json, check-tree (temporary check-author worktree)
+- Review record: run home review/ (obligations, assumptions, proofs per MSP; round-<n>/ findings, verdicts, diagnoses) and rounds.md (one line per round)
+- MSP worktrees: ~/.mitosis/runs/interphase/hr-interphase-acceptance/trees/<msp>
