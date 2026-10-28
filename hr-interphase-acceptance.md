@@ -1,7 +1,7 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:35:22.360Z
-Next ids: c7 D2 R3 S1
+Updated: 2026-10-28T13:36:03.910Z
+Next ids: c7 D3 R3 S1
 
 ## Goal
 
@@ -29,6 +29,7 @@ Needs: D1.
 ## Decisions in force
 
 - D1 interphase hand-off: build the handed-off spec with an O2 check author first: Dispatch the check author first; the build starts only after its tests are committed, pushed, locked with receipts lock and listed under - Locked: in CHARTER.md.
+- D2 ship boundary: ship both MSPs as ready pull requests: Ship both MSPs as ready pull requests: SHIP=1 run.zsh --resume with --proven-head acceptance-lines=27b3c97c5777215d16adde0a4cfeab33ac8765d8 and --proven-head pathway-line-kinds=0ef62fe0eb3494f27ce5d0060a34bbd700ffd058.
 
 ## Open risks
 
