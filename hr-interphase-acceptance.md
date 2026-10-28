@@ -1,7 +1,7 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T09:11:53.293Z
-Next ids: c7 D2 R1 S1
+Updated: 2026-10-28T09:13:01.346Z
+Next ids: c7 D2 R3 S1
 
 ## Goal
 
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase Phase 9: the spec, record and items are written and pass check_spec, check_record --complete and check_items; the one spec review is running. The run home holds CHARTER.md (locked list still a placeholder; carries the O10 line verbatim), worker-rules.txt (carries the O3 line verbatim), dispatch.zsh and graph.json; run 1's home is cleaned, so its shape is rebuilt from pipeline:run and PROGRAM.md. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6).
+interphase handed off (record status handed-off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP). FEATURE branch feat/hr-interphase-acceptance is cut at 57ee015. The O2 check author is writing the locked tests in the worktree <home>/check-tree. CHARTER.md's locked list is still a placeholder. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6).
 
 ## Next step
 
@@ -32,6 +32,9 @@ Needs: D1.
 
 ## Open risks
 
+- R1 The installed vmlab 0.4.0 has no capabilities verb, so a desktop or mobile probe fails until VMLab's release with it is installed.
+- R2 receipts.config.json in this repository names agent.repo_name receipts-tree; the pipeline writes that value in every repository, so receipts' own session memory may mix repositories.
+
 ## Settled, do not reopen
 
 ## Where the details live
@@ -42,3 +45,4 @@ Needs: D1.
 - Run home: ~/.mitosis/interphase/hr-interphase-acceptance/
 - Program thread: harness-redesign in the pipeline repository
 - Spec, decisions, record, items: docs/specs/hr-interphase-acceptance.* in the interphase checkout
+- Run home files: CHARTER.md, worker-rules.txt, dispatch.zsh, feature.json, graph.json, check-tree (temporary check-author worktree)
