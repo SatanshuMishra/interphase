@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: parked
-Updated: 2026-10-28T20:10:01.450Z
+Updated: 2026-10-28T20:32:20.694Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -18,13 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-Integration is done: lighthouse run 2 is green on feat/hr-interphase-acceptance (no failures, unproven or flaky paths; 55539005 tokens, 42.3 minutes, 37.41 dollars). Its child composed the FEATURE pull request but the house-format hook refused lighthouse's body, so it was opened through pull-request render as https://github.com/SatanshuMishra/interphase/pull/57 into main, assigned to the owner, with the app's auto-fix monitor on. Run 3's PROGRAM.md row says awaiting FEATURE merge. The run waits for the owner to merge pull request 57.
+Done: FEATURE pull request 57 merged into main at 9420b49 and pipeline clean removed every run branch, worktree, run folder and spec file, keeping nothing. A worked example (charter, worker rules, run script, receipt lock, assumptions, metrics) is in ~/.mitosis/harness-redesign/examples/hr-interphase-acceptance/. Run 3's PROGRAM.md row says done.
 
 ## Next step
 
-awaiting-merge: the owner starts Clean-up by saying the FEATURE pull request 57 merged; then resume this thread, sync, run pipeline clean and close the thread.
-
-Needs: D2.
+Close this thread with close_thread once the logbook server reconnects.
 
 ## Decisions in force
 
@@ -52,3 +50,4 @@ Needs: D2.
 - Pull requests: https://github.com/SatanshuMishra/interphase/pull/55 (acceptance-lines) and https://github.com/SatanshuMishra/interphase/pull/56 (pathway-line-kinds)
 - Lighthouse results: run home lighthouse/run-<k>
 - FEATURE pull request: https://github.com/SatanshuMishra/interphase/pull/57
+- Worked example: ~/.mitosis/harness-redesign/examples/hr-interphase-acceptance/
