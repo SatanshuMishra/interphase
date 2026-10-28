@@ -765,6 +765,15 @@ class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
         )
 
 
+    def test_a_step_named_check_author_is_refused(self):
+        record = change(base_record(), "steps", 0, name="check-author")
+        record = replace_at(record, "criteria", 0, {**record["criteria"][0], "tests": [{**TEST_ENTRY, "step": "check-author"}]})
+        self.assertEqual(
+            self.errors(record, False),
+            ("step name 'check-author' is reserved for the rendered check-author Step",),
+        )
+
+
 class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
     def test_a_stopped_record_with_its_stop_has_the_shape_but_is_not_complete(self):
         stop = {"phase": "probe", "reason": "the claude probe of C1.1 failed"}

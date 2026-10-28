@@ -114,7 +114,7 @@ class ScriptLoader:
         return module
 
 
-class CheckItemsTest(ScriptLoader, unittest.TestCase):
+class ItemsFixture(ScriptLoader):
     def steps(self, spec_path, sha):
         source = {"path": str(spec_path), "sha256": sha}
         return [
@@ -164,6 +164,8 @@ class CheckItemsTest(ScriptLoader, unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertTrue(any(fragment in line for line in errors), errors)
 
+
+class CheckItemsTest(ItemsFixture, unittest.TestCase):
     def test_check_items_accepts_a_valid_file(self):
         code, errors, _ = self.run_check()
         self.assertEqual(code, 0)
@@ -343,6 +345,84 @@ class CheckItemsTest(ScriptLoader, unittest.TestCase):
         code, errors, _ = self.run_check(raw="[{not json")
         self.assertEqual(code, 1)
         self.assertTrue(any("not valid JSON" in line for line in errors), errors)
+
+
+def with_author(steps):
+    author = {
+        "name": "check-author",
+        "role": "check-author",
+        "task": "Write the acceptance tests.",
+        "files": ["tests/test_interface.py", "tests/test_client.py"],
+        "source": dict(steps[0]["source"]),
+        "acceptance": [],
+        "spec_ref": ["3.1", "3.2"],
+    }
+    built = [
+        dict(
+            step,
+            files=[path for path in step["files"] if path not in author["files"]],
+            after=["check-author"] + step.get("after", []),
+        )
+        for step in steps
+    ]
+    return [author] + built
+
+
+def author_lane(change):
+    return lambda steps: change(with_author(steps))
+
+
+class CheckAuthorItemsTest(ItemsFixture, unittest.TestCase):
+    def test_check_items_accepts_a_check_author_lane(self):
+        code, errors, warnings = self.run_check(with_author)
+        self.assertEqual(code, 0)
+        self.assertEqual(errors, ())
+        self.assertFalse(any("empty acceptance" in line for line in warnings), warnings)
+
+    def test_check_items_refuses_a_role_other_than_check_author(self):
+        self.assert_error(
+            author_lane(lambda steps: [dict(steps[0], role="builder")] + steps[1:]),
+            "has role 'builder'; the only allowed role is 'check-author'",
+        )
+
+    def test_check_items_refuses_a_check_author_after_another_item(self):
+        self.assert_error(
+            author_lane(lambda steps: [steps[1], steps[0]] + steps[2:]),
+            "step 'check-author' has role check-author but comes after step 'interface'",
+        )
+
+    def test_check_items_refuses_acceptance_on_a_check_author(self):
+        entry = {"file": "tests/test_client.py", "test": "test_client_calls_the_interface"}
+        self.assert_error(
+            author_lane(lambda steps: [dict(steps[0], acceptance=[entry])] + steps[1:]),
+            "step 'check-author' has role check-author, so its acceptance must be empty",
+        )
+
+    def test_check_items_refuses_an_item_that_does_not_come_after_the_check_author(self):
+        self.assert_error(
+            author_lane(lambda steps: steps[:2] + [dict(steps[2], after=["interface"])]),
+            "step 'client' does not name check-author step 'check-author' in its after",
+        )
+
+    def test_check_items_refuses_an_item_that_lists_a_check_author_file(self):
+        def change(steps):
+            return steps[:1] + [dict(steps[1], files=steps[1]["files"] + ["tests/test_interface.py"])] + steps[2:]
+
+        self.assert_error(
+            author_lane(change),
+            "step 'interface' lists file 'tests/test_interface.py', which check-author step 'check-author' writes",
+        )
+
+    def test_check_items_refuses_an_acceptance_file_outside_its_files_and_the_check_author(self):
+        def change(steps):
+            entry = {"file": "tests/test_other.py", "test": "test_other"}
+            return steps[:2] + [dict(steps[2], acceptance=[entry])]
+
+        self.assert_error(
+            author_lane(change),
+            "step 'client' has acceptance file 'tests/test_other.py' that is not in its files "
+            "or the files of a check-author step it comes after",
+        )
 
 
 class AmendmentItemsTest(ScriptLoader, unittest.TestCase):

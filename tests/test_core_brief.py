@@ -371,7 +371,8 @@ class CoreBriefTest(unittest.TestCase):
             self.assertNotIn("{{written by the render script from the record}}", lines)
             self.assertEqual(check_spec.check(read(TEMPLATE), rendered), ())
             items = json.loads(read(items_path))
-            self.assertEqual([item["spec_ref"] for item in items], [["5.1"], ["5.2"]])
+            self.assertEqual(items[0]["name"], "check-author")
+            self.assertEqual([item["spec_ref"] for item in items], [["5.1", "5.2"], ["5.1"], ["5.2"]])
             self.assertEqual(check_items.check_file(str(items_path)), ())
 
     def test_brief_names_no_consuming_tool(self):

@@ -59,6 +59,14 @@ RENDERED_SPEC = (
     REQUEST + "## 5. Test seams\n\n" + SEAMS_LIST + "\n\n" + BLOCK_5_1 + "\n\n" + BLOCK_5_2 + "\n\n" + TAIL
 )
 PROVES = "Acceptance criteria this Step proves:"
+CHECK_AUTHOR_OPENING = (
+    "Write the acceptance tests below before anything is built, and never write the code they test. "
+    "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
+    "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
+    "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
+    "Once committed, these files are locked: no later Step may change them."
+)
+TOTAL_ROW_LINE = "- `tests/test_app.py` `test_total` (C1.1): given a total of 3; expects 3 is returned."
 ROW = {
     "file": "tests/test_app.py",
     "name": "test_total",
@@ -96,6 +104,7 @@ ITEM_FIELDS = frozenset(
         "msp",
         "spec_ref",
         "assumptions",
+        "role",
     )
 )
 
@@ -462,7 +471,8 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         cited = {**record()["steps"][0], "assumptions": ["Totals use whole numbers (relies on I1)."]}
         with tempfile.TemporaryDirectory() as folder:
             _, items_text = self.rendered(folder, replace_step(record(), 0, cited), intent_spec)
-        self.assertEqual(json.loads(items_text)[0]["assumptions"], ["Totals use whole numbers (relies on I1)."])
+        steps = {step["name"]: step for step in json.loads(items_text)}
+        self.assertEqual(steps["build-app"]["assumptions"], ["Totals use whole numbers (relies on I1)."])
 
     def test_rendering_twice_gives_identical_files(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -731,10 +741,75 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             _, items_text = self.rendered(folder, amended(record()))
         items = json.loads(items_text)
-        self.assertEqual([item["name"] for item in items], ["build-app", "fix-app"])
+        self.assertEqual([item["name"] for item in items], ["check-author", "build-app", "fix-app"])
         for item in items:
             with self.subTest(step=item["name"]):
                 self.assertNotIn("amendment", item)
+
+
+def phone_only(source):
+    plain = {key: value for key, value in source.items() if key not in ("locked", "probes")}
+    return {**plain, "seams": source["seams"][1:], "criteria": source["criteria"][1:], "steps": source["steps"][1:]}
+
+
+class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
+    def items_of(self, source, argv=ARGV, spec_text=SPEC_TEXT):
+        with tempfile.TemporaryDirectory() as folder:
+            _, items_text = self.rendered(folder, source, spec_text, argv)
+        return json.loads(items_text)
+
+    def test_check_author_comes_first_with_the_locked_paths(self):
+        first = self.items_of(record())[0]
+        self.assertEqual(first["name"], "check-author")
+        self.assertEqual(first["role"], "check-author")
+        self.assertEqual(first["files"], ["tests/test_app.py"])
+        self.assertEqual(first["acceptance"], [])
+        self.assertEqual(first["spec_ref"], ["5.1"])
+        self.assertEqual(first["msp"], "check-author")
+
+    def test_check_author_task_holds_each_covered_block_and_its_rows(self):
+        first = self.items_of(record())[0]
+        self.assertEqual(first["task"], CHECK_AUTHOR_OPENING + "\n\n" + BLOCK_5_1 + "\n\n" + TOTAL_ROW_LINE)
+
+    def test_check_author_has_no_msp_when_no_step_has_one(self):
+        step = {key: value for key, value in record()["steps"][0].items() if key != "msp"}
+        first = self.items_of(replace_step(record(), 0, step))[0]
+        self.assertNotIn("msp", first)
+
+    def test_check_author_gathers_the_assumptions_of_covering_steps_once(self):
+        cited = "Totals use whole numbers (relies on I1)."
+        other = "The phone is charged (relies on I1)."
+        source = replace_step(record(), 0, {**record()["steps"][0], "assumptions": [cited, cited]})
+        source = replace_step(source, 1, {**source["steps"][1], "assumptions": [other]})
+        intent_spec = SPEC_TEXT.replace("## 4. Decisions", "## 2. Intent\n\n- I1 Goal: show the total.\n\n## 4. Decisions")
+        first = self.items_of(source, spec_text=intent_spec)[0]
+        self.assertEqual(first["assumptions"], [cited])
+
+    def test_every_other_item_names_check_author_first_in_after(self):
+        source = replace_step(record(), 1, {**record()["steps"][1], "after": ["build-app"]})
+        items = {item["name"]: item for item in self.items_of(source)}
+        self.assertEqual(items["build-app"]["after"], ["check-author"])
+        self.assertEqual(items["tune-app"]["after"], ["check-author", "build-app"])
+
+    def test_amendment_check_author_holds_only_locked_paths_with_covered_rows(self):
+        source = amended({**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]})
+        source = replace_step(source, 1, {**source["steps"][1], "criteria": ["5.1", "5.2"]})
+        items = self.items_of(source, argv=ARGV + ("--amendment", "1"))
+        self.assertEqual([item["name"] for item in items], ["check-author", "fix-app"])
+        self.assertEqual(items[0]["files"], ["tests/test_app.py"])
+        self.assertEqual(items[1]["after"], ["check-author"])
+
+    def test_full_render_check_author_holds_every_locked_path(self):
+        source = {**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]}
+        self.assertEqual(self.items_of(source)[0]["files"], ["tests/test_app.py", "tests/test_phone.py"])
+
+    def test_amendment_covering_no_lines_has_no_check_author(self):
+        items = self.items_of(amended(record()), argv=ARGV + ("--amendment", "1"))
+        self.assertEqual([item["name"] for item in items], ["fix-app"])
+
+    def test_record_without_a_locked_list_has_no_check_author(self):
+        items = self.items_of(phone_only(record()))
+        self.assertEqual([item["name"] for item in items], ["tune-app"])
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@ STEP_KEYS = (
     "amendment",
 )
 STEP_REQUIRED = ("name", "files", "criteria")
+RESERVED_STEP = "check-author"
 RENDERED_KEYS = ("source", "acceptance", "spec_ref")
 NUMBER_RE = re.compile(r"[0-9]+\.[0-9]+")
 ROUND_KEYS = ("kind", "questions", "changed")
@@ -645,6 +646,12 @@ def check_step_keys(who, step):
     )
 
 
+def check_reserved_name(step):
+    if step.get("name") != RESERVED_STEP:
+        return ()
+    return (error("step name %r is reserved for the rendered %s Step" % (RESERVED_STEP, RESERVED_STEP)),)
+
+
 def check_step_criteria(who, step, numbers):
     if "criteria" not in step:
         return ()
@@ -679,6 +686,7 @@ def check_step(index, step, numbers):
     return (
         check_step_keys(who, step)
         + missing_keys(who, step, STEP_REQUIRED)
+        + check_reserved_name(step)
         + check_step_criteria(who, step, numbers)
         + check_step_task(who, step)
         + check_amendment(who, step)

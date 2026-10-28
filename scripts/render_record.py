@@ -15,6 +15,14 @@ CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 SEAMS_HEAD = "Seams:"
 LINES_HEAD = "Acceptance lines:"
+CHECK_AUTHOR = "check-author"
+CHECK_AUTHOR_OPENING = (
+    "Write the acceptance tests below before anything is built, and never write the code they test. "
+    "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
+    "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
+    "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
+    "Once committed, these files are locked: no later Step may change them."
+)
 
 
 def load_sibling(name):
@@ -248,6 +256,73 @@ def item(step, criteria, blocks, source):
     )
 
 
+def covered_numbers(steps, criteria):
+    claimed = frozenset(number for step in steps for number in step["criteria"])
+    return tuple(
+        number for number, criterion in criteria.items() if number in claimed and check_record.has_lines(criterion)
+    )
+
+
+def row_line(test):
+    return "- `%s` `%s` (%s): given %s; expects %s." % (
+        test["file"],
+        test["name"],
+        test.get(check_record.CHECK, ""),
+        clause(test["given"]),
+        clause(test["expect"]),
+    )
+
+
+def authored_block(criterion, block):
+    return "\n\n".join((block, "\n".join(row_line(test) for test in criterion["tests"])))
+
+
+def author_files(locked, covered, criteria, amendment):
+    if amendment is None:
+        return list(locked)
+    held = frozenset(test["file"] for number in covered for test in criteria[number]["tests"])
+    return [path for path in locked if path in held]
+
+
+def author_assumptions(steps, covered):
+    texts = tuple(
+        text
+        for step in steps
+        if any(number in covered for number in step["criteria"])
+        for text in step.get("assumptions", ())
+    )
+    kept = [text for position, text in enumerate(texts) if text not in texts[:position]]
+    return (("assumptions", kept),) if kept else ()
+
+
+def check_author_item(record, steps, criteria, blocks, source, amendment):
+    covered = covered_numbers(steps, criteria)
+    if "locked" not in record or not covered:
+        return None
+    task = "\n\n".join(
+        (CHECK_AUTHOR_OPENING,) + tuple(authored_block(criteria[number], blocks[number]) for number in covered)
+    )
+    msp = (("msp", CHECK_AUTHOR),) if any("msp" in step for step in steps) else ()
+    return dict(
+        (
+            ("name", CHECK_AUTHOR),
+            ("role", CHECK_AUTHOR),
+            ("task", task),
+            ("files", author_files(record["locked"], covered, criteria, amendment)),
+            ("source", dict(source)),
+            ("acceptance", []),
+        )
+        + msp
+        + (("spec_ref", list(covered)),)
+        + author_assumptions(steps, covered)
+    )
+
+
+def after_author(entry):
+    rest = {key: value for key, value in entry.items() if key != "after"}
+    return {**rest, "after": [CHECK_AUTHOR] + list(entry.get("after", ()))}
+
+
 def render(record_text, spec_text, spec_path, amendment=None):
     rejected = record_errors(record_text)
     if rejected:
@@ -273,7 +348,10 @@ def render(record_text, spec_text, spec_path, amendment=None):
     new_spec_text = replace_section(spec_text, lines, sections[0][0], ordered)
     source = {"path": spec_path, "sha256": hashlib.sha256(new_spec_text.encode("utf-8")).hexdigest()}
     items = [item(step, criteria, blocks, source) for step in steps]
-    return ((), new_spec_text, items)
+    author = check_author_item(record, steps, criteria, blocks, source, amendment)
+    if author is None:
+        return ((), new_spec_text, items)
+    return ((), new_spec_text, [author] + [after_author(entry) for entry in items])
 
 
 def parse_arguments(argv):

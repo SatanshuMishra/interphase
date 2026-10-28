@@ -15,6 +15,7 @@ ITEMS_FIELDS = (
     "msp",
     "spec_ref",
     "assumptions",
+    "role",
 )
 
 OUTPUT_FILES = (
@@ -49,6 +50,12 @@ class ReadmeTest(unittest.TestCase):
         text = read_readme()
         missing = tuple(field for field in ITEMS_FIELDS if "`" + field + "`" not in text)
         self.assertEqual(missing, ())
+
+    def test_readme_documents_the_check_author_role(self):
+        rows = [line for line in read_readme().splitlines() if line.startswith("| `role` | no | ")]
+        self.assertEqual(len(rows), 1)
+        self.assertIn("Only the value `check-author`.", rows[0])
+        self.assertIn("Every other Step names it in `after`", rows[0])
 
     def test_readme_names_every_output_file(self):
         text = read_readme()
