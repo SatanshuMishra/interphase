@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T09:13:01.346Z
+Updated: 2026-10-28T09:13:42.559Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off (record status handed-off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP). FEATURE branch feat/hr-interphase-acceptance is cut at 57ee015. The O2 check author is writing the locked tests in the worktree <home>/check-tree. CHARTER.md's locked list is still a placeholder. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6).
+interphase handed off (record status handed-off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP). FEATURE branch feat/hr-interphase-acceptance is cut at 57ee015. The O2 check author is writing the locked tests in the worktree <home>/check-tree. CHARTER.md's locked list is still a placeholder. The base suite passes, 458 tests. Six Steps in two MSPs: acceptance-lines (five chained Steps, P1 to P5) and pathway-line-kinds (P6). run.zsh is written and its --plan-only exits 0 with six Lanes and no finding; items.json is copied to the run home.
 
 ## Next step
 
