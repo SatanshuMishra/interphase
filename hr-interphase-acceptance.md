@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:14:34.116Z
+Updated: 2026-10-28T13:16:09.171Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is in review round 3: round 1's conformance audit judged 5.1 to 5.5 MET; round 1's blockers are fixed; round 2's confirmed blocker (malformed record crashes script) is fixed at 8a38af9 after O6 reverted the faulty advisory fix; the second and last attempt at advisories C1, S2, S3, S4 and C4 is at 35ac082 and 39bc600. The suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests. Round 3 reviews the fix diff from df43964 (O6): the security reviewer returned two LOW findings and no blocker (S1 deep nesting crashes the is_unicode gate, S2 a newline hides a later command from the probe); the code reviewer is still running.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is in review round 3: round 1's conformance audit judged 5.1 to 5.5 MET; round 1's blockers are fixed; round 2's confirmed blocker (malformed record crashes script) is fixed at 8a38af9 after O6 reverted the faulty advisory fix; the second and last attempt at advisories C1, S2, S3, S4 and C4 is at 35ac082 and 39bc600. The suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests. Round 3 reviews the fix diff from df43964 (O6): neither reviewer marked a blocker; the candidates file holds carried P1, new MEDIUM C1 to C3 (prefix-option argument, quoted operator and trailing comment each probed as a command) and LOW advisories C4 to C6, S1 and S2. The validator is judging them.
 
 ## Next step
 
