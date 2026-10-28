@@ -291,7 +291,12 @@ class CoreBriefTest(unittest.TestCase):
             ),
             (
                 "- Phase 7:",
-                ("read back only the intent", "as a question, each failed probe that blocks", "ask for the one approval"),
+                (
+                    "read back only the intent",
+                    '/scripts/read_back.py" --record docs/specs/<slug>.record.json` word for word',
+                    "with each failed probe it lists as a question",
+                    "ask for the one approval",
+                ),
             ),
             (
                 "- Phase 8:",

@@ -38,10 +38,14 @@ PHONE_SEAM_LINE = (
 )
 SEAMS_LIST = "Seams:\n" + UNIT_SEAM_LINE + "\n" + PHONE_SEAM_LINE
 UNIT_SEAM_TEXT = "Seam: `unit-tests`, the total_of function in src/app.py."
+APP_LINES = (
+    "Acceptance lines:\n- C1.1 (exact, cli python3): run `python3 -m unittest tests.test_app` "
+    "from the repository root; it passes when the test passes."
+)
 PHONE_SEAM_TEXT = "Seam: `phone-screen`, the total drawn on a Galaxy Note10+."
 BLOCK_5_1_HEAD = (
     "### 5.1 The total adds up\n\n"
-    "Given a total, when the app returns it, then it is unchanged.\n\n" + UNIT_SEAM_TEXT + "\n\n"
+    "Given a total, when the app returns it, then it is unchanged.\n\n" + UNIT_SEAM_TEXT + "\n\n" + APP_LINES + "\n\n"
 )
 PLAIN_HEAD = "| Test | Given | Expected |\n|---|---|---|\n"
 TOTAL_ROW = "| `tests/test_app.py` `test_total` | a total of 3 | 3 is returned |"
@@ -524,11 +528,35 @@ class SeamRenderTest(RenderFixture, unittest.TestCase):
             spec_text, items_text = self.rendered(folder, source)
         self.assertEqual(
             spec_block(spec_text, "5.3"),
-            "### 5.3 The total is shown\n\nThe app shows the total.\n\n" + UNIT_SEAM_TEXT + "\n\n" + PLAIN_HEAD
+            "### 5.3 The total is shown\n\nThe app shows the total.\n\n" + UNIT_SEAM_TEXT + "\n\n"
+            + APP_LINES.replace("C1.1", "C3.1") + "\n\n" + PLAIN_HEAD
             + "| `tests/test_app.py` `test_total_is_shown` | a total of 3 | 3 is returned |",
         )
         task = {step["name"]: step["task"] for step in json.loads(items_text)}["build-app"]
         self.assertEqual(task.count(UNIT_SEAM_TEXT), 2)
+
+
+class LineSentenceTest(RenderFixture, unittest.TestCase):
+    def test_exact_line_is_one_sentence(self):
+        sentence = self.load("render_record").line_sentence(APP_LINE)
+        self.assertEqual("Acceptance lines:\n- " + sentence, APP_LINES)
+
+    def test_judged_line_joins_its_lines_and_drops_closing_full_stops(self):
+        line = {
+            "id": "C1.2",
+            "kind": "judged",
+            "surface": {"family": "agent", "target": "claude"},
+            "command": "python3 tests/judge.py",
+            "pass": "every trial\nmeets the rubric.",
+            "rubric": "The summary names\neach failing check.",
+            "trials": 3,
+        }
+        self.assertEqual(
+            self.load("render_record").line_sentence(line),
+            "C1.2 (judged, agent claude): run `python3 tests/judge.py` from the repository root three times "
+            "and judge each run against the rubric: The summary names each failing check; "
+            "it passes when every trial meets the rubric.",
+        )
 
 
 class CaseTableRenderTest(RenderFixture, unittest.TestCase):

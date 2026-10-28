@@ -92,7 +92,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 
 - In the brief lane, follow `${CLAUDE_PLUGIN_ROOT}/core/brief.md`.
 - Write a short note with five headings: Intent, What we decided, What is out of scope, How we will know it works, How the work is cut.
-- Under How we will know it works, name each seam and the criteria at it. Under How the work is cut, list each Step in plain language: what it builds, the criteria it proves and the Steps it comes after.
+- Under How we will know it works, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/read_back.py" --record docs/specs/<slug>.record.json` and carry its output word for word; each failed probe it lists is a question of the read-back. Under How the work is cut, list each Step in plain language: what it builds, the criteria it proves and the Steps it comes after.
 - Ask for approval with the AskUserQuestion tool, with the options "Approve" and "Change something". This is the only question the tool asks in a run.
 - When the user changes something, settle it in a frontier round and read back again. Loop until the user approves.
 - Save the approval to the decisions file. From here the run is autonomous to the end.

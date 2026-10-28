@@ -14,6 +14,7 @@ PROVES = "Acceptance criteria this Step proves:"
 CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 SEAMS_HEAD = "Seams:"
+LINES_HEAD = "Acceptance lines:"
 
 
 def load_sibling(name):
@@ -77,6 +78,28 @@ def seam_line(seam):
     )
 
 
+def clause(text):
+    return one_line(text).rstrip(".")
+
+
+def line_sentence(line):
+    surface = line["surface"]
+    judged = (
+        " three times and judge each run against the rubric: " + clause(line["rubric"])
+        if line["kind"] == "judged"
+        else ""
+    )
+    return "%s (%s, %s %s): run `%s` from the repository root%s; it passes when %s." % (
+        line["id"],
+        line["kind"],
+        surface["family"],
+        surface["target"],
+        one_line(line["command"]),
+        judged,
+        clause(line["pass"]),
+    )
+
+
 def seam_text(seam):
     return one_line("Seam: `%s`, %s." % (seam["name"], seam["interface"].rstrip(".")))
 
@@ -94,6 +117,7 @@ def criterion_block(criterion, seams):
             criterion["text"],
             seam_text(seams[criterion["seam"]]),
         )
+        + listed(LINES_HEAD, tuple("- " + line_sentence(line) for line in criterion.get("acceptance", ())))
         + listed(head, inputs)
         + table(criterion)
         + unproven
