@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: parked
-Updated: 2026-10-28T19:24:09.084Z
+Updated: 2026-10-28T20:10:01.450Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-Integration: MSP pull requests 55 and 56 merged into feat/hr-interphase-acceptance (da50a0f, 71678de) and pipeline integration-ready reports ready. lighthouse run 1 died with a force-quit of Claude Code and left no findings, so run 2 runs fresh (no --previous) against core main with results in the run home's lighthouse/run-2.
+Integration is done: lighthouse run 2 is green on feat/hr-interphase-acceptance (no failures, unproven or flaky paths; 55539005 tokens, 42.3 minutes, 37.41 dollars). Its child composed the FEATURE pull request but the house-format hook refused lighthouse's body, so it was opened through pull-request render as https://github.com/SatanshuMishra/interphase/pull/57 into main, assigned to the owner, with the app's auto-fix monitor on. Run 3's PROGRAM.md row says awaiting FEATURE merge. The run waits for the owner to merge pull request 57.
 
 ## Next step
 
-Read lighthouse run 2's last JSON line; on failures or blocked, record findings, verdict and diagnosis and send each fixable kind to a fresh fix agent with a receipt test; on green, bind the FEATURE pull request lighthouse opens with Auto-Fix on, park for Clean-up and update run 3's PROGRAM.md row.
+awaiting-merge: the owner starts Clean-up by saying the FEATURE pull request 57 merged; then resume this thread, sync, run pipeline clean and close the thread.
 
 Needs: D2.
 
@@ -51,3 +51,4 @@ Needs: D2.
 - MSP worktrees: ~/.mitosis/runs/interphase/hr-interphase-acceptance/trees/<msp>
 - Pull requests: https://github.com/SatanshuMishra/interphase/pull/55 (acceptance-lines) and https://github.com/SatanshuMishra/interphase/pull/56 (pathway-line-kinds)
 - Lighthouse results: run home lighthouse/run-<k>
+- FEATURE pull request: https://github.com/SatanshuMishra/interphase/pull/57
