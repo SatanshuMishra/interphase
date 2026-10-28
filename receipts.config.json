@@ -54,7 +54,7 @@
       "Verified"
     ],
     "repo_name": "receipts-tree",
-    "receipts_version": "0.9.3"
+    "receipts_version": "0.9.5"
   },
   "gates": {
     "medium": "cli",
