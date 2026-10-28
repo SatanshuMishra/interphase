@@ -270,7 +270,7 @@ def entry_label(who, position, test):
 
 
 def check_built_file(tag, test, step):
-    if test["file"] in check_items.step_files(step):
+    if check_items.shared_paths((test["file"],), check_items.step_files(step)):
         return ()
     return (error("%s has file %r, which is not in the files of step %r" % (tag, test["file"], test["step"])),)
 
@@ -278,12 +278,12 @@ def check_built_file(tag, test, step):
 def check_locked_file(tag, test, step, locked):
     listed = (
         (error("%s has file %s, which step %r lists in its files" % (tag, test["file"], test["step"])),)
-        if test["file"] in check_items.step_files(step)
+        if check_items.shared_paths((test["file"],), check_items.step_files(step))
         else ()
     )
     unlocked = (
         (error("%s has file %s, which is not in the record's locked list" % (tag, test["file"])),)
-        if locked is not None and test["file"] not in locked
+        if locked is not None and not check_items.shared_paths((test["file"],), locked)
         else ()
     )
     return listed + unlocked
@@ -775,7 +775,7 @@ def check_locked(record, criteria, steps, complete):
         error("%s lists locked path %s" % (check_items.label(index, step), path))
         for index, step in enumerate(steps)
         if isinstance(step, dict)
-        for path in sorted(check_items.step_files(step) & locked)
+        for path in check_items.shared_paths(check_items.step_files(step), locked)
     )
     return shape + written
 

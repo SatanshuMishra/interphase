@@ -298,8 +298,8 @@ def authored_block(criterion, block):
 def author_files(locked, covered, criteria, amendment):
     if amendment is None:
         return list(locked)
-    held = frozenset(test["file"] for number in covered for test in criteria[number]["tests"])
-    return [path for path in locked if path in held]
+    held = tuple(test["file"] for number in covered for test in criteria[number]["tests"])
+    return [path for path in locked if check_record.check_items.shared_paths((path,), held)]
 
 
 def author_assumptions(steps, covered):

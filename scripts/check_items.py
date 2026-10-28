@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import posixpath
 import re
 import sys
 
@@ -120,6 +121,19 @@ def check_role(who, step):
 def step_files(step):
     files = step.get("files")
     return frozenset(item for item in files if isinstance(item, str)) if isinstance(files, list) else frozenset()
+
+
+def path_key(path):
+    return posixpath.normpath(path).casefold()
+
+
+def path_keys(paths):
+    return frozenset(path_key(path) for path in paths)
+
+
+def shared_paths(paths, others):
+    keys = path_keys(others)
+    return tuple(path for path in sorted(paths) if path_key(path) in keys)
 
 
 def well_formed_entry(entry):
@@ -365,7 +379,7 @@ def check_shared_files(steps, graph):
         for position, first in enumerate(named)
         for second in named[position + 1 :]
         if not linked(graph, first["name"], second["name"])
-        for path in sorted(step_files(first) & step_files(second))
+        for path in shared_paths(step_files(first), step_files(second))
     )
 
 
@@ -434,9 +448,9 @@ def check_acceptance_files(steps, graph):
         )
         for index, step in enumerate(steps)
         if isinstance(step, dict)
-        for allowed in (step_files(step) | authored_before(step, steps, graph),)
+        for allowed in (path_keys(step_files(step) | authored_before(step, steps, graph)),)
         for entry in entries(step)
-        if entry["file"] not in allowed
+        if path_key(entry["file"]) not in allowed
     )
 
 
@@ -465,7 +479,7 @@ def check_author_lane(steps):
         error("%s lists file %r, which %s step %r writes" % (label(index, step), path, CHECK_AUTHOR, author["name"]))
         for index, step in others
         for author in authors
-        for path in sorted(step_files(step) & step_files(author))
+        for path in shared_paths(step_files(step), step_files(author))
     )
     return check_author_order(steps) + unordered + written
 

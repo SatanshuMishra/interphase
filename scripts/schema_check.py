@@ -21,6 +21,7 @@ VALUE_KEYWORDS = (
     "maxContains",
 )
 KEYWORDS = ANNOTATIONS | frozenset(SCHEMA_KEYWORDS + SCHEMA_LIST_KEYWORDS + VALUE_KEYWORDS)
+PATTERN_TOKEN = re.compile(r"\\.|\[(?:\\.|[^\]\\])*\]|.", re.DOTALL)
 
 
 def load(name):
@@ -130,6 +131,10 @@ def const_errors(schema, value, pointer):
     return ()
 
 
+def ecma_pattern(pattern):
+    return "".join("\\Z" if token == "$" else token for token in PATTERN_TOKEN.findall(pattern))
+
+
 def string_errors(schema, value, pointer):
     if not isinstance(value, str):
         return ()
@@ -140,7 +145,7 @@ def string_errors(schema, value, pointer):
     )
     unmatched = (
         failure(pointer, "pattern", "%r does not match %r" % (value, schema["pattern"]))
-        if "pattern" in schema and re.search(schema["pattern"], value) is None
+        if "pattern" in schema and re.search(ecma_pattern(schema["pattern"]), value) is None
         else ()
     )
     return short + unmatched
