@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T13:27:50.614Z
+Updated: 2026-10-28T13:33:17.239Z
 Next ids: c7 D2 R3 S1
 
 ## Goal
@@ -18,7 +18,7 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is green in round 3: every blocker is fixed, the suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests, and the validator confirmed three advisories introduced by 39bc600 (C1 a prefix command's option argument probed as the command, C3 trailing comment text probed, C6 the probe target and the probes read by two tokenisers). One fresh fix agent is fixing C1, C3 and C6 in scripts/surface_probe.py with a receipt test; under the Green rule these fixes get no review round.
+interphase handed off; ADR 0003 and five glossary terms are uncommitted in the checkout and ship with the first MSP. FEATURE branch feat/hr-interphase-acceptance holds the ten locked files at ca3b339, receipt-lock 2b84d751de02378b536f8035a52540c51130f36f16fe6157fa1dcad9a2411a2d. MSP pathway-line-kinds (head 0ef62fe) is green in round 1 with no findings and nothing to rerun. MSP acceptance-lines (head 39bc600) is green in round 3: every blocker is fixed, the suite at 39bc600 runs 545 tests and fails only the four other-MSP pathway tests, and the validator confirmed three advisories introduced by 39bc600 (C1 a prefix command's option argument probed as the command, C3 trailing comment text probed, C6 the probe target and the probes read by two tokenisers). C1, C3 and C6 are fixed at 294301f (receipt tests/test_probe_round3_advisories.py at ea60e27; only scripts/surface_probe.py and that test changed, no locked file); under the Green rule these fixes get no review round. The suite and the receipt's failure on 39bc600 are being checked at 294301f. The acceptance-lines assumptions file holds the fix's probe-target readings.
 
 ## Next step
 
