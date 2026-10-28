@@ -1,7 +1,7 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: active
-Updated: 2026-10-28T09:11:50.440Z
-Next ids: c7 D1 R1 S1
+Updated: 2026-10-28T09:11:50.537Z
+Next ids: c7 D2 R1 S1
 
 ## Goal
 
@@ -25,6 +25,8 @@ interphase Phase 9: the spec, record and items are written and pass check_spec, 
 Fix the spec review's real issues once, rerender, hand off (Phase 10), then dispatch the O2 check author on the FEATURE branch.
 
 ## Decisions in force
+
+- D1 interphase hand-off: build the handed-off spec with an O2 check author first: Dispatch the check author first; the build starts only after its tests are committed, pushed, locked with receipts lock and listed under - Locked: in CHARTER.md.
 
 ## Open risks
 
