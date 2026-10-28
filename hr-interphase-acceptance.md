@@ -1,6 +1,6 @@
 # hr-interphase-acceptance: Run 3 of the harness-redesign program: interphase records K1 acceptance lines, probes surfaces and seeds a check-author Lane
 Status: parked
-Updated: 2026-10-28T13:37:49.328Z
+Updated: 2026-10-28T19:10:41.981Z
 Next ids: c7 D3 R3 S1
 
 ## Goal
@@ -18,11 +18,11 @@ Run 3 of the harness-redesign program (~/.mitosis/harness-redesign/PROGRAM.md): 
 
 ## Where things stand
 
-Both MSPs are shipped as ready pull requests into feat/hr-interphase-acceptance, assigned to the owner, each with its review comment and the app's auto-fix monitor on: acceptance-lines is https://github.com/SatanshuMishra/interphase/pull/55 (head 27b3c97), pathway-line-kinds is https://github.com/SatanshuMishra/interphase/pull/56 (head 0ef62fe). Run 3's PROGRAM.md row says awaiting-merge with both links. The run waits for the owner to merge both.
+Integration: MSP pull requests 55 and 56 merged into feat/hr-interphase-acceptance (da50a0f, 71678de) and pipeline integration-ready reports ready. lighthouse:test run 1 is starting against core main with results in the run home's lighthouse/run-1.
 
 ## Next step
 
-awaiting-merge: the owner starts Integration by saying the MSP pull requests 55 and 56 merged; then resume this thread, sync, run lighthouse:test on feat/hr-interphase-acceptance and open the FEATURE pull request with Auto-Fix on.
+Read lighthouse run 1's last JSON line; on failures or blocked, record findings, verdict and diagnosis and send each fixable kind to a fresh fix agent with a receipt test; on green, bind the FEATURE pull request lighthouse opens with Auto-Fix on, park for Clean-up and update run 3's PROGRAM.md row.
 
 Needs: D2.
 
@@ -50,3 +50,4 @@ Needs: D2.
 - Review record: run home review/ (obligations, assumptions, proofs per MSP; round-<n>/ findings, verdicts, diagnoses) and rounds.md (one line per round)
 - MSP worktrees: ~/.mitosis/runs/interphase/hr-interphase-acceptance/trees/<msp>
 - Pull requests: https://github.com/SatanshuMishra/interphase/pull/55 (acceptance-lines) and https://github.com/SatanshuMishra/interphase/pull/56 (pathway-line-kinds)
+- Lighthouse results: run home lighthouse/run-<k>
