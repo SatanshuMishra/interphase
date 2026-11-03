@@ -425,6 +425,95 @@ class CheckAuthorItemsTest(ItemsFixture, unittest.TestCase):
         )
 
 
+MSP_AUTHORS = (
+    ("interface", "front", "tests/test_interface.py", "3.1"),
+    ("client", "back", "tests/test_client.py", "3.2"),
+)
+
+
+def msp_author(step_name, msp, path, ref, source):
+    return {
+        "name": "check-author-" + msp,
+        "role": "check-author",
+        "task": "Write the acceptance tests of msp %s." % msp,
+        "files": [path],
+        "source": dict(source),
+        "acceptance": [],
+        "msp": msp,
+        "spec_ref": [ref],
+    }
+
+
+def with_msp_authors(steps):
+    owners = {step_name: (msp, path) for step_name, msp, path, _ in MSP_AUTHORS}
+    authors = [msp_author(*row, steps[0]["source"]) for row in MSP_AUTHORS]
+    built = [
+        dict(
+            step,
+            files=[path for path in step["files"] if path != owners[step["name"]][1]],
+            after=["check-author-" + owners[step["name"]][0]] + step.get("after", []),
+            msp=owners[step["name"]][0],
+        )
+        for step in steps
+    ]
+    return authors + built
+
+
+def msp_lane(change):
+    return lambda steps: change(with_msp_authors(steps))
+
+
+def with_named(steps, name, **fields):
+    return [dict(step, **fields) if step["name"] == name else step for step in steps]
+
+
+def without_field(steps, name, field):
+    return [
+        {key: value for key, value in step.items() if key != field} if step["name"] == name else step
+        for step in steps
+    ]
+
+
+class PerMspCheckAuthorItemsTest(ItemsFixture, unittest.TestCase):
+    def test_check_items_accepts_one_check_author_per_msp_named_only_by_its_own_steps(self):
+        code, errors, _ = self.run_check(with_msp_authors)
+        self.assertEqual(code, 0)
+        self.assertEqual(errors, ())
+
+    def test_check_items_refuses_an_item_that_does_not_come_after_its_own_msps_check_author(self):
+        self.assert_error(
+            msp_lane(lambda steps: with_named(steps, "client", after=["interface"])),
+            "step 'client' does not name check-author step 'check-author-back' in its after",
+        )
+
+    def test_check_items_refuses_an_acceptance_file_of_another_msps_check_author(self):
+        def change(steps):
+            leaked = {"file": "tests/test_interface.py", "test": "test_interface_exists"}
+            client = next(step for step in steps if step["name"] == "client")
+            return with_named(steps, "client", acceptance=client["acceptance"] + [leaked])
+
+        self.assert_error(
+            msp_lane(change),
+            "step 'client' with msp 'back' has acceptance file 'tests/test_interface.py', "
+            "which check-author step 'check-author-front' with msp 'front' writes",
+        )
+
+    def test_check_items_refuses_two_check_authors_of_one_msp(self):
+        self.assert_error(
+            msp_lane(lambda steps: with_named(steps, "check-author-back", msp="front")),
+            "check-author steps 'check-author-front' and 'check-author-back' both carry msp 'front'",
+        )
+
+    def test_check_items_refuses_two_check_authors_without_an_msp(self):
+        def change(steps):
+            return without_field(without_field(steps, "check-author-front", "msp"), "check-author-back", "msp")
+
+        self.assert_error(
+            msp_lane(change),
+            "check-author steps 'check-author-front' and 'check-author-back' both carry no msp",
+        )
+
+
 class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
     def amendment_steps(self, spec_path, sha):
         return [
