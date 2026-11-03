@@ -1008,5 +1008,43 @@ class RoundsRecordTest(RecordFixture, unittest.TestCase):
                 )
 
 
+
+def with_a_failed_result(record):
+    results = passed_results(record)
+    return [{**results[0], "status": "fail", "detail": "outside every write-set"}] + results[1:]
+
+
+def sealed(record, results):
+    return {**record, "feasibility": {"digest": record_checker.feasibility_digest(record, results), "results": results}}
+
+
+class FeasibilitySealTest(RecordFixture, unittest.TestCase):
+    def complete_errors(self, record):
+        return messages(self.load().check(json.dumps(record), complete=True), "error")
+
+    def test_a_result_flipped_from_fail_to_pass_is_refused(self):
+        record = base_record()
+        stored = sealed(record, with_a_failed_result(record))
+        flipped = {**stored, "feasibility": {**stored["feasibility"], "results": passed_results(record)}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(flipped))
+
+    def test_emptied_results_are_refused(self):
+        record = base_record()
+        stored = sealed(record, with_a_failed_result(record))
+        emptied = {**stored, "feasibility": {**stored["feasibility"], "results": []}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(emptied))
+
+    def test_a_dropped_failed_result_is_refused(self):
+        record = base_record()
+        results = with_a_failed_result(record)
+        stored = sealed(record, results)
+        dropped = {**stored, "feasibility": {**stored["feasibility"], "results": results[1:]}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(dropped))
+
+    def test_passing_results_sealed_without_results_are_accepted(self):
+        record = base_record()
+        stored = {**record, "feasibility": {"digest": record_checker.feasibility_digest(record), "results": passed_results(record)}}
+        self.assertEqual(tuple(self.complete_errors(stored)), ())
+
 if __name__ == "__main__":
     unittest.main()
