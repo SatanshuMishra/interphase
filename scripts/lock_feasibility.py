@@ -97,10 +97,11 @@ def has_head(root):
 def head_files(root):
     if not has_head(root):
         return ()
-    listed = git(root, "ls-tree", "-r", "-z", "--full-tree", "--name-only", "HEAD")
+    listed = git(root, "ls-tree", "-r", "-z", "--full-tree", "HEAD")
     if listed.returncode != 0:
         raise CannotStart("git ls-tree failed: " + failure_text(listed))
-    return tuple(sorted(name for name in decode(listed.stdout).split("\0") if name))
+    entries = (entry.partition("\t") for entry in decode(listed.stdout).split("\0") if entry)
+    return tuple(sorted(name for header, _, name in entries if header.split(" ")[1:2] == ["blob"]))
 
 
 def head_text(root, path):
@@ -151,16 +152,20 @@ def is_at(path, paths):
     return bool(check_items.shared_paths((path,), paths))
 
 
+def is_file_in(path, paths):
+    return posixpath.normpath(path) in frozenset(posixpath.normpath(other) for other in paths)
+
+
 def row_subject(row):
     return "%s::%s" % (row["file"], row["name"])
 
 
 def load_detail(path, step, at_head, writable, locked):
-    if is_at(path, at_head):
+    if is_file_in(path, at_head):
         return (True, "at HEAD")
-    if is_at(path, writable):
+    if is_file_in(path, writable):
         return (True, "written by %s or a Step it comes after" % step)
-    if is_at(path, locked):
+    if is_file_in(path, locked):
         return (True, "a locked path")
     return (False, "not at HEAD and written by no Step at or before %s" % step)
 
@@ -188,7 +193,7 @@ def need_results(row, writable):
 
 
 def loads_exist(row, at_head):
-    return all(is_at(path, at_head) for path in path_list(row, check_record.LOADS))
+    return all(is_file_in(path, at_head) for path in path_list(row, check_record.LOADS))
 
 
 class Checkout:
