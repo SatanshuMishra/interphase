@@ -1,7 +1,7 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:14:30.749Z
-Next ids: c4 D4 R2 S1
+Updated: 2026-11-03T23:15:47.543Z
+Next ids: c4 D4 R3 S1
 
 ## Goal
 
@@ -19,9 +19,9 @@ Interphase build: both MSPs are green with every confirmed finding fixed and bot
 
 ## Next step
 
-Run SHIP=1 ~/.mitosis/interphase/lock-only-passable-tests/run.zsh --resume --proven-head lock-feasibility=c8a20df --proven-head feasibility-instructions=7e994b5, then open, assign, comment, bind and Auto-Fix each pull request in stack order.
+When the mitosis resume ends, read its JSON result, run pipeline commit-records into its MSP worktree, then review the mitosis MSP from round 1.
 
-Needs: D1, D3.
+Needs: D2.
 
 ## Decisions in force
 
@@ -31,6 +31,7 @@ Needs: D1, D3.
 
 ## Open risks
 
+- R2 The app refuses to turn on Auto-Fix for a PR opened through GitHub MCP create_pull_request, and a session binds one PR at a time: interphase #59 is bound with Auto-Fix off, and #60 is unbound, so the owner turns Auto-Fix on and binds #60 themselves. Bears on c1.
 
 ## Settled, do not reopen
 
