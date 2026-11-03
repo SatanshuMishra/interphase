@@ -12,7 +12,8 @@ STORE_VARIABLE = "RECEIPTS_TRAJECTORY_STORE"
 CONFIG_NAME = "receipts.config.json"
 HOME_STORE = (".claude", "mcp-servers", "trajectory-kb", "data", "trajectories.jsonl")
 REPO_STORE = (".receipts", "trajectories.jsonl")
-K6_KINDS = frozenset(("kind:gate", "kind:verdict"))
+K6_FILE = "k6-outcome.schema.json"
+STORE_FIELDS = frozenset(("id", "ts"))
 FIXED = "fixed"
 GIT_TIMEOUT = 10
 URL_PARTS_RE = re.compile(r"[/:\\]")
@@ -26,6 +27,7 @@ def load_sibling(name):
 
 
 check_items = load_sibling("check_items")
+owned_formats = load_sibling("owned_formats")
 surface_probe = load_sibling("surface_probe")
 tree_guard = load_sibling("tree_guard")
 
@@ -91,31 +93,48 @@ def repository_names(root):
 
 def read_entries(store):
     try:
-        text = store.read_bytes().decode("utf-8", "replace")
+        content = store.read_bytes()
     except FileNotFoundError:
         return ()
     except (OSError, ValueError):
         return None
-    return tuple(entry for entry in (parsed(line) for line in text.splitlines() if line.strip()) if entry is not None)
-
-
-def parsed(line):
-    try:
-        entry = json.loads(line)
-    except (ValueError, RecursionError):
-        return None
-    return entry if isinstance(entry, dict) else None
-
-
-def is_k6(entry, names):
-    repo = entry.get("repo")
-    tags = entry.get("tags")
-    return (
-        isinstance(repo, str)
-        and repo.lower() in names
-        and isinstance(tags, list)
-        and any(tag in K6_KINDS for tag in tags if isinstance(tag, str))
+    lines = tuple(
+        (number, line)
+        for number, line in enumerate(content.splitlines(), start=1)
+        if line.strip()
     )
+    return tuple(checked_line(store, number, line) for number, line in lines)
+
+
+def line_problems(line):
+    try:
+        text = line.decode("utf-8")
+    except UnicodeDecodeError:
+        return None, ("not UTF-8",)
+    try:
+        value = json.loads(text)
+    except (ValueError, RecursionError):
+        return None, ("not JSON",)
+    if not isinstance(value, dict):
+        return None, ("not an object",)
+    entry = {key: item for key, item in value.items() if key not in STORE_FIELDS}
+    found = tuple(dict.fromkeys(owned_formats.errors(K6_FILE, entry)))
+    return (None, found) if found else (entry, ())
+
+
+def checked_line(store, number, line):
+    entry, problems = line_problems(line)
+    if problems:
+        print(
+            "%s: line %d: written by a receipts append_trajectory caller, does not match %s: %s"
+            % (os.path.abspath(str(store)), number, K6_FILE, "; ".join(problems)),
+            file=sys.stderr,
+        )
+    return entry
+
+
+def is_this_repository(entry, names):
+    return entry["repo"].lower() in names
 
 
 def failure_kind(entry):
@@ -137,7 +156,7 @@ def repeated_kinds(entries):
 
 def outcomes(root, store, stored):
     names = repository_names(root)
-    entries = tuple(entry for entry in stored if is_k6(entry, names))
+    entries = tuple(entry for entry in stored if entry is not None and is_this_repository(entry, names))
     return {"store": os.path.abspath(str(store)), "entries": len(entries), "repeated": repeated_kinds(entries)}
 
 
