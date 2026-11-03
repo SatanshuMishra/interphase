@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T20:14:16.827Z
+Updated: 2026-11-03T20:31:25.608Z
 Next ids: c4 D1 R1 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Not started.
+The interphase spec is written, rendered and passes the record, spec and items checks; its one spec review is running. The mitosis spec is not started.
 
 ## Next step
 
-Read the Chinook refusal evidence note in the shared notes folder, then invoke interphase:feature with Work autonomously. for the interphase half in this worktree.
+Fix the spec reviewer's issues once, re-render, hand off (Phase 10), then set up the run home ~/.mitosis/interphase/lock-only-passable-tests and build with mitosis.
 
 ## Decisions in force
 
