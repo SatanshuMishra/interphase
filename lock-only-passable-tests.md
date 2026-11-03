@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T21:06:40.622Z
+Updated: 2026-11-03T21:06:50.581Z
 Next ids: c4 D2 R2 S1
 
 ## Goal
@@ -42,3 +42,5 @@ Needs: D1.
 - Interphase checkout: this session's worktree claude/charming-satoshi-3757e3; spec files docs/specs/lock-only-passable-tests.*
 - Mitosis checkout: ~/.mitosis/checkouts/mitosis-per-msp-locks-no-limits, branch spec/per-msp-locks-no-limits
 - Refusal evidence pinned per class: side-session-notes/local_66da20f4-53bb-4093-baf3-210dfad1fed7/spec3-chinook-refusals.md
+- Mitosis run home: ~/.mitosis/mitosis/per-msp-locks-no-limits (charter, worker rules, dispatch, run.zsh awaiting its FEATURE branch, graph copy); its acceptance script ~/.mitosis/mitosis/accept.zsh has no alarm
+- Shared contracts to extend with this spec's fields: ~/.mitosis/harness-redesign/contracts/h11-interphase-record.schema.json and h12-interphase-items.schema.json
