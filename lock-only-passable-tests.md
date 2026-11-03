@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T22:46:27.950Z
+Updated: 2026-11-03T22:47:33.923Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase build: MSP lock-feasibility's round 1 blockers and advisories are fixed on mitosis/lock-feasibility at 7e55c45, each blocker with a red receipt before its fix and a clean fix-check. Round 2's diff, standard checks (no findings) and its code-reviewer and security-reviewer briefs are written; its suite is running. MSP feasibility-instructions is blocked on its failed Lane and gets its one resume after lock-feasibility's fixes merge into it. The mitosis build per-msp-locks-no-limits is running: Lane 0 per-msp-lock is ok at c750737, Lane 1 is building; its checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase build: MSP lock-feasibility's round 1 blockers and advisories are fixed on mitosis/lock-feasibility at 7e55c45, each blocker with a red receipt before its fix and a clean fix-check. Round 2's suite fails only on feasibility-instructions' 13 locked tests, its standard checks found nothing, and its code-reviewer and security-reviewer are running. MSP feasibility-instructions is blocked on its failed Lane and gets its one resume after lock-feasibility's fixes merge into it. The mitosis build per-msp-locks-no-limits is running: Lane 0 per-msp-lock is ok at c750737, Lane 1 is building; its checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
