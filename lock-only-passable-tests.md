@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:06:07.980Z
+Updated: 2026-11-03T23:06:08.901Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase build: MSP lock-feasibility is green at round 2 with its advisories C
 
 ## Next step
 
-When feasibility-instructions' suite finishes, dispatch its round 1 reviewers; when the mitosis resume ends, read its JSON result, commit-records, then review the mitosis MSP.
+When feasibility-instructions' reviewers finish, build candidates, validate, record and verdict; when the mitosis resume ends, read its JSON result, commit-records, then review the mitosis MSP.
 
 Needs: D1, D2, R1.
 
