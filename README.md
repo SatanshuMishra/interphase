@@ -154,6 +154,14 @@ A criterion marked `varies` (input, output or measured) must give each of its te
 
 A criterion for security-sensitive behaviour, or for behaviour that exists to refuse something, is a case table: its `case_table` is `security` or `refusal`, its `domains` list the classes of each input the code tells apart, and each of its tests is one row with `given`, `expect` and the classes it `covers`. Any other criterion is a few rows with no domains. The checker reports a class no row covers, domains on a criterion with no `case_table`, and a `case_table` with no domains.
 
+Check that every locked test can pass inside the Steps' files:
+
+```
+python3 /path/to/interphase/scripts/lock_feasibility.py --record docs/specs/<slug>.record.json --repo .
+```
+
+It checks against the committed HEAD that every file a locked test loads or needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record.
+
 Render the spec's Test seams section and the items file from a record:
 
 ```
