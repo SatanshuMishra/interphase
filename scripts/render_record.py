@@ -318,6 +318,7 @@ def check_author_item(record, steps, criteria, blocks, source, amendment):
     task = "\n\n".join(
         (CHECK_AUTHOR_OPENING,) + tuple(authored_block(criteria[number], blocks[number]) for number in covered)
     )
+    msp = (("msp", CHECK_AUTHOR),) if any("msp" in step for step in steps) else ()
     return dict(
         (
             ("name", CHECK_AUTHOR),
@@ -326,8 +327,9 @@ def check_author_item(record, steps, criteria, blocks, source, amendment):
             ("files", author_files(record["locked"], covered, criteria, amendment)),
             ("source", dict(source)),
             ("acceptance", []),
-            ("spec_ref", list(covered)),
         )
+        + msp
+        + (("spec_ref", list(covered)),)
         + author_assumptions(steps, covered)
     )
 

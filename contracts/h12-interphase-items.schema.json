@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "harness-redesign/h12-interphase-items.schema.json",
   "title": "H12 interphase items",
-  "description": "The Steps render_record.py writes to docs/specs/<slug>.items.json for mitosis and pipeline: when the record has a locked list, one check-author Step first, named check-author, or one per msp label named check-author-<msp> with that msp; rules that compare Steps with each other or with the spec, such as a check-author's name matching its msp, stay in check_items.py.",
+  "description": "The Steps render_record.py writes to docs/specs/<slug>.items.json for mitosis and pipeline: when the record has a locked list, one check-author Step first, named check-author, with msp check-author only when another Step carries an msp, or one per msp label named check-author-<msp> with that msp; rules that compare Steps with each other or with the spec, such as a check-author's name matching its msp, stay in check_items.py.",
   "type": "array",
   "minItems": 1,
   "items": {
@@ -214,10 +214,10 @@
             }
           },
           "then": {
-            "not": {
-              "required": [
-                "msp"
-              ]
+            "properties": {
+              "msp": {
+                "const": "check-author"
+              }
             }
           }
         },

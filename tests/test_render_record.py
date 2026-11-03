@@ -767,7 +767,7 @@ class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
         self.assertEqual(first["files"], ["tests/test_app.py"])
         self.assertEqual(first["acceptance"], [])
         self.assertEqual(first["spec_ref"], ["5.1"])
-        self.assertNotIn("msp", first)
+        self.assertEqual(first["msp"], "check-author")
 
     def test_check_author_task_holds_each_covered_block_and_its_rows(self):
         first = self.items_of(record())[0]
