@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:14:11.824Z
+Updated: 2026-11-03T23:14:16.248Z
 Next ids: c4 D4 R2 S1
 
 ## Goal
@@ -19,9 +19,9 @@ Interphase build: MSP lock-feasibility is green at round 2 with its advisories C
 
 ## Next step
 
-When feasibility-instructions' validator finishes, record, verdict and fix what it confirms; when the mitosis resume ends, read its JSON result, commit-records, then review the mitosis MSP.
+Run SHIP=1 ~/.mitosis/interphase/lock-only-passable-tests/run.zsh --resume --proven-head lock-feasibility=c8a20df --proven-head feasibility-instructions=7e994b5, then open, assign, comment, bind and Auto-Fix each pull request in stack order.
 
-Needs: D1, D2, R1.
+Needs: D1, D3.
 
 ## Decisions in force
 
@@ -31,7 +31,6 @@ Needs: D1, D2, R1.
 
 ## Open risks
 
-- R1 The standards text appended to worker rules says to give every wait a time limit, against both specs' no-caps intent; the interphase Workers received it, so review checks lock_feasibility.py for any limit, and the mitosis run's worker-rules.txt overrides that line. Bears on c1.
 
 ## Settled, do not reopen
 
