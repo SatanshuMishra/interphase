@@ -22,7 +22,7 @@ is_text = check_record.check_items.is_text
 
 
 def is_line(line):
-    return isinstance(line, dict) and not check_record.schema_check.errors(check_record.K1, line)
+    return isinstance(line, dict) and not check_record.owned_formats.errors(check_record.K1, line)
 
 
 def is_seam(seam):
