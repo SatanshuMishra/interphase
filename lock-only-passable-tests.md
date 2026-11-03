@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:29:08.020Z
+Updated: 2026-11-03T23:30:47.713Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis build per-msp-locks-no-limits has all three Steps committed on mitosis/per-msp-lock at 3831e1a. A first gating resume replayed held Lane 2 from its cleaned clone and committed the deletion of 44081 lines (exit 9, nothing pushed); the tree was reset to 3831e1a and state.json repaired (backup state.before-replay-repair.json), the bug written up in the shared note mitosis-0.11-held-lane-replay.md, and a second gating resume is running. Two tests outside every write-set, test_docs and test_referee_docs, still pin version 0.11.0 and need the review fix pass. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis build per-msp-locks-no-limits has all three Steps committed on mitosis/per-msp-lock at 3831e1a. A first gating resume replayed held Lane 2 from its cleaned clone and committed the deletion of 44081 lines (exit 9, nothing pushed); the tree was reset to 3831e1a and state.json repaired (backup state.before-replay-repair.json), the bug written up in the shared note mitosis-0.11-held-lane-replay.md. The second gating resume gated 3831e1a with 37 of 37 acceptance tests passing and left history intact (exit 6 lists only declared paths never written); commit-records added dfc8a92 with GLOSSARY.md and ADR 0016. Review round 1 has its diff, obligations, standards and briefs in ~/.mitosis/mitosis/per-msp-locks-no-limits/review/round-1, and its suite is running. Two tests outside every write-set, test_docs and test_referee_docs, still pin version 0.11.0 and need the review fix pass. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
