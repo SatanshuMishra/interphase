@@ -22,7 +22,14 @@ CHECK_AUTHOR_OPENING = (
     "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
     "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
     "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
-    "Once committed, these files are locked: no later Step may change them."
+    "Once committed, these files are locked: no later Step may change them. "
+    "Load each module from the path its row lists after Loads, never a path you infer. "
+    "Before handing back, prove each test can pass inside the planned files: write a probe implementation only "
+    "inside the files its row lists after Its probe may write, and never commit it; run the test against it until "
+    "it passes. Prove each test fails on today's code by an assertion failure or a missing module, never by a crash "
+    "in the harness such as a TypeError, a ReferenceError, or a collection, import-time or setup error. "
+    "A test that cannot pass against any probe inside those files is reported back as failed with the reason, "
+    "never weakened."
 )
 
 
@@ -275,71 +282,138 @@ def item(step, criteria, blocks, source):
     )
 
 
-def covered_numbers(steps, criteria):
-    claimed = frozenset(number for step in steps for number in step["criteria"])
-    return tuple(
-        number for number, criterion in criteria.items() if number in claimed and check_record.has_lines(criterion)
-    )
+def author_name(msp):
+    return CHECK_AUTHOR if msp is None else "%s-%s" % (CHECK_AUTHOR, msp)
 
 
-def row_line(test):
-    return "- `%s` `%s` (%s): given %s; expects %s." % (
+def unique_values(values):
+    return tuple(value for position, value in enumerate(values) if value not in values[:position])
+
+
+def owned_rows(criterion, names):
+    return tuple(test for test in criterion["tests"] if test["step"] in names)
+
+
+def locked_criteria(record):
+    return tuple(criterion for criterion in record["criteria"] if check_record.has_lines(criterion))
+
+
+def owner_steps(steps, record):
+    owners = frozenset(test["step"] for criterion in locked_criteria(record) for test in criterion["tests"])
+    return tuple(step for step in steps if step["name"] in owners)
+
+
+def ancestors(name, by_name):
+    found = frozenset((name,))
+    frontier = (name,)
+    while frontier:
+        reached = unique_values(
+            tuple(
+                earlier
+                for current in frontier
+                for earlier in by_name[current].get("after", ())
+                if earlier in by_name and earlier not in found
+            )
+        )
+        found = found | frozenset(reached)
+        frontier = reached
+    return found
+
+
+def probe_paths(test, steps):
+    by_name = {step["name"]: step for step in steps}
+    reached = ancestors(test["step"], by_name)
+    return unique_values(tuple(path for step in steps if step["name"] in reached for path in step["files"]))
+
+
+def listed_paths(head, paths):
+    return (" %s: %s." % (head, ", ".join(paths)),) if paths else ()
+
+
+def row_line(test, steps):
+    base = "- `%s` `%s` (%s): given %s; expects %s." % (
         test["file"],
         test["name"],
         test.get(check_record.CHECK, ""),
         clause(test["given"]),
         clause(test["expect"]),
     )
-
-
-def authored_block(criterion, block):
-    return "\n\n".join((block, "\n".join(row_line(test) for test in criterion["tests"])))
-
-
-def author_files(locked, covered, criteria, amendment):
-    if amendment is None:
-        return list(locked)
-    held = tuple(test["file"] for number in covered for test in criteria[number]["tests"])
-    return [path for path in locked if check_record.check_items.shared_paths((path,), held)]
-
-
-def author_assumptions(steps, covered):
-    texts = tuple(
-        text
-        for step in steps
-        if any(number in covered for number in step["criteria"])
-        for text in step.get("assumptions", ())
+    parts = (
+        listed_paths("Loads", tuple(test.get(check_record.LOADS, ())))
+        + listed_paths("Needs", tuple(test.get(check_record.NEEDS, ())))
+        + listed_paths("Its probe may write", probe_paths(test, steps))
     )
-    kept = [text for position, text in enumerate(texts) if text not in texts[:position]]
+    return base + "".join(parts)
+
+
+def authored_block(rows, block, steps):
+    return "\n\n".join((block, "\n".join(row_line(test, steps) for test in rows)))
+
+
+def unowned_paths(locked, record):
+    held = tuple(test["file"] for criterion in locked_criteria(record) for test in criterion["tests"])
+    return tuple(path for path in locked if not check_record.check_items.shared_paths((path,), held))
+
+
+def author_files(locked, rows, extra):
+    held = tuple(test["file"] for test in rows)
+    return [path for path in locked if check_record.check_items.shared_paths((path,), held) or path in extra]
+
+
+def author_assumptions(group):
+    kept = list(unique_values(tuple(text for step in group for text in step.get("assumptions", ()))))
     return (("assumptions", kept),) if kept else ()
 
 
-def check_author_item(record, steps, criteria, blocks, source, amendment):
-    covered = covered_numbers(steps, criteria)
-    if "locked" not in record or not covered:
-        return None
-    task = "\n\n".join(
-        (CHECK_AUTHOR_OPENING,) + tuple(authored_block(criteria[number], blocks[number]) for number in covered)
+def author_group(owners, msp):
+    return tuple(step for step in owners if step.get("msp") == msp)
+
+
+def check_author_item(record, steps, group, msp, blocks, source, extra):
+    names = frozenset(step["name"] for step in group)
+    proved = tuple(
+        (criterion, owned_rows(criterion, names))
+        for criterion in locked_criteria(record)
+        if owned_rows(criterion, names)
     )
-    msp = (("msp", CHECK_AUTHOR),) if any("msp" in step for step in steps) else ()
+    rows = tuple(test for _, test_rows in proved for test in test_rows)
+    task = "\n\n".join(
+        (CHECK_AUTHOR_OPENING,)
+        + tuple(authored_block(test_rows, blocks[criterion["number"]], steps) for criterion, test_rows in proved)
+    )
+    labelled = (("msp", msp),) if msp is not None else ()
     return dict(
         (
-            ("name", CHECK_AUTHOR),
+            ("name", author_name(msp)),
             ("role", CHECK_AUTHOR),
             ("task", task),
-            ("files", author_files(record["locked"], covered, criteria, amendment)),
+            ("files", author_files(record["locked"], rows, extra)),
             ("source", dict(source)),
             ("acceptance", []),
         )
-        + msp
-        + (("spec_ref", list(covered)),)
-        + author_assumptions(steps, covered)
+        + labelled
+        + (("spec_ref", [criterion["number"] for criterion, _ in proved]),)
+        + author_assumptions(group)
     )
 
 
-def after_author(entry):
+def check_author_items(record, steps, blocks, source, amendment):
+    if "locked" not in record:
+        return ()
+    owners = owner_steps(steps, record)
+    msps = unique_values(tuple(step.get("msp") for step in owners))
+    extra = frozenset(unowned_paths(record["locked"], record)) if amendment is None else frozenset()
+    return tuple(
+        check_author_item(record, steps, author_group(owners, msp), msp, blocks, source, extra if msp is None else ())
+        for msp in msps
+    )
+
+
+def after_author(entry, step, authored):
+    if step.get("msp") not in authored:
+        return entry
     rest = {key: value for key, value in entry.items() if key != "after"}
-    return {**rest, "after": [CHECK_AUTHOR] + list(entry.get("after", ()))}
+    return {**rest, "after": [author_name(step.get("msp"))] + list(entry.get("after", ()))}
 
 
 def render(record_text, spec_text, spec_path, amendment=None):
@@ -367,11 +441,10 @@ def render(record_text, spec_text, spec_path, amendment=None):
     ordered = seams + tuple(blocks[criterion["number"]] for criterion in record["criteria"])
     new_spec_text = replace_section(spec_text, lines, sections[0][0], ordered)
     source = {"path": spec_path, "sha256": hashlib.sha256(new_spec_text.encode("utf-8")).hexdigest()}
-    items = [item(step, criteria, blocks, source) for step in steps]
-    author = check_author_item(record, steps, criteria, blocks, source, amendment)
-    if author is None:
-        return ((), new_spec_text, items)
-    return ((), new_spec_text, [author] + [after_author(entry) for entry in items])
+    authors = check_author_items(record, steps, blocks, source, amendment)
+    authored = frozenset(author.get("msp") for author in authors)
+    items = [after_author(item(step, criteria, blocks, source), step, authored) for step in steps]
+    return ((), new_spec_text, list(authors) + items)
 
 
 def parse_arguments(argv):

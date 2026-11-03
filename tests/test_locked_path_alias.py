@@ -55,7 +55,7 @@ class LockedPathAliasTest(unittest.TestCase):
             code, output, items_path = lane.render(folder, lane.complete_record())
             self.assertEqual(code, 0, output)
             items = lane.read_items(items_path)
-            self.assertIn(CANON, lane.by_name(items)[lane.CHECK_AUTHOR]["files"])
+            self.assertIn(CANON, lane.by_name(items)[lane.BUILD_AUTHOR]["files"])
             for alias in ALIASES:
                 with self.subTest(alias=alias):
                     path = pathlib.Path(folder) / "alias.items.json"

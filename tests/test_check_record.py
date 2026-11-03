@@ -814,6 +814,32 @@ class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
             ("step name 'check-author' is reserved for the rendered check-author Step",),
         )
 
+    def test_an_owning_step_whose_msp_is_not_kebab_case_is_refused_when_complete(self):
+        for msp in ("Alpha", "alpha_1", "alpha-", "alpha\n"):
+            with self.subTest(msp=msp):
+                record = change(base_record(), "steps", 0, msp=msp)
+                self.assertEqual(self.errors(record, False), ())
+                self.assertEqual(
+                    self.errors(record, True),
+                    ("step 'build-app' owns a locked row and has msp %r, which is not lowercase kebab-case" % msp,),
+                )
+
+    def test_a_locked_file_holding_rows_of_a_labelled_and_an_unlabelled_step_is_refused_when_complete(self):
+        tune = {"name": "tune-app", "files": ["src/tune.py"], "criteria": ["5.1"], "task": "Tune it.", "msp": "alpha"}
+        record = append(base_record(), "steps", tune)
+        tests = [TEST_ENTRY, {**PRESENT_ENTRY, "step": "tune-app"}]
+        record = replace_at(record, "criteria", 0, {**record["criteria"][0], "tests": tests})
+        self.assertEqual(self.errors(record, False), ())
+        self.assertEqual(
+            self.errors(record, True),
+            (
+                "locked file tests/test_app.py holds rows of Steps of no msp and msp 'alpha'; "
+                "each locked file belongs to one msp",
+            ),
+        )
+        labelled = change(record, "steps", 0, msp="alpha")
+        self.assertEqual(self.errors(labelled, True), ())
+
 
 class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
     def test_a_stopped_record_with_its_stop_has_the_shape_but_is_not_complete(self):

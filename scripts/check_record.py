@@ -54,6 +54,7 @@ STEP_KEYS = (
 )
 STEP_REQUIRED = ("name", "files", "criteria")
 RESERVED_STEP = "check-author"
+MSP_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 RENDERED_KEYS = ("source", "acceptance", "spec_ref")
 NUMBER_RE = re.compile(r"[0-9]+\.[0-9]+")
 ROUND_KEYS = ("kind", "questions", "changed")
@@ -698,10 +699,14 @@ def check_step_keys(who, step):
     )
 
 
+def is_reserved(name):
+    return isinstance(name, str) and (name == RESERVED_STEP or name.startswith(RESERVED_STEP + "-"))
+
+
 def check_reserved_name(step):
-    if step.get("name") != RESERVED_STEP:
+    if not is_reserved(step.get("name")):
         return ()
-    return (error("step name %r is reserved for the rendered %s Step" % (RESERVED_STEP, RESERVED_STEP)),)
+    return (error("step name %r is reserved for the rendered %s Step" % (step["name"], RESERVED_STEP)),)
 
 
 def check_step_criteria(who, step, numbers):
@@ -830,6 +835,57 @@ def check_locked(record, criteria, steps, complete):
         for path in check_items.shared_paths(check_items.step_files(step), locked)
     )
     return shape + written
+
+
+def locked_rows(criteria):
+    return tuple(test for criterion in criteria if has_lines(criterion) for test in criterion_tests(criterion))
+
+
+def msp_label(step):
+    msp = step.get("msp")
+    return "msp %r" % msp if isinstance(msp, str) else "no msp"
+
+
+def row_labels(rows, by_name):
+    labels = tuple(msp_label(by_name[test["step"]]) for test in rows if test["step"] in by_name)
+    return tuple(text for position, text in enumerate(labels) if text not in labels[:position])
+
+
+def distinct_paths(paths):
+    texts = tuple(path for path in paths if isinstance(path, str))
+    keys = tuple(check_items.path_key(path) for path in texts)
+    return tuple(path for position, path in enumerate(texts) if keys[position] not in keys[:position])
+
+
+def rows_in(path, rows):
+    key = check_items.path_key(path)
+    return tuple(test for test in rows if check_items.path_key(test["file"]) == key)
+
+
+def check_locked_msps(record, criteria, steps, complete):
+    paths = record.get("locked")
+    if not complete or not isinstance(paths, list):
+        return ()
+    rows = locked_rows(criteria)
+    by_name = steps_by_name(steps)
+    return tuple(
+        error("locked file %s holds rows of Steps of %s; each locked file belongs to one msp" % (path, " and ".join(labels)))
+        for path in distinct_paths(paths)
+        for labels in (row_labels(rows_in(path, rows), by_name),)
+        if len(labels) > 1
+    )
+
+
+def check_owner_msps(criteria, steps, complete):
+    if not complete:
+        return ()
+    owners = frozenset(test["step"] for test in locked_rows(criteria))
+    return tuple(
+        error("%s owns a locked row and has msp %r, which is not lowercase kebab-case" % (check_items.label(index, step), step["msp"]))
+        for index, step in enumerate(steps)
+        if isinstance(step, dict) and step.get("name") in owners
+        if isinstance(step.get("msp"), str) and not MSP_RE.fullmatch(step["msp"])
+    )
 
 
 def is_entry(entry, keys):
@@ -1039,6 +1095,8 @@ def check(text, complete=False):
         + check_criteria(criteria, seams, steps, record_locked(record), complete)
         + check_steps(steps, criteria)
         + check_locked(record, criteria, steps, complete)
+        + check_locked_msps(record, criteria, steps, complete)
+        + check_owner_msps(criteria, steps, complete)
         + check_probes(record)
         + check_surface_probes(record, seams, complete)
         + check_unaffected(record)
