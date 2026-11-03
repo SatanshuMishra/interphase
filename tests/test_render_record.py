@@ -350,7 +350,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 self.assertEqual(step["source"]["path"], spec_path)
                 self.assertEqual(step["source"]["sha256"], hashlib.sha256(spec_bytes).hexdigest())
         steps = {step["name"]: step for step in items}
-        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
+        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total", "check": "C1.1"}])
         self.assertEqual(steps["build-app"]["spec_ref"], ["5.1"])
         self.assertEqual(steps["tune-app"]["acceptance"], [])
         self.assertEqual(steps["tune-app"]["spec_ref"], ["5.2"])
@@ -404,9 +404,9 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 self.assertEqual(frozenset(step) - ITEM_FIELDS, frozenset())
                 self.assertEqual(sorted(step["source"]), ["path", "sha256"])
                 for entry in step["acceptance"]:
-                    self.assertEqual(sorted(entry), ["file", "test"])
+                    self.assertEqual(sorted(entry), ["check", "file", "test"])
         steps = {step["name"]: step for step in items}
-        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
+        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total", "check": "C1.1"}])
         self.assertIn("| 60 cases, 3 runs each, pass rate at least 0.9 |", steps["build-app"]["task"])
 
     def test_render_refuses_what_the_complete_check_rejects(self):

@@ -230,17 +230,13 @@ def task_text(step, blocks):
 
 
 def acceptance(step, criteria):
-    pairs = tuple(
-        (test["file"], test["name"])
+    entries = tuple(
+        {"file": test["file"], "test": test["name"], **({"check": test["check"]} if "check" in test else {})}
         for number in step["criteria"]
         for test in criteria[number]["tests"]
         if test["step"] == step["name"]
     )
-    return [
-        {"file": file, "test": name}
-        for position, (file, name) in enumerate(pairs)
-        if (file, name) not in pairs[:position]
-    ]
+    return [entry for position, entry in enumerate(entries) if entry not in entries[:position]]
 
 
 def within(step, names):
