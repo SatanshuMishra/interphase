@@ -810,8 +810,8 @@ class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
         self.assertEqual(first["task"], CHECK_AUTHOR_OPENING + "\n\n" + BLOCK_5_1 + "\n\n" + TOTAL_ROW_LINE)
 
     def test_check_author_has_no_msp_when_no_step_has_one(self):
-        step = {key: value for key, value in record()["steps"][0].items() if key != "msp"}
-        first = self.items_of(replace_step(record(), 0, step))[0]
+        steps = [{key: value for key, value in step.items() if key != "msp"} for step in record()["steps"]]
+        first = self.items_of({**record(), "steps": steps})[0]
         self.assertNotIn("msp", first)
 
     def test_check_author_gathers_the_assumptions_of_covering_steps_once(self):

@@ -369,7 +369,7 @@ def author_group(owners, msp):
     return tuple(step for step in owners if step.get("msp") == msp)
 
 
-def check_author_item(record, steps, group, msp, blocks, source, extra):
+def check_author_item(record, steps, group, msp, label, blocks, source, extra):
     names = frozenset(step["name"] for step in group)
     proved = tuple(
         (criterion, owned_rows(criterion, names))
@@ -381,7 +381,7 @@ def check_author_item(record, steps, group, msp, blocks, source, extra):
         (CHECK_AUTHOR_OPENING,)
         + tuple(authored_block(test_rows, blocks[criterion["number"]], steps) for criterion, test_rows in proved)
     )
-    labelled = (("msp", msp),) if msp is not None else ()
+    labelled = (("msp", label),) if label is not None else ()
     return dict(
         (
             ("name", author_name(msp)),
@@ -397,23 +397,73 @@ def check_author_item(record, steps, group, msp, blocks, source, extra):
     )
 
 
+def loader_msps(path, owners, record):
+    by_name = {step["name"]: step for step in owners}
+    return unique_values(
+        tuple(
+            by_name[test["step"]].get("msp")
+            for criterion in locked_criteria(record)
+            for test in criterion["tests"]
+            if test["step"] in by_name
+            if check_record.check_items.shared_paths((path,), tuple(test.get(check_record.LOADS, ())))
+        )
+    )
+
+
+def unowned_by_msp(record, owners, amendment):
+    if amendment is not None:
+        return {}
+    placed = tuple(
+        (path, loaders[0] if len(loaders) == 1 else None)
+        for path in unowned_paths(record["locked"], record)
+        for loaders in (loader_msps(path, owners, record),)
+    )
+    return {msp: frozenset(path for path, owner in placed if owner == msp) for _, msp in placed}
+
+
+def author_label(msp, msps, steps):
+    if msp is not None:
+        return msp
+    if msps == (None,) and any("msp" in step for step in steps):
+        return CHECK_AUTHOR
+    return None
+
+
 def check_author_items(record, steps, blocks, source, amendment):
     if "locked" not in record:
         return ()
     owners = owner_steps(steps, record)
     msps = unique_values(tuple(step.get("msp") for step in owners))
-    extra = frozenset(unowned_paths(record["locked"], record)) if amendment is None else frozenset()
+    extra = unowned_by_msp(record, owners, amendment)
     return tuple(
-        check_author_item(record, steps, author_group(owners, msp), msp, blocks, source, extra if msp is None else ())
+        check_author_item(
+            record,
+            steps,
+            author_group(owners, msp),
+            msp,
+            author_label(msp, msps, steps),
+            blocks,
+            source,
+            extra.get(msp, frozenset()),
+        )
         for msp in msps
     )
 
 
-def after_author(entry, step, authored):
-    if step.get("msp") not in authored:
+def author_for(step, authors):
+    own = author_name(step.get("msp"))
+    if any(author["name"] == own for author in authors):
+        return own
+    if any(author.get("msp") == CHECK_AUTHOR for author in authors):
+        return CHECK_AUTHOR
+    return None
+
+
+def after_author(entry, author):
+    if author is None:
         return entry
     rest = {key: value for key, value in entry.items() if key != "after"}
-    return {**rest, "after": [author_name(step.get("msp"))] + list(entry.get("after", ()))}
+    return {**rest, "after": [author] + list(entry.get("after", ()))}
 
 
 def render(record_text, spec_text, spec_path, amendment=None):
@@ -442,8 +492,7 @@ def render(record_text, spec_text, spec_path, amendment=None):
     new_spec_text = replace_section(spec_text, lines, sections[0][0], ordered)
     source = {"path": spec_path, "sha256": hashlib.sha256(new_spec_text.encode("utf-8")).hexdigest()}
     authors = check_author_items(record, steps, blocks, source, amendment)
-    authored = frozenset(author.get("msp") for author in authors)
-    items = [after_author(item(step, criteria, blocks, source), step, authored) for step in steps]
+    items = [after_author(item(step, criteria, blocks, source), author_for(step, authors)) for step in steps]
     return ((), new_spec_text, list(authors) + items)
 
 

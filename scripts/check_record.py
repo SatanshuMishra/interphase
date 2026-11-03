@@ -876,6 +876,48 @@ def check_locked_msps(record, criteria, steps, complete):
     )
 
 
+def loading_rows(path, rows):
+    return tuple(
+        test
+        for test in rows
+        if isinstance(test.get(LOADS), list)
+        if check_items.shared_paths((path,), tuple(load for load in test[LOADS] if isinstance(load, str)))
+    )
+
+
+def unheld_locked_error(path, loader_labels, owner_labels):
+    if len(loader_labels) > 1:
+        return (
+            error(
+                "locked file %s holds no row and is loaded by rows of Steps of %s; each locked file belongs to one msp"
+                % (path, " and ".join(loader_labels))
+            ),
+        )
+    if not loader_labels and owner_labels and "no msp" not in owner_labels:
+        return (
+            error(
+                "locked file %s holds no row and no locked row loads it, so no msp's check-author would write it"
+                % path
+            ),
+        )
+    return ()
+
+
+def check_unheld_locked(record, criteria, steps, complete):
+    paths = record.get("locked")
+    if not complete or not isinstance(paths, list):
+        return ()
+    rows = locked_rows(criteria)
+    by_name = steps_by_name(steps)
+    owner_labels = row_labels(rows, by_name)
+    return tuple(
+        found
+        for path in distinct_paths(paths)
+        if not rows_in(path, rows)
+        for found in unheld_locked_error(path, row_labels(loading_rows(path, rows), by_name), owner_labels)
+    )
+
+
 def check_owner_msps(criteria, steps, complete):
     if not complete:
         return ()
@@ -1102,6 +1144,7 @@ def check(text, complete=False):
         + check_steps(steps, criteria)
         + check_locked(record, criteria, steps, complete)
         + check_locked_msps(record, criteria, steps, complete)
+        + check_unheld_locked(record, criteria, steps, complete)
         + check_owner_msps(criteria, steps, complete)
         + check_probes(record)
         + check_surface_probes(record, seams, complete)
