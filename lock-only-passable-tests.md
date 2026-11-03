@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T21:23:54.697Z
+Updated: 2026-11-03T21:25:54.865Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-The interphase build is running; mitosis planned it as two MSPs, lock-feasibility and feasibility-instructions. The mitosis spec per-msp-locks-no-limits is rendered (seven criteria, four Steps, one MSP) and its one spec review is running.
+Two builds are running: the interphase spec as MSPs lock-feasibility and feasibility-instructions, and the handed-off mitosis spec per-msp-locks-no-limits as one MSP with three Lanes (per-msp-lock, no-limits-nothing-waits, release-0-12). The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records.
 
 ## Next step
 
-Plan and build the mitosis spec from ~/.mitosis/mitosis/per-msp-locks-no-limits/run.zsh; read the interphase build's JSON result and start review round 1 of each MSP.
+When each build ends, read its JSON result, run pipeline commit-records into its first MSP, and start review round 1.
 
 Needs: D1, D2, R1.
 
