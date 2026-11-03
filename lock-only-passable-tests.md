@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:14:16.248Z
+Updated: 2026-11-03T23:14:30.749Z
 Next ids: c4 D4 R2 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase build: MSP lock-feasibility is green at round 2 with its advisories C8 and C9 fixed at 27a56bc, plus a fix with receipt for the list-valued Step name crash the validator rejected only as predating round 2. MSP feasibility-instructions is committed on that head at 4d4c795 with its gate 6 of 6, its six proofs recorded; its round 1 diff, obligations, standard checks (none) and its suite passes, the conformance-auditor finds 5.8 met, the code-reviewer reports F1 (MEDIUM, README still describes one check-author for the run) and F2 and F3 (LOW, instruction wording), and its validator is running. The mitosis build per-msp-locks-no-limits is on its one resume: Lane 0 per-msp-lock is ok at c750737; Lane 1 no-limits-nothing-waits failed with four test-only fixes left, because a hook refuses edits to a test file once a session has seen it fail; its charter now holds those four fixes and the first attempt's diff, and Lane 2 release-0-12 waits on it. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase build: both MSPs are green with every confirmed finding fixed and both release checks passing at 0.15.0; lock-feasibility's head is c8a20df and feasibility-instructions' head is 7e994b5; the ship run is pushing them. The mitosis build per-msp-locks-no-limits is on its one resume: Lane 0 per-msp-lock is ok at c750737; Lane 1 no-limits-nothing-waits failed with four test-only fixes left, because a hook refuses edits to a test file once a session has seen it fail; its charter now holds those four fixes and the first attempt's diff, and Lane 2 release-0-12 waits on it. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
