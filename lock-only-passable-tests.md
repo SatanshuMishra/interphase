@@ -1,7 +1,7 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T20:31:34.235Z
-Next ids: c4 D1 R1 S1
+Updated: 2026-11-03T20:43:24.280Z
+Next ids: c4 D2 R1 S1
 
 ## Goal
 
@@ -22,6 +22,8 @@ The interphase spec is written, rendered and passes the record, spec and items c
 Fix the spec reviewer's issues once, re-render, hand off (Phase 10), then set up the run home ~/.mitosis/interphase/lock-only-passable-tests and build with mitosis.
 
 ## Decisions in force
+
+- D1 Hand-off boundary: build the interphase spec lock-only-passable-tests as one MSP: Build now with mitosis 0.11.0 as one MSP from feat/lock-only-passable-tests, running plan, build, review and ship in this session.
 
 ## Open risks
 
