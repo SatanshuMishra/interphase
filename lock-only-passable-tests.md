@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T22:44:22.045Z
+Updated: 2026-11-03T22:46:26.096Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase build: MSP lock-feasibility's round 1 verdict was loop; every blocker (U1, C2, C3, C4, S1) and advisory (C1, C5, C6, C7) is fixed on mitosis/lock-feasibility, from 3c8332a to 7e55c45, each blocker with a red receipt committed before its fix, and every fix-check reported nothing reverted or broken. C3's fix restored tests/test_render_record.py's no-msp test to its name's meaning after this build had given tune-app an msp. MSP feasibility-instructions is blocked on its failed Lane and gets its one resume after lock-feasibility's fixes merge into it. The mitosis build per-msp-locks-no-limits is running: Lane 0 per-msp-lock is ok at c750737, Lane 1 is building; its checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields; H12's rule refusing an msp on the plain check-author still needs to allow msp check-author.
+Interphase build: MSP lock-feasibility's round 1 blockers and advisories are fixed on mitosis/lock-feasibility at 7e55c45, each blocker with a red receipt before its fix and a clean fix-check. Round 2's diff, standard checks (no findings) and its code-reviewer and security-reviewer briefs are written; its suite is running. MSP feasibility-instructions is blocked on its failed Lane and gets its one resume after lock-feasibility's fixes merge into it. The mitosis build per-msp-locks-no-limits is running: Lane 0 per-msp-lock is ok at c750737, Lane 1 is building; its checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
-Run lock-feasibility's review round 2 over 3c8332a..7e55c45 with code-reviewer and security-reviewer, then merge the fixes into feasibility-instructions and resume it.
+When round 2's suite finishes, dispatch its code-reviewer and security-reviewer, then validate, record and verdict.
 
 Needs: D1, D2, R1.
 
