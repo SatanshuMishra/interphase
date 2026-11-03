@@ -241,6 +241,14 @@ def steps_by_name(steps):
     }
 
 
+def steps_through(step_name, steps):
+    by_name = steps_by_name(steps)
+    if step_name not in by_name:
+        return ()
+    reached = frozenset((step_name,)) | check_items.reachable(check_items.after_graph(steps), step_name)
+    return tuple(step for name, step in by_name.items() if name in reached)
+
+
 def criterion_label(index, criterion):
     number = criterion.get("number") if isinstance(criterion, dict) else None
     return "criterion %s" % number if check_items.is_text(number) else "criterion %d" % (index + 1)

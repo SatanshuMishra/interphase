@@ -303,27 +303,8 @@ def owner_steps(steps, record):
     return tuple(step for step in steps if step["name"] in owners)
 
 
-def ancestors(name, by_name):
-    found = frozenset((name,))
-    frontier = (name,)
-    while frontier:
-        reached = unique_values(
-            tuple(
-                earlier
-                for current in frontier
-                for earlier in by_name[current].get("after", ())
-                if earlier in by_name and earlier not in found
-            )
-        )
-        found = found | frozenset(reached)
-        frontier = reached
-    return found
-
-
 def probe_paths(test, steps):
-    by_name = {step["name"]: step for step in steps}
-    reached = ancestors(test["step"], by_name)
-    return unique_values(tuple(path for step in steps if step["name"] in reached for path in step["files"]))
+    return unique_values(tuple(path for step in check_record.steps_through(test["step"], steps) for path in step["files"]))
 
 
 def listed_paths(head, paths):

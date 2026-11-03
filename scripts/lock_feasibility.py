@@ -131,21 +131,11 @@ def path_list(row, key):
 
 def locked_rows(record):
     criteria = record.get("criteria")
-    return tuple(
-        row
-        for criterion in (criteria if isinstance(criteria, list) else ())
-        if check_record.has_lines(criterion)
-        for row in check_record.criterion_tests(criterion)
-    )
+    return check_record.locked_rows(criteria if isinstance(criteria, list) else ())
 
 
 def written_files(step_name, steps):
-    by_name = check_record.steps_by_name(steps)
-    if step_name not in by_name:
-        return frozenset()
-    graph = check_items.after_graph(steps)
-    owners = frozenset((step_name,)) | check_items.reachable(graph, step_name)
-    return frozenset(path for owner in owners if owner in by_name for path in check_items.step_files(by_name[owner]))
+    return frozenset(path for step in check_record.steps_through(step_name, steps) for path in check_items.step_files(step))
 
 
 def is_at(path, paths):
