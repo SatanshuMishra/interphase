@@ -93,6 +93,31 @@ def load_referee():
 referee = load_referee()
 
 
+def load_check_record():
+    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "check_record.py"
+    spec = importlib.util.spec_from_file_location("check_record", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+record_checker = load_check_record()
+
+
+def feasible(record):
+    if not isinstance(record.get("locked"), list):
+        return record
+    results = [
+        {"check": key, "subject": "%s::%s %s" % (entry["file"], entry["name"], path), "status": "pass", "detail": key}
+        for criterion in record["criteria"]
+        if criterion.get("acceptance")
+        for entry in criterion["tests"]
+        for key in ("loads", "needs")
+        for path in entry.get(key, [])
+    ]
+    return {**record, "feasibility": {"digest": record_checker.feasibility_digest(record), "results": results}}
+
+
 def vmlab_listing(machines):
     return "#!/bin/sh\nprintf '%%s\\n' '%s'\nexit 0\n" % machines
 
@@ -109,6 +134,8 @@ def row(line, position):
         "expect": line["pass"],
         "step": "build-surface",
         "check": line["id"],
+        "loads": ["scripts/drive.py"],
+        "needs": ["scripts/drive.py"],
     }
 
 
@@ -187,7 +214,7 @@ def inherited_environment(home):
 
 def write_record(base, record):
     path = pathlib.Path(base) / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasible(record)), encoding="utf-8")
     return path
 
 

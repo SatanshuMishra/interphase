@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -9,7 +10,7 @@ COMPLETE = "--complete"
 RECORD_KEYS = ("seams", "criteria", "steps")
 STOPPED = "stopped"
 STATUSES = ("in-progress", "handed-off", STOPPED)
-OPTIONAL_RECORD_KEYS = ("status", "rounds", "locked", "probes", "stop", "outcomes")
+OPTIONAL_RECORD_KEYS = ("status", "rounds", "locked", "probes", "stop", "outcomes", "unaffected", "feasibility")
 SEAM_KEYS = ("name", "interface", "catches", "misses", "builder_runs")
 CRITERION_KEYS = (
     "number",
@@ -27,6 +28,12 @@ CRITERION_REQUIRED = ("number", "title", "text", "seam", "tests")
 CASE_TABLES = ("security", "refusal")
 DOMAIN_KEYS = ("name", "over", "classes")
 TEST_KEYS = ("file", "name", "given", "expect", "step")
+LOADS = "loads"
+NEEDS = "needs"
+ABSENT = "absent"
+ROW_PATH_KEYS = (LOADS, NEEDS)
+ROW_FEASIBILITY_KEYS = ROW_PATH_KEYS + (ABSENT,)
+ABSENT_KEYS = ("command", "shows")
 COVERS = "covers"
 CHECK = "check"
 VARIES = ("input", "output", "measured")
@@ -57,6 +64,15 @@ STOP_KEYS = ("phase", "reason")
 OUTCOME_KEYS = ("store", "entries", "repeated")
 REPEATED_KEYS = ("kind", "count")
 NOT_UNICODE = "record holds text that is not valid Unicode"
+UNAFFECTED_KEYS = ("file", "reason")
+FEASIBILITY_KEYS = ("digest", "results")
+RESULT_KEYS = ("check", "subject", "status", "detail")
+RESULT_STATUSES = ("pass", "fail")
+DIGEST_RE = re.compile(r"[0-9a-f]{64}")
+DIGEST_PARTS = ("seams", "criteria", "locked", "unaffected")
+DIGEST_STEP_KEYS = ("name", "files", "after", "msp")
+NO_FEASIBILITY = "record has a locked list but no feasibility results; run lock_feasibility.py"
+STALE_FEASIBILITY = "the record changed since lock_feasibility.py ran; run it again"
 
 
 def load_sibling(name):
@@ -365,6 +381,42 @@ def check_check(tag, test, criterion, complete):
     return (error("%s names unknown acceptance line %s" % (tag, test[CHECK])),)
 
 
+def is_path_list(value):
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(check_items.is_text(path) and not check_items.bad_path(path) for path in value)
+    )
+
+
+def check_row_paths(tag, test, criterion, complete):
+    shapes = tuple(
+        error("%s has %s that is not a non-empty list of repository-relative paths" % (tag, key))
+        for key in ROW_PATH_KEYS
+        if key in test and not is_path_list(test[key])
+    )
+    required = (
+        tuple(
+            error("%s lacks %s, which every row of a criterion with acceptance lines states" % (tag, key))
+            for key in ROW_PATH_KEYS
+            if key not in test
+        )
+        if complete and has_lines(criterion)
+        else ()
+    )
+    return shapes + required
+
+
+def is_absent(value):
+    return is_entry(value, ABSENT_KEYS) and all(check_items.is_text(value[key]) for key in ABSENT_KEYS)
+
+
+def check_absent(tag, test):
+    if ABSENT not in test or is_absent(test[ABSENT]):
+        return ()
+    return (error("%s has absent that is not an object with exactly non-empty string command and shows" % tag),)
+
+
 def check_test(who, position, test, criterion, by_name, locked, complete):
     tag = entry_label(who, position, test)
     if not well_formed(test):
@@ -373,6 +425,7 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
     tabled = "case_table" in criterion
     allowed = (
         TEST_KEYS
+        + ROW_FEASIBILITY_KEYS
         + ((COVERS,) if tabled else ())
         + (POPULATION_KEYS if varying else ())
         + ((CHECK,) if has_lines(criterion) else ())
@@ -382,6 +435,8 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
         unknown_keys(tag, test, allowed)
         + check_covers(tag, test, criterion)
         + check_check(tag, test, criterion, complete)
+        + check_row_paths(tag, test, criterion, complete)
+        + check_absent(tag, test)
         + population
         + check_test_step(tag, test, criterion, by_name, locked)
     )
@@ -844,6 +899,83 @@ def check_surface_probes(record, seams, complete):
     )
 
 
+def check_unaffected_entry(index, entry):
+    if is_entry(entry, UNAFFECTED_KEYS) and all(check_items.is_text(entry[key]) for key in UNAFFECTED_KEYS):
+        return ()
+    return (
+        error(
+            "record unaffected entry %d is not an object with exactly non-empty string file and reason" % (index + 1)
+        ),
+    )
+
+
+def check_unaffected(record):
+    if "unaffected" not in record:
+        return ()
+    entries = record["unaffected"]
+    if not isinstance(entries, list):
+        return (error("record unaffected is not a list"),)
+    return tuple(finding for index, entry in enumerate(entries) for finding in check_unaffected_entry(index, entry))
+
+
+def digest_step(step):
+    return {key: step[key] for key in DIGEST_STEP_KEYS if key in step} if isinstance(step, dict) else step
+
+
+def feasibility_digest(record):
+    judged = {key: record.get(key, []) for key in DIGEST_PARTS}
+    listed = record.get("steps", [])
+    steps = [digest_step(step) for step in listed] if isinstance(listed, list) else listed
+    canonical = json.dumps({**judged, "steps": steps}, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def is_result(entry):
+    return (
+        is_entry(entry, RESULT_KEYS)
+        and all(check_items.is_text(entry[key]) for key in RESULT_KEYS)
+        and entry["status"] in RESULT_STATUSES
+    )
+
+
+def is_feasibility(value):
+    return (
+        is_entry(value, FEASIBILITY_KEYS)
+        and isinstance(value["digest"], str)
+        and DIGEST_RE.fullmatch(value["digest"]) is not None
+        and isinstance(value["results"], list)
+        and all(is_result(entry) for entry in value["results"])
+    )
+
+
+def check_feasibility_shape(record):
+    if "feasibility" not in record or is_feasibility(record["feasibility"]):
+        return ()
+    return (
+        error(
+            "record feasibility is not an object with exactly a digest of 64 lowercase hex digits and results, "
+            "a list of objects with exactly non-empty string check, subject, status ('pass' or 'fail') and detail"
+        ),
+    )
+
+
+def check_feasibility(record, complete):
+    if not complete or not isinstance(record.get("locked"), list):
+        return ()
+    if "feasibility" not in record:
+        return (error(NO_FEASIBILITY),)
+    feasibility = record["feasibility"]
+    if not is_feasibility(feasibility):
+        return ()
+    stale = () if feasibility["digest"] == feasibility_digest(record) else (error(STALE_FEASIBILITY),)
+    failed = tuple(
+        error("feasibility check %s of %s failed: %s" % (entry["check"], entry["subject"], entry["detail"]))
+        for entry in feasibility["results"]
+        if entry["status"] != "pass"
+    )
+    return stale + failed
+
+
 def check_stopped(record, complete):
     if not complete or record.get("status") != STOPPED:
         return ()
@@ -909,6 +1041,9 @@ def check(text, complete=False):
         + check_locked(record, criteria, steps, complete)
         + check_probes(record)
         + check_surface_probes(record, seams, complete)
+        + check_unaffected(record)
+        + check_feasibility_shape(record)
+        + check_feasibility(record, complete)
         + check_stop(record)
         + check_stopped(record, complete)
         + check_outcomes(record, complete)

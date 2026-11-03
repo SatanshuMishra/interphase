@@ -42,6 +42,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 REPEATED_KIND = "stale cache key"
 SPEC_HEAD = (
@@ -72,6 +74,26 @@ def load_referee():
 referee = load_referee()
 
 
+def load_check_record():
+    path = repository_root() / "scripts" / "check_record.py"
+    spec = importlib.util.spec_from_file_location("check_record", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def feasible(record):
+    results = [
+        {"check": key, "subject": "%s::%s %s" % (row["file"], row["name"], path), "status": "pass", "detail": key}
+        for criterion in record["criteria"]
+        for row in criterion["tests"]
+        for key in ("loads", "needs")
+        for path in row[key]
+    ]
+    digest = load_check_record().feasibility_digest(record)
+    return {**record, "feasibility": {"digest": digest, "results": results}}
+
+
 def complete_record(outcomes):
     record = {
         "status": "in-progress",
@@ -98,7 +120,8 @@ def complete_record(outcomes):
             }
         ],
     }
-    return json.loads(json.dumps(record if outcomes is None else {**record, "outcomes": outcomes}))
+    checked = feasible(record)
+    return json.loads(json.dumps(checked if outcomes is None else {**checked, "outcomes": outcomes}))
 
 
 def arguments_of(repo, outcome, root_cause=None, symptom=None):

@@ -14,6 +14,8 @@ TEST_ENTRY = {
     "expect": "3 is returned",
     "step": "build-app",
     "check": "C1.1",
+    "loads": ["src/app.py"],
+    "needs": ["src/app.py"],
 }
 UNCHECKED_ENTRY = {key: value for key, value in TEST_ENTRY.items() if key != "check"}
 PRESENT_ENTRY = {**TEST_ENTRY, "name": "test_present", "given": "a total of 4", "expect": "4 is returned"}
@@ -55,6 +57,45 @@ PHONE_CRITERION = {
     "tests": [],
     "unproven": "needs the phone",
 }
+
+
+def load_check_record():
+    root = pathlib.Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("check_record", str(root / "scripts" / "check_record.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+record_checker = load_check_record()
+
+
+def listed(value):
+    return value if isinstance(value, list) else []
+
+
+def passed_results(record):
+    return [
+        {"check": key, "subject": "%s::%s %s" % (row["file"], row["name"], path), "status": "pass", "detail": key}
+        for criterion in listed(record.get("criteria"))
+        if isinstance(criterion, dict) and criterion.get("acceptance")
+        for row in listed(criterion.get("tests"))
+        if isinstance(row, dict) and isinstance(row.get("file"), str) and isinstance(row.get("name"), str)
+        for key in ("loads", "needs")
+        for path in listed(row.get(key))
+        if isinstance(path, str)
+    ]
+
+
+def feasible(record):
+    if not isinstance(record, dict) or not isinstance(record.get("locked"), list):
+        return record
+    feasibility = {"digest": record_checker.feasibility_digest(record), "results": passed_results(record)}
+    return {**record, "feasibility": feasibility}
+
+
+def record_text(record):
+    return json.dumps(feasible(record))
 
 
 def base_record():
@@ -132,7 +173,7 @@ class RecordFixture:
         return module
 
     def check(self, record, complete):
-        return self.load().check(json.dumps(record), complete=complete)
+        return self.load().check(record_text(record), complete=complete)
 
     def run_main(self, argv, content=None):
         module = self.load()
@@ -161,7 +202,7 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
                 self.assertEqual(self.check(record, True), ())
                 for argv in (["--complete", "record.json"], ["record.json", "--complete"]):
                     with self.subTest(argv=argv):
-                        code, out, _ = self.run_main(argv, json.dumps(record))
+                        code, out, _ = self.run_main(argv, record_text(record))
                         self.assertEqual(code, 0)
                         self.assertEqual(out, "")
 
@@ -215,9 +256,9 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
         strict = self.check(empty, True)
         self.assertEqual(messages(strict, "error"), expected)
         self.assertEqual(len(strict), 3, strict)
-        code, _, _ = self.run_main(["record.json"], json.dumps(empty))
+        code, _, _ = self.run_main(["record.json"], record_text(empty))
         self.assertEqual(code, 0)
-        code, _, _ = self.run_main(["--complete", "record.json"], json.dumps(empty))
+        code, _, _ = self.run_main(["--complete", "record.json"], record_text(empty))
         self.assertEqual(code, 1)
         self.assertEqual(self.check(without(base_record(), "steps", 0, "task"), True), ())
         unclaimed = change(with_phone(), "steps", 0, criteria=["5.1"])
@@ -352,7 +393,7 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
         self.assertEqual(self.check(change(populated, "criteria", 0, varies="output"), True), ())
 
     def test_exit_codes_and_usage(self):
-        record = json.dumps(base_record())
+        record = record_text(base_record())
         code, _, err = self.run_main([])
         self.assertEqual(code, 2)
         self.assertIn("usage:", err)
@@ -445,9 +486,9 @@ class SeamRecordTest(RecordFixture, unittest.TestCase):
         record = append(base_record(), "seams", dict(PHONE_SEAM))
         self.assertEqual(self.check(record, False), (("warning", "seam 'phone-screen' is used by no criterion"),))
         self.assertEqual(self.check(record, True), (("error", "seam 'phone-screen' is used by no criterion"),))
-        code, _, _ = self.run_main(["record.json"], json.dumps(record))
+        code, _, _ = self.run_main(["record.json"], record_text(record))
         self.assertEqual(code, 0)
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(record))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(record))
         self.assertEqual(code, 1)
         self.assertEqual(out, "error: seam 'phone-screen' is used by no criterion\n")
 
@@ -483,10 +524,10 @@ class ProofRuleRecordTest(RecordFixture, unittest.TestCase):
         message = "criterion 5.2 sits at a seam the builder cannot run and is not marked unproven"
         loose = self.check(record, False)
         self.assertEqual(loose, (("warning", message),))
-        code, _, _ = self.run_main(["record.json"], json.dumps(record))
+        code, _, _ = self.run_main(["record.json"], record_text(record))
         self.assertEqual(code, 0)
         self.assertEqual(self.check(record, True), (("error", message),))
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(record))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(record))
         self.assertEqual(code, 1)
         self.assertEqual(out, "error: " + message + "\n")
 
@@ -892,11 +933,11 @@ class AmendmentRecordTest(RecordFixture, unittest.TestCase):
 class RoundsRecordTest(RecordFixture, unittest.TestCase):
     def error_lines(self, record, complete=True):
         argv = ["--complete", "record.json"] if complete else ["record.json"]
-        code, out, _ = self.run_main(argv, json.dumps(record))
+        code, out, _ = self.run_main(argv, record_text(record))
         return code, tuple(line for line in out.splitlines() if line.startswith("error:"))
 
     def test_record_without_rounds_is_valid(self):
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(base_record()))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(base_record()))
         self.assertEqual(code, 0)
         self.assertFalse(any("round" in line for line in out.splitlines()), out)
 

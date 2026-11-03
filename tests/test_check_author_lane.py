@@ -47,6 +47,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 ROW_B = {
     "file": "tests/test_b.py",
@@ -55,6 +57,8 @@ ROW_B = {
     "expect": "the summary names both checks",
     "step": "build-b",
     "check": "C2.1",
+    "loads": ["scripts/b.py"],
+    "needs": ["scripts/b.py"],
 }
 LOCKED = ["tests/test_a.py", "tests/test_b.py"]
 OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
@@ -70,6 +74,36 @@ def load_referee():
 
 
 referee = load_referee()
+
+
+def load_check_record():
+    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "check_record.py"
+    spec = importlib.util.spec_from_file_location("check_record", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+record_checker = load_check_record()
+
+
+def passed_results(record):
+    return [
+        {"check": key, "subject": "%s::%s %s" % (row["file"], row["name"], path), "status": "pass", "detail": key}
+        for criterion in record.get("criteria", [])
+        if isinstance(criterion, dict) and criterion.get("acceptance")
+        for row in criterion.get("tests", [])
+        if isinstance(row, dict)
+        for key in ("loads", "needs")
+        for path in row.get(key, [])
+    ]
+
+
+def feasible(record):
+    if not isinstance(record.get("locked"), list):
+        return record
+    feasibility = {"digest": record_checker.feasibility_digest(record), "results": passed_results(record)}
+    return {**record, "feasibility": feasibility}
 
 
 def probe(check, name, target):
@@ -161,7 +195,7 @@ def run(arguments, cwd):
 
 def write_record(base, record):
     path = pathlib.Path(base) / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasible(record)), encoding="utf-8")
     return path
 
 

@@ -23,8 +23,11 @@ def malformed_records():
         case
         for value in UNHASHABLE
         for case in (
-            ("check %r" % (value,), fixtures.with_criterion(base, 0, tests=[{**fixtures.ROW_A, "check": value}])),
-            ("seam %r" % (value,), fixtures.with_criterion(failed_probes(base), 0, seam=value)),
+            (
+                "check %r" % (value,),
+                fixtures.feasible(fixtures.with_criterion(base, 0, tests=[{**fixtures.ROW_A, "check": value}])),
+            ),
+            ("seam %r" % (value,), fixtures.feasible(fixtures.with_criterion(failed_probes(base), 0, seam=value))),
         )
     )
 

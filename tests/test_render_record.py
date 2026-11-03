@@ -74,6 +74,8 @@ ROW = {
     "expect": "3 is returned",
     "step": "build-app",
     "check": "C1.1",
+    "loads": ["src/app.py"],
+    "needs": ["src/app.py"],
 }
 APP_LINE = {
     "id": "C1.1",
@@ -107,6 +109,31 @@ ITEM_FIELDS = frozenset(
         "role",
     )
 )
+
+
+def load_check_record():
+    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "check_record.py"
+    spec = importlib.util.spec_from_file_location("check_record", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+record_checker = load_check_record()
+
+
+def feasible(source):
+    if not isinstance(source.get("locked"), list):
+        return source
+    results = [
+        {"check": key, "subject": "%s::%s %s" % (row["file"], row["name"], path), "status": "pass", "detail": key}
+        for criterion in source["criteria"]
+        if criterion.get("acceptance")
+        for row in criterion["tests"]
+        for key in ("loads", "needs")
+        for path in row.get(key, [])
+    ]
+    return {**source, "feasibility": {"digest": record_checker.feasibility_digest(source), "results": results}}
 
 
 def probe(check):
@@ -258,7 +285,7 @@ class RenderFixture:
     def write_fixture(self, folder, source, spec_text):
         base = pathlib.Path(folder)
         (base / "docs" / "specs").mkdir(parents=True)
-        (base / RECORD_PATH).write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+        (base / RECORD_PATH).write_text(json.dumps(feasible(source), ensure_ascii=False), encoding="utf-8")
         (base / SPEC_PATH).write_text(spec_text, encoding="utf-8")
 
     def run_main(self, folder, argv=ARGV):
@@ -326,7 +353,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
 
     def test_render_function_takes_no_root(self):
         module = self.load("render_record")
-        errors, spec_text, items = module.render(json.dumps(record()), SPEC_TEXT, "/specs/demo.md")
+        errors, spec_text, items = module.render(json.dumps(feasible(record())), SPEC_TEXT, "/specs/demo.md")
         self.assertEqual(errors, ())
         self.assertEqual(spec_text, RENDERED_SPEC)
         self.assertEqual(
