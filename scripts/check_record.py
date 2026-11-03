@@ -978,11 +978,16 @@ def digest_step(step):
     return {key: step[key] for key in DIGEST_STEP_KEYS if key in step} if isinstance(step, dict) else step
 
 
-def feasibility_digest(record):
+def failed_results(results):
+    return [entry for entry in results if not isinstance(entry, dict) or entry.get("status") != "pass"]
+
+
+def feasibility_digest(record, results=()):
     judged = {key: record.get(key, []) for key in DIGEST_PARTS}
     listed = record.get("steps", [])
     steps = [digest_step(step) for step in listed] if isinstance(listed, list) else listed
-    canonical = json.dumps({**judged, "steps": steps}, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    sealed = {**judged, "steps": steps, "failed": failed_results(results)}
+    canonical = json.dumps(sealed, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -1023,7 +1028,8 @@ def check_feasibility(record, complete):
     feasibility = record["feasibility"]
     if not is_feasibility(feasibility):
         return ()
-    stale = () if feasibility["digest"] == feasibility_digest(record) else (error(STALE_FEASIBILITY),)
+    current = feasibility_digest(record, feasibility["results"])
+    stale = () if feasibility["digest"] == current else (error(STALE_FEASIBILITY),)
     failed = tuple(
         error("feasibility check %s of %s failed: %s" % (entry["check"], entry["subject"], entry["detail"]))
         for entry in feasibility["results"]

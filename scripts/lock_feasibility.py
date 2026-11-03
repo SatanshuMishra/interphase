@@ -435,7 +435,7 @@ def main(argv):
     except CannotStart as exc:
         print("cannot run git in %s: %s" % (repo, exc), file=sys.stderr)
         return 2
-    feasibility = {"digest": check_record.feasibility_digest(record), "results": list(results)}
+    feasibility = {"digest": check_record.feasibility_digest(record, results), "results": list(results)}
     if not write_record(record_path, {**record, "feasibility": feasibility}):
         print("cannot write: " + record_path, file=sys.stderr)
         return 2
