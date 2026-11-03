@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:26:48.146Z
+Updated: 2026-11-03T23:26:49.345Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-When the mitosis resume ends, read its JSON result, run pipeline commit-records into its MSP worktree, then review the mitosis MSP from round 1.
+When the gating resume ends, read its JSON result, run pipeline commit-records into its MSP worktree, then review the mitosis MSP from round 1.
 
 Needs: D2.
 
