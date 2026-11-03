@@ -430,13 +430,15 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 "a seam no criterion uses",
                 {**record(), "seams": record()["seams"] + [{**record()["seams"][0], "name": "tablet"}]},
                 SPEC_TEXT,
-                "error: seam 'tablet' is used by no criterion\n",
+                "error: " + RECORD_PATH + ": seam 'tablet' is used by no criterion\n",
             ),
             (
                 "a criterion has an unproven reason that is not text",
                 second_criterion(record(), unproven=None),
                 SPEC_TEXT,
-                "error: criterion 5.2 has unproven that is not a non-empty string\n",
+                "error: " + RECORD_PATH + " does not match h11-interphase-record.schema.json: "
+                "#/criteria/1/unproven type: null is not of type string\n"
+                "error: " + RECORD_PATH + ": criterion 5.2 has unproven that is not a non-empty string\n",
             ),
         )
         for label, source, spec_text, expected in cases:
@@ -448,7 +450,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         source = {**record(), "criteria": criteria[:1] + [{key: value for key, value in criteria[1].items() if key != "unproven"}]}
         self.assertEqual(
             self.refused(source, SPEC_TEXT),
-            "error: criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
+            "error: " + RECORD_PATH + ": criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
         )
 
     def test_render_refuses_a_step_assumption_without_a_known_intent_line(self):
@@ -765,7 +767,7 @@ class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
         self.assertEqual(first["files"], ["tests/test_app.py"])
         self.assertEqual(first["acceptance"], [])
         self.assertEqual(first["spec_ref"], ["5.1"])
-        self.assertEqual(first["msp"], "check-author")
+        self.assertNotIn("msp", first)
 
     def test_check_author_task_holds_each_covered_block_and_its_rows(self):
         first = self.items_of(record())[0]

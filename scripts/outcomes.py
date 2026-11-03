@@ -167,8 +167,9 @@ def main(argv):
         print("cannot read the trajectory store: " + os.path.abspath(str(store)), file=sys.stderr)
         return 2
     found = outcomes(repository, store, stored)
-    if not surface_probe.write_record(record_path, {**record, "outcomes": found}):
-        print("cannot write: " + record_path, file=sys.stderr)
+    problems = surface_probe.write_record(record_path, {**record, "outcomes": found})
+    if problems:
+        print("\n".join(problems), file=sys.stderr)
         return 2
     for entry in found["repeated"]:
         print("repeated: %s (%d times)" % (entry["kind"], entry["count"]))

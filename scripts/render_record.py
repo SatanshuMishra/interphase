@@ -36,6 +36,7 @@ def load_sibling(name):
 check_record = load_sibling("check_record")
 check_spec = load_sibling("check_spec")
 atomic_file = load_sibling("atomic_file")
+handoff_gate = load_sibling("handoff_gate")
 
 
 def one_line(text):
@@ -321,7 +322,6 @@ def check_author_item(record, steps, criteria, blocks, source, amendment):
     task = "\n\n".join(
         (CHECK_AUTHOR_OPENING,) + tuple(authored_block(criteria[number], blocks[number]) for number in covered)
     )
-    msp = (("msp", CHECK_AUTHOR),) if any("msp" in step for step in steps) else ()
     return dict(
         (
             ("name", CHECK_AUTHOR),
@@ -330,9 +330,8 @@ def check_author_item(record, steps, criteria, blocks, source, amendment):
             ("files", author_files(record["locked"], covered, criteria, amendment)),
             ("source", dict(source)),
             ("acceptance", []),
+            ("spec_ref", list(covered)),
         )
-        + msp
-        + (("spec_ref", list(covered)),)
         + author_assumptions(steps, covered)
     )
 
@@ -403,6 +402,11 @@ def write_bytes(path, data):
     return True
 
 
+def refusal(messages):
+    print("\n".join("error: " + message for message in messages))
+    return 1
+
+
 def main(argv):
     arguments = parse_arguments(argv)
     if arguments is None:
@@ -414,12 +418,17 @@ def main(argv):
     if unreadable:
         print("\n".join("cannot read: " + path for path in unreadable), file=sys.stderr)
         return 2
+    refused = handoff_gate.record_gate(record_path, texts[0][1], True)
+    if refused:
+        return refusal(refused)
     errors, spec_text, items = render(
         texts[0][1], texts[1][1], os.path.abspath(spec_path), amendment
     )
     if errors:
-        print("\n".join("error: " + message for message in errors))
-        return 1
+        return refusal(errors)
+    refused = handoff_gate.items_gate(items_path, items, spec_text, amendment is not None)
+    if refused:
+        return refusal(refused)
     outputs = (
         (spec_path, spec_text.encode("utf-8")),
         (items_path, (json.dumps(items, indent=2, ensure_ascii=False) + "\n").encode("utf-8")),

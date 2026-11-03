@@ -640,6 +640,10 @@ def check_spec(steps):
     data = read_spec(path)
     if data is None:
         return (error("spec file %s is missing" % path),)
+    return check_spec_bytes(steps, path, sha, data)
+
+
+def check_spec_bytes(steps, path, sha, data):
     digest = hashlib.sha256(data).hexdigest()
     mismatch = (
         (error("sha256 mismatch for %s: items say %s, file is %s" % (path, sha, digest)),)
@@ -651,6 +655,10 @@ def check_spec(steps):
 
 
 def check_steps(steps):
+    return check_step_rules(steps) + check_spec(steps)
+
+
+def check_step_rules(steps):
     graph = after_graph(steps)
     per_step = tuple(finding for index, step in enumerate(steps) for finding in check_step(index, step))
     return (
@@ -663,7 +671,6 @@ def check_steps(steps):
         + check_acceptance_files(steps, graph)
         + check_author_lane(steps)
         + check_hazards(steps, graph)
-        + check_spec(steps)
     )
 
 

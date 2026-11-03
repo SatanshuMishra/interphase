@@ -13,6 +13,13 @@ import test_outcome_kinds as outcome_fixtures
 NUL_COMMANDS = ("sub\u0000/run", "./bin\u0000")
 SURROGATE_TEXT = "sub\ud800/run"
 SEAMS = ("script-cli", "nowhere-the-builder-runs")
+NOWHERE_SEAM = {
+    "name": "nowhere-the-builder-runs",
+    "interface": "a device the builder cannot reach",
+    "catches": "a command that never starts",
+    "misses": "what the device shows",
+    "builder_runs": False,
+}
 
 
 def with_command(record, command, seam):
@@ -20,6 +27,12 @@ def with_command(record, command, seam):
     line = {**criterion["acceptance"][0], "command": command}
     rest = {key: value for key, value in record.items() if key != "probes"}
     return {**rest, "criteria": [{**criterion, "seam": seam, "acceptance": [line]}] + record["criteria"][1:]}
+
+
+def with_seam_defined(record, seam):
+    if seam != NOWHERE_SEAM["name"]:
+        return record
+    return {**record, "seams": list(record["seams"]) + [NOWHERE_SEAM]}
 
 
 def run(script, arguments, folder, home):
@@ -41,7 +54,8 @@ class UnencodableRecordTest(unittest.TestCase):
                 with self.subTest(command=command, seam=seam), tempfile.TemporaryDirectory() as folder, \
                         tempfile.TemporaryDirectory() as home:
                     path = pathlib.Path(folder) / "demo.record.json"
-                    path.write_text(json.dumps(with_command(fixtures.complete_record(), command, seam)), encoding="utf-8")
+                    source = with_seam_defined(with_command(fixtures.complete_record(), command, seam), seam)
+                    path.write_text(json.dumps(source), encoding="utf-8")
                     result = run("surface_probe.py", ["--record", str(path), "--repo", folder, "--timeout", "5"], folder, home)
                     self.assertNotIn("Traceback", result.stderr)
                     self.assertEqual(result.returncode, 1 if seam == "script-cli" else 0, result.stderr)
