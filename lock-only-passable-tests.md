@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T22:46:26.096Z
+Updated: 2026-11-03T22:46:27.950Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
