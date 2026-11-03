@@ -331,11 +331,6 @@ def authored_block(rows, block, steps):
     return "\n\n".join((block, "\n".join(row_line(test, steps) for test in rows)))
 
 
-def unowned_paths(locked, record):
-    held = tuple(test["file"] for criterion in locked_criteria(record) for test in criterion["tests"])
-    return tuple(path for path in locked if not check_record.check_items.shared_paths((path,), held))
-
-
 def author_files(locked, rows, extra):
     held = tuple(test["file"] for test in rows)
     return [path for path in locked if check_record.check_items.shared_paths((path,), held) or path in extra]
@@ -378,26 +373,13 @@ def check_author_item(record, steps, group, msp, label, blocks, source, extra):
     )
 
 
-def loader_msps(path, owners, record):
-    by_name = {step["name"]: step for step in owners}
-    return unique_values(
-        tuple(
-            by_name[test["step"]].get("msp")
-            for criterion in locked_criteria(record)
-            for test in criterion["tests"]
-            if test["step"] in by_name
-            if check_record.check_items.shared_paths((path,), tuple(test.get(check_record.LOADS, ())))
-        )
-    )
-
-
 def unowned_by_msp(record, owners, amendment):
     if amendment is not None:
         return {}
+    rows = check_record.locked_rows(record["criteria"])
     placed = tuple(
         (path, loaders[0] if len(loaders) == 1 else None)
-        for path in unowned_paths(record["locked"], record)
-        for loaders in (loader_msps(path, owners, record),)
+        for path, loaders in check_record.unheld_loader_msps(record["locked"], rows, owners)
     )
     return {msp: frozenset(path for path, owner in placed if owner == msp) for _, msp in placed}
 

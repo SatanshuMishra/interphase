@@ -64,10 +64,6 @@ PHONE_CRITERION = {
 }
 
 
-def listed(value):
-    return value if isinstance(value, list) else []
-
-
 def record_text(record):
     return json.dumps(feasible(record))
 

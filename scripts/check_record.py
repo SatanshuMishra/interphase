@@ -849,9 +849,12 @@ def locked_rows(criteria):
     return tuple(test for criterion in criteria if has_lines(criterion) for test in criterion_tests(criterion))
 
 
-def msp_label(step):
-    msp = step.get("msp")
+def label_of(msp):
     return "msp %r" % msp if isinstance(msp, str) else "no msp"
+
+
+def msp_label(step):
+    return label_of(step.get("msp"))
 
 
 def row_labels(rows, by_name):
@@ -893,7 +896,22 @@ def loading_rows(path, rows):
     )
 
 
-def unheld_locked_error(path, loader_labels, owner_labels):
+def step_msp(step):
+    msp = step.get("msp")
+    return msp if isinstance(msp, str) else None
+
+
+def unheld_loader_msps(paths, rows, steps):
+    by_name = steps_by_name(steps)
+    return tuple(
+        (path, tuple(dict.fromkeys(step_msp(by_name[test["step"]]) for test in loading_rows(path, rows) if test["step"] in by_name)))
+        for path in distinct_paths(paths)
+        if not rows_in(path, rows)
+    )
+
+
+def unheld_locked_error(path, loader_msps, owner_labels):
+    loader_labels = tuple(label_of(msp) for msp in loader_msps)
     if len(loader_labels) > 1:
         return (
             error(
@@ -916,13 +934,11 @@ def check_unheld_locked(record, criteria, steps, complete):
     if not complete or not isinstance(paths, list):
         return ()
     rows = locked_rows(criteria)
-    by_name = steps_by_name(steps)
-    owner_labels = row_labels(rows, by_name)
+    owner_labels = row_labels(rows, steps_by_name(steps))
     return tuple(
         found
-        for path in distinct_paths(paths)
-        if not rows_in(path, rows)
-        for found in unheld_locked_error(path, row_labels(loading_rows(path, rows), by_name), owner_labels)
+        for path, loader_msps in unheld_loader_msps(paths, rows, steps)
+        for found in unheld_locked_error(path, loader_msps, owner_labels)
     )
 
 
@@ -933,7 +949,7 @@ def check_owner_msps(criteria, steps, complete):
     return tuple(
         error("%s owns a locked row and has msp %r, which is not lowercase kebab-case" % (check_items.label(index, step), step["msp"]))
         for index, step in enumerate(steps)
-        if isinstance(step, dict) and step.get("name") in owners
+        if isinstance(step, dict) and check_items.is_text(step.get("name")) and step["name"] in owners
         if isinstance(step.get("msp"), str) and not MSP_RE.fullmatch(step["msp"])
     )
 
