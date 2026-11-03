@@ -4,7 +4,12 @@ import io
 import json
 import pathlib
 import tempfile
+import sys
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BRIEF = ROOT / "core" / "brief.md"
@@ -134,6 +139,8 @@ def report_test(name, step, given, expect, check):
         "expect": expect,
         "step": step,
         "check": check,
+        "loads": ["src/report.py"],
+        "needs": ["src/report.py"],
     }
 
 
@@ -358,7 +365,7 @@ class CoreBriefTest(unittest.TestCase):
             record_path = pathlib.Path(folder) / "stock-report.record.json"
             items_path = pathlib.Path(folder) / "stock-report.items.json"
             spec_path.write_text(FILLED_BRIEF, encoding="utf-8")
-            record_path.write_text(json.dumps(brief_record()), encoding="utf-8")
+            record_path.write_text(json.dumps(feasible(brief_record())), encoding="utf-8")
             argv = ["--record", str(record_path), "--spec", str(spec_path), "--items", str(items_path)]
             output = io.StringIO()
             with contextlib.redirect_stdout(output):

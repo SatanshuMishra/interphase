@@ -7,6 +7,10 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 SEAM = {
     "name": "script-cli",
@@ -76,36 +80,6 @@ def load_referee():
 
 
 referee = load_referee()
-
-
-def load_check_record():
-    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "check_record.py"
-    spec = importlib.util.spec_from_file_location("check_record", str(path))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-record_checker = load_check_record()
-
-
-def passed_results(record):
-    return [
-        {"check": key, "subject": "%s::%s %s" % (row["file"], row["name"], path), "status": "pass", "detail": key}
-        for criterion in record.get("criteria", [])
-        if isinstance(criterion, dict) and criterion.get("acceptance")
-        for row in criterion.get("tests", [])
-        if isinstance(row, dict)
-        for key in ("loads", "needs")
-        for path in row.get(key, [])
-    ]
-
-
-def feasible(record):
-    if not isinstance(record.get("locked"), list):
-        return record
-    feasibility = {"digest": record_checker.feasibility_digest(record), "results": passed_results(record)}
-    return {**record, "feasibility": feasibility}
 
 
 def probe(check, name, target):

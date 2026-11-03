@@ -4,8 +4,13 @@ import importlib.util
 import io
 import json
 import pathlib
+import sys
 import tempfile
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
 
 SPEC_TEXT = (
     "# Demo spec\n\n## 1. Interface\n\nThe shared interface.\n\n## 2. Client\n\nThe client.\n\n"
@@ -51,6 +56,8 @@ AMENDED_RECORD = {
                     "expect": "3 is returned",
                     "step": "build-app",
                     "check": "C1.1",
+                    "loads": ["src/app.py"],
+                    "needs": ["src/app.py"],
                 }
             ],
         },
@@ -76,6 +83,8 @@ AMENDED_RECORD = {
                     "expect": "0 is returned",
                     "step": "fix-app",
                     "check": "C2.1",
+                    "loads": ["src/app.py"],
+                    "needs": ["src/app.py"],
                 }
             ],
         },
@@ -565,7 +574,7 @@ class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
             record_path = base / "demo.record.json"
             spec_path = base / "demo.md"
             items_path = base / "demo.amend-1.items.json"
-            record_path.write_text(json.dumps(AMENDED_RECORD), encoding="utf-8")
+            record_path.write_text(json.dumps(feasible(AMENDED_RECORD)), encoding="utf-8")
             spec_path.write_text(AMENDMENT_SPEC_TEXT, encoding="utf-8")
             argv = ["--record", str(record_path), "--spec", str(spec_path), "--items", str(items_path)]
             rendered = io.StringIO()
