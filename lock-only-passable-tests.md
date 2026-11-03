@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:31:11.649Z
+Updated: 2026-11-03T23:31:19.973Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -48,3 +48,5 @@ Needs: D2.
 - Shared contracts holding this spec's fields: ~/.mitosis/harness-redesign/contracts/h11-interphase-record.schema.json and h12-interphase-items.schema.json; the note for spec 4 is spec3-overlap-with-spec4.md in the shared notes folder
 - Interphase review records: ~/.mitosis/interphase/lock-only-passable-tests/review/ (round folders, obligations, assumptions); base worktree for suites at its base-tree folder
 - Failed Lanes' first attempts: ~/.mitosis/mitosis/per-msp-locks-no-limits/lane-1-attempt-1.diff and ~/.mitosis/interphase/lock-only-passable-tests/lane-3-attempt-1.diff
+- Mitosis review records: ~/.mitosis/mitosis/per-msp-locks-no-limits/review/ (round folders, obligations, assumptions); base worktree for suites at its base-tree folder
+- Mitosis 0.11 held-Lane replay bug and the state repair: mitosis-0.11-held-lane-replay.md in the shared notes folder
