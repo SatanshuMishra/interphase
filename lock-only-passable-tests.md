@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T21:26:04.320Z
+Updated: 2026-11-03T22:10:21.642Z
 Next ids: c4 D3 R2 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Two builds are running: the interphase spec as MSPs lock-feasibility and feasibility-instructions, and the handed-off mitosis spec per-msp-locks-no-limits as one MSP with three Lanes (per-msp-lock, no-limits-nothing-waits, release-0-12). The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records.
+Interphase build: MSP lock-feasibility is committed, gate 35 of 35, with glossary and ADR 0004 committed into it; its suite has two real failures (fixtures in tests/test_core_brief.py and tests/test_check_items.py lack loads, needs and feasibility), the other 13 being feasibility-instructions' locked tests; round 1's three reviewers are running. MSP feasibility-instructions is blocked on its failed Lane and gets its one resume after lock-feasibility's fixes. The mitosis build per-msp-locks-no-limits (one MSP, three Lanes) is running; its checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields.
 
 ## Next step
 
-When each build ends, read its JSON result, run pipeline commit-records into its first MSP, and start review round 1.
+Collect lock-feasibility's round 1 findings, validate, record and verdict, then fix with receipts and resume feasibility-instructions.
 
 Needs: D1, D2, R1.
 
