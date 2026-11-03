@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:15:47.543Z
+Updated: 2026-11-03T23:15:52.958Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase build: both MSPs are green with every confirmed finding fixed and both release checks passing at 0.15.0; lock-feasibility's head is c8a20df and feasibility-instructions' head is 7e994b5; the ship run is pushing them. The mitosis build per-msp-locks-no-limits is on its one resume: Lane 0 per-msp-lock is ok at c750737; Lane 1 no-limits-nothing-waits failed with four test-only fixes left, because a hook refuses edits to a test file once a session has seen it fail; its charter now holds those four fixes and the first attempt's diff, and Lane 2 release-0-12 waits on it. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis build per-msp-locks-no-limits is on its one resume: Lane 0 per-msp-lock is ok at c750737; Lane 1 no-limits-nothing-waits failed with four test-only fixes left, because a hook refuses edits to a test file once a session has seen it fail; its charter now holds those four fixes and the first attempt's diff, and Lane 2 release-0-12 waits on it. The mitosis checkout holds the uncommitted GLOSSARY.md change and ADR 0016 for pipeline commit-records. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
