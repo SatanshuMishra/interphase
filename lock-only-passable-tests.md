@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T08:15:41.198Z
+Updated: 2026-11-04T20:01:11.456Z
 Next ids: c4 D5 R5 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase Integration is done: its FEATURE pull request https://github.com/SatanshuMishra/interphase/pull/64 into main is open and ready, assigned to the owner, bound to this session, with 8 of 8 acceptance lines and 609 tests passing at 121ec43 and lighthouse skipped by plan. Mitosis's FEATURE pull request https://github.com/SatanshuMishra/mitosis/pull/35 into main is a draft, assigned to the owner, with every reviewer run and review round 4 green; its confirmed advisory C1 is fixed at 0308027, a comment on #35 says it can go ready, and only the owner marks it ready. The coordinator is told. H11 and H12 carry this spec's new fields.
+Mitosis #35 is merged into mitosis main. Interphase's FEATURE pull request https://github.com/SatanshuMishra/interphase/pull/64 conflicted with main 67cefd6 (spec 4, interphase#63); main is merged into feat/lock-only-passable-tests in the integration worktree, released as 0.16.0 because main took 0.15.0, spec 3's ADR renumbered 0005, and the merge review's three advisories fixed. Head 2e666f8 is pushed: 8 of 8 acceptance lines and 626 tests pass, and #64 reports MERGEABLE and CLEAN with no CI checks configured in the repository. H11 and H12 carry this spec's new fields.
 
 ## Next step
 
