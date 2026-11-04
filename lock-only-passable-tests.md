@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T02:05:39.658Z
+Updated: 2026-11-04T02:05:52.506Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis MSP per-msp-lock was gated at 3831e1a (37 of 37 acceptance tests pass); its branch mitosis/per-msp-lock, unpushed, carries GLOSSARY.md, ADR 0016 and round 1's fixes for C1, S1, S2, U1, U2, C2 and C3, with receipts in tests/test_per_msp_lock_review.py. Its state.json was hand-repaired after mitosis 0.11 replayed a held Lane from a cleaned clone. Review round 2's suite passes on Python 3.9 and 3.14; the security reviewer found nothing, and the code reviewer found C4 (HIGH: the S1 fix judges an unmerged producer's locked test, so a consumer whose producer failed is referee-reverted and gets the producer's test) and C5 (LOW: README misstates which check-author is unlabelled). Round 2's blockers C4 and P3 and advisory C5 are fixed and fix-checked on mitosis/per-msp-lock at 7f7f597: a held producer path is judged and restored only once its lock commit is in the head, and revert_implementation requires its locked entries. Both diagnoses' selecting checks find nothing and 230 referee, lock and docs tests pass. Review round 3's suite passes on Python 3.9 and 3.14 and its code-reviewer and security-reviewer are running. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). Mitosis is shipped as a ready pull request assigned to the owner, review comment posted: https://github.com/SatanshuMishra/mitosis/pull/34 (mitosis/per-msp-lock at 7f7f597 into feat/per-msp-locks-no-limits), green at review round 3 after fixing C1, S1, S2, U1, U2, C4 and P3 and advisories C2, C3 and C5; round 3's code-reviewer could not run past its limit. The final report to the coordinator is not yet sent. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
