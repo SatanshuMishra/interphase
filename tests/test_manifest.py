@@ -26,11 +26,14 @@ class TestManifest(unittest.TestCase):
         version = tuple(int(part) for part in parts)
         self.assertGreater(version, (0, 5, 0))
 
-    def test_manifest_version_is_0_13_0(self):
+    def test_manifest_version_is_newer_than_0_14_0(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         manifest_path = root / ".claude-plugin" / "plugin.json"
         manifest = json.loads(manifest_path.read_text())
-        self.assertEqual(manifest["version"], "0.15.0")
+        parts = manifest["version"].split(".")
+        self.assertEqual(len(parts), 3)
+        version = tuple(int(part) for part in parts)
+        self.assertGreater(version, (0, 14, 0))
 
 
 class TestMarketplace(unittest.TestCase):

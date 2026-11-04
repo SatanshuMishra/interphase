@@ -1,4 +1,5 @@
 import contextlib
+import importlib.util
 import json
 import os
 import pathlib
@@ -12,6 +13,30 @@ IGNORE_UNLESS = (
     "Ignore this unless this conversation is continuing that interphase run. "
     "If it is, re-read {} and {} and {} before acting."
 )
+
+
+def load_script(name):
+    path = pathlib.Path(__file__).resolve().with_name(name + ".py")
+    spec = importlib.util.spec_from_file_location("interphase_resume_" + name, str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_owned_formats():
+    return load_script("owned_formats")
+
+
+owned_names = load_script("owned_names")
+REFUSAL = owned_names.mismatch_lead(owned_names.written_by_interphase("{}"), owned_names.H11)
+UNCHECKED = "The record could not be checked against " + owned_names.schema_file(owned_names.H11) + ": {}"
+
+
+def h11_errors(record):
+    try:
+        return "errors", tuple(load_owned_formats().errors(owned_names.H11, record))
+    except Exception as error:
+        return "unchecked", type(error).__name__
 
 
 def is_folder(path):
@@ -119,6 +144,22 @@ def digest_lines(outcome):
     )
 
 
+def refusal_lines(record_path, messages):
+    return (REFUSAL.format(record_path),) + tuple("- " + text_of(message) for message in messages)
+
+
+def record_lines(record_path, outcome):
+    kind, value = outcome
+    if kind != "record":
+        return ("Record digest ({}):".format(record_path),) + digest_lines(outcome)
+    checked, found = h11_errors(value)
+    if checked == "unchecked":
+        return (UNCHECKED.format(found),)
+    if found:
+        return refusal_lines(record_path, found)
+    return ("Record digest ({}):".format(record_path),) + digest_lines(outcome)
+
+
 def decisions_text(outcome):
     kind, value = outcome
     if kind == "missing":
@@ -138,8 +179,7 @@ def block(spec_folder, slug, record, phases_path):
         "Decisions ({}):\n".format(decisions_path),
         decisions_text(read_file(decisions_path)),
         "\n",
-        "Record digest ({}):\n".format(record_path),
-        "\n".join(digest_lines(record)),
+        "\n".join(record_lines(record_path, record)),
     ))
 
 

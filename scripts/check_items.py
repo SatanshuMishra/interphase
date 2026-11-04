@@ -479,6 +479,10 @@ def msp_of(step):
     return msp if isinstance(msp, str) else None
 
 
+def author_msp(author):
+    return None if author.get("name") == CHECK_AUTHOR else msp_of(author)
+
+
 def describe_msp(msp):
     return "no msp" if msp is None else "msp %r" % msp
 
@@ -487,10 +491,10 @@ def check_author_msps(authors):
     return tuple(
         error(
             "%s steps %r and %r both carry %s; each %s step needs its own msp"
-            % (CHECK_AUTHOR, first["name"], second["name"], describe_msp(msp_of(first)), CHECK_AUTHOR)
+            % (CHECK_AUTHOR, first["name"], second["name"], describe_msp(author_msp(first)), CHECK_AUTHOR)
         )
         for position, second in enumerate(authors)
-        for first in (next(author for author in authors[:position + 1] if msp_of(author) == msp_of(second)),)
+        for first in (next(author for author in authors[:position + 1] if author_msp(author) == author_msp(second)),)
         if first is not second
     )
 
@@ -505,13 +509,15 @@ def check_lock_leakage(others, authors):
                 entry["file"],
                 CHECK_AUTHOR,
                 author["name"],
-                describe_msp(msp_of(author)),
+                describe_msp(author_msp(author)),
             )
         )
         for index, step in others
         for entry in entries(step)
         for author in authors
-        if msp_of(author) != msp_of(step) and path_key(entry["file"]) in path_keys(step_files(author))
+        if author_msp(author) is not None
+        and author_msp(author) != msp_of(step)
+        and path_key(entry["file"]) in path_keys(step_files(author))
     )
 
 
@@ -522,7 +528,7 @@ def check_author_lane(steps):
         error("%s does not name %s step %r in its after" % (label(index, step), CHECK_AUTHOR, author["name"]))
         for index, step in others
         for author in authors
-        if msp_of(author) == msp_of(step) and author["name"] not in after_list(step)
+        if author_msp(author) == msp_of(step) and author["name"] not in after_list(step)
     )
     written = tuple(
         error("%s lists file %r, which %s step %r writes" % (label(index, step), path, CHECK_AUTHOR, author["name"]))
@@ -679,6 +685,13 @@ def check_criteria(steps, headings):
     return unclaimed + idle
 
 
+def check_spec_data(steps, data):
+    source = spec_source(steps)
+    if source is None:
+        return ()
+    return check_spec_bytes(steps, source[0], source[1], data)
+
+
 def check_spec(steps):
     source = spec_source(steps)
     if source is None:
@@ -687,6 +700,10 @@ def check_spec(steps):
     data = read_spec(path)
     if data is None:
         return (error("spec file %s is missing" % path),)
+    return check_spec_bytes(steps, path, sha, data)
+
+
+def check_spec_bytes(steps, path, sha, data):
     digest = hashlib.sha256(data).hexdigest()
     mismatch = (
         (error("sha256 mismatch for %s: items say %s, file is %s" % (path, sha, digest)),)
@@ -697,7 +714,7 @@ def check_spec(steps):
     return mismatch + check_spec_refs(steps, headings) + check_criteria(steps, headings)
 
 
-def check_steps(steps):
+def check_step_rules(steps):
     graph = after_graph(steps)
     per_step = tuple(finding for index, step in enumerate(steps) for finding in check_step(index, step))
     return (
@@ -710,7 +727,6 @@ def check_steps(steps):
         + check_acceptance_files(steps, graph)
         + check_author_lane(steps)
         + check_hazards(steps, graph)
-        + check_spec(steps)
     )
 
 
@@ -719,11 +735,19 @@ def check_text(text):
         steps = json.loads(text)
     except ValueError as exc:
         return (error("items file is not valid JSON: %s" % exc),)
+    return check_value(steps, check_spec)
+
+
+def shape_findings(steps):
     if not isinstance(steps, list):
         return (error("items file is not a JSON array"),)
     if not steps:
         return (error("items file is an empty array"),)
-    return check_steps(steps)
+    return ()
+
+
+def check_value(steps, spec_check):
+    return shape_findings(steps) or check_step_rules(steps) + spec_check(steps)
 
 
 def check_file(path):

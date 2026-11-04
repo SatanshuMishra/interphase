@@ -53,7 +53,7 @@ Write the items file as a JSON array of Step objects. A Step is one unit of buil
 | `task` | yes | complete, self-contained instructions; whoever builds the Step receives nothing else about it and never needs the spec |
 | `files` | yes | non-empty list of repository-relative paths the Step may create or change, including its own test files, except locked paths, which the check-author Step writes |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`, identical on every Step |
-| `acceptance` | yes | list of `{"file": "<test file>", "test": "<test name>"}`; each file is also in `files`, or in the `files` of a check-author Step it comes after; each test fails before the Step and passes after; an empty list is allowed only when every criterion the Step claims is marked unproven, and is required on the check-author Step |
+| `acceptance` | yes | list of `{"file": "<test file>", "test": "<test name>"}`, with an optional `"check": "<acceptance line id>"` written when the test implements an acceptance line; each file is also in `files`, or in the `files` of a check-author Step it comes after; each test fails before the Step and passes after; an empty list is allowed only when every criterion the Step claims is marked unproven, and is required on the check-author Step |
 | `after` | no | names of Steps that must be finished first |
 | `contract_group` | no | a shared label for Steps that are two halves of one interface |
 | `type` | no | only the value `contract`: marks the one Step in a `contract_group` that defines the shared interface; every other Step in that group reaches it through `after` |

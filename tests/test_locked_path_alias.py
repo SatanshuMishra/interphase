@@ -14,15 +14,15 @@ CANON = "tests/test_a.py"
 ALIASES = ("./tests/test_a.py", "tests//test_a.py", "tests/./test_a.py", "Tests/test_a.py", "tests/test_a.py/")
 
 
-def load_schema_check():
-    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "schema_check.py"
-    spec = importlib.util.spec_from_file_location("schema_check", str(path))
+def load_owned_formats():
+    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "owned_formats.py"
+    spec = importlib.util.spec_from_file_location("owned_formats", str(path))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-schema_check = load_schema_check()
+owned_formats = load_owned_formats()
 
 
 class LockedPathAliasTest(unittest.TestCase):
@@ -67,12 +67,16 @@ class LockedPathAliasTest(unittest.TestCase):
                     self.assertNotEqual(naming, [], output)
 
     def test_schema_patterns_refuse_a_match_that_ends_before_a_trailing_newline(self):
-        locked_schema = schema_check.subschema(schema_check.load("k2-locked"), "/properties/locked")
-        id_schema = schema_check.subschema(schema_check.load("k1-acceptance"), "/properties/id")
-        self.assertEqual(schema_check.errors(locked_schema, [CANON]), ())
-        self.assertEqual(schema_check.errors(id_schema, "C1.1"), ())
-        self.assertNotEqual(schema_check.errors(locked_schema, [CANON + "\n"]), ())
-        self.assertNotEqual(schema_check.errors(id_schema, "C1.1\n"), ())
+        def locked(value):
+            return owned_formats.part_errors("k2-locked", "/properties/locked", value)
+
+        def line_id(value):
+            return owned_formats.part_errors("k1-acceptance", "/properties/id", value)
+
+        self.assertEqual(locked([CANON]), ())
+        self.assertEqual(line_id("C1.1"), ())
+        self.assertNotEqual(locked([CANON + "\n"]), ())
+        self.assertNotEqual(line_id("C1.1\n"), ())
 
 
 if __name__ == "__main__":

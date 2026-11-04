@@ -84,11 +84,12 @@ def load_sibling(name):
 
 
 check_items = load_sibling("check_items")
-schema_check = load_sibling("schema_check")
+owned_formats = load_sibling("owned_formats")
 surface_probe = load_sibling("surface_probe")
 record_seams = load_sibling("record_seams")
-K1 = schema_check.load("k1-acceptance")
-K2_LOCKED = schema_check.subschema(schema_check.load("k2-locked"), "/properties/locked")
+K1 = "k1-acceptance"
+K2 = "k2-locked"
+K2_LOCKED = "/properties/locked"
 ITEM_STEP_CHECKS = (
     check_items.check_name,
     check_items.check_files,
@@ -496,7 +497,7 @@ def check_line_id(who, criterion, position, line):
 def check_line(who, criterion, position, line):
     shape = tuple(
         error("%s acceptance line %d does not match K1: %s" % (who, position, message))
-        for message in schema_check.errors(K1, line)
+        for message in owned_formats.errors(K1, line)
     )
     return shape + check_line_id(who, criterion, position, line)
 
@@ -829,7 +830,7 @@ def check_locked(record, criteria, steps, complete):
     if "locked" in record:
         shape = tuple(
             error("record locked does not match K2: %s" % message)
-            for message in schema_check.errors(K2_LOCKED, record["locked"])
+            for message in owned_formats.part_errors(K2, K2_LOCKED, record["locked"])
         )
     elif any(has_lines(criterion) for criterion in criteria):
         shape = (missing("record has no locked list, but criteria have acceptance lines", complete),)
