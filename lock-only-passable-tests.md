@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T08:13:27.205Z
+Updated: 2026-11-04T08:13:41.642Z
 Next ids: c4 D5 R5 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase Integration is done: its FEATURE pull request https://github.com/Sata
 
 ## Next step
 
-Read interphase Integration's results and open its FEATURE pull request into main as integration-plan directs, then report the mitosis code-reviewer rerun as a comment on #35.
+Read the round 4 validator verdict on mitosis advisory C1, fix it on feat/per-msp-locks-no-limits in the integration worktree if confirmed, then comment the outcome on #35 and tell the coordinator.
 
 Needs: R3.
 
