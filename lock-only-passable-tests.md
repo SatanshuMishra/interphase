@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T06:57:02.552Z
+Updated: 2026-11-04T07:02:05.794Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/lock-feasibility after that branch had merged, so its four commits reach feat/lock-only-passable-tests only through https://github.com/SatanshuMishra/interphase/pull/62 (ready, assigned to the owner, bound to this session, awaiting the owner's merge). Mitosis's feature branch holds #34, and its Integration checks, suite, plan and readiness are running in the integration worktree; round 3's code-reviewer could not run past its limit. H11 and H12 carry this spec's new fields.
+Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/lock-feasibility after that branch had merged, so its four commits reach feat/lock-only-passable-tests only through https://github.com/SatanshuMishra/interphase/pull/62 (ready, assigned to the owner, bound to this session, awaiting the owner's merge). Mitosis Integration is done: its FEATURE pull request https://github.com/SatanshuMishra/mitosis/pull/35 into main is open as a draft, assigned to the owner, because round 3's code-reviewer could not run; every acceptance line passes at eb1b25e, lighthouse skipped by plan, and the coordinator is told. H11 and H12 carry this spec's new fields.
 
 ## Next step
 
-Run Integration for mitosis on feat/per-msp-locks-no-limits now, and for interphase on feat/lock-only-passable-tests once the owner merges #62; tell the coordinator when mitosis's FEATURE pull request into main opens.
+The owner merges interphase #62, then says so to start interphase Integration on feat/lock-only-passable-tests; the owner starts mitosis Clean-up by saying #35 merged.
 
 Needs: R3.
 
