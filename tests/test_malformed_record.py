@@ -69,18 +69,17 @@ class MalformedRecordTest(unittest.TestCase):
                         )
                         self.assertFalse(items.exists())
 
-    def test_surface_probe_stores_probes_for_a_non_string_check_or_seam(self):
+    def test_surface_probe_refuses_a_non_string_check_or_seam_and_leaves_the_record(self):
         for case, record in malformed_records():
             with self.subTest(case=case), tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as home:
                 path = pathlib.Path(folder) / "demo.record.json"
                 path.write_text(json.dumps(record), encoding="utf-8")
+                before = path.read_bytes()
                 result = run("surface_probe.py", ["--record", str(path), "--repo", folder, "--timeout", "5"], folder, home)
                 self.assertNotIn("Traceback", result.stderr)
-                self.assertIn(result.returncode, (0, 1), result.stderr)
-                stored = json.loads(path.read_text(encoding="utf-8"))
-                self.assertTrue(stored["probes"])
-                self.assertTrue(all(entry["status"] in ("pass", "fail") for entry in stored["probes"]))
-                self.assertEqual(stored["criteria"], record["criteria"])
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn(str(path), result.stderr)
+                self.assertEqual(path.read_bytes(), before)
 
 
 if __name__ == "__main__":

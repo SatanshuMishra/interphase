@@ -54,7 +54,8 @@
         "command": null
       },
       "credentials": [],
-      "trials": 3
+      "trials": 3,
+      "reach": "claude --version"
     },
     {
       "name": "scout and spec-reviewer agents",
@@ -70,7 +71,8 @@
         "command": null
       },
       "credentials": [],
-      "trials": 3
+      "trials": 3,
+      "reach": "claude --version"
     },
     {
       "name": "resume hook after compact or clear",
@@ -86,7 +88,8 @@
         "command": null
       },
       "credentials": [],
-      "trials": 1
+      "trials": 1,
+      "reach": "python3 --version"
     },
     {
       "name": "spec, items and record checkers and the record renderer",
@@ -104,7 +107,8 @@
         "command": null
       },
       "credentials": [],
-      "trials": 1
+      "trials": 1,
+      "reach": "python3 --version"
     },
     {
       "name": "bug reproduction probe and tree guard",
@@ -120,7 +124,8 @@
         "command": null
       },
       "credentials": [],
-      "trials": 1
+      "trials": 1,
+      "reach": "git --version && python3 --version"
     }
   ],
   "credentials": {
@@ -148,5 +153,37 @@
     "pushing to or opening pull requests on the GitHub repository SatanshuMishra/interphase",
     "installing or updating the interphase plugin in the person's own Claude Code configuration",
     "writing spec packages, glossaries or decision records into the person's own repositories"
-  ]
+  ],
+  "measured": {
+    "commit": "74148efb131d6df758dfba87c94544cc01a9b4c0",
+    "measured_at": "2026-11-04T06:34:50.122Z",
+    "setup_seconds": null,
+    "build_seconds": null,
+    "suite_seconds": 72.352,
+    "suite_exit": 0,
+    "start_seconds": null,
+    "ready": null,
+    "drivers": {
+      "pathway skills and the /interphase command": {
+        "seconds": 0.074,
+        "exit": 0
+      },
+      "scout and spec-reviewer agents": {
+        "seconds": 0.077,
+        "exit": 0
+      },
+      "resume hook after compact or clear": {
+        "seconds": 0.076,
+        "exit": 0
+      },
+      "spec, items and record checkers and the record renderer": {
+        "seconds": 0.078,
+        "exit": 0
+      },
+      "bug reproduction probe and tree guard": {
+        "seconds": 0.08,
+        "exit": 0
+      }
+    }
+  }
 }

@@ -56,3 +56,11 @@ _Avoid_: environment check, readiness probe
 **Repeated failure kind**:
 A cause that two or more of this repository's failed outcome entries share, read from the trajectory store before planning and listed under the spec's Risks.
 _Avoid_: recurring bug, known issue
+
+**Owned format**:
+The harness program's JSON Schema for one file or value that one plugin writes and another reads; interphase owns H11, the interview record, and H12, the items file, and reads K1, K2 and K6.
+_Avoid_: contract shape, hand-off schema
+
+**Vendored copy**:
+A byte-identical copy of a program schema or of the program's validator kept in this repository's contracts/ folder and never edited here.
+_Avoid_: local schema, fork

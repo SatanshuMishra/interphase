@@ -350,7 +350,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 self.assertEqual(step["source"]["path"], spec_path)
                 self.assertEqual(step["source"]["sha256"], hashlib.sha256(spec_bytes).hexdigest())
         steps = {step["name"]: step for step in items}
-        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
+        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total", "check": "C1.1"}])
         self.assertEqual(steps["build-app"]["spec_ref"], ["5.1"])
         self.assertEqual(steps["tune-app"]["acceptance"], [])
         self.assertEqual(steps["tune-app"]["spec_ref"], ["5.2"])
@@ -404,9 +404,9 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 self.assertEqual(frozenset(step) - ITEM_FIELDS, frozenset())
                 self.assertEqual(sorted(step["source"]), ["path", "sha256"])
                 for entry in step["acceptance"]:
-                    self.assertEqual(sorted(entry), ["file", "test"])
+                    self.assertEqual(sorted(entry), ["check", "file", "test"])
         steps = {step["name"]: step for step in items}
-        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total"}])
+        self.assertEqual(steps["build-app"]["acceptance"], [{"file": "tests/test_app.py", "test": "test_total", "check": "C1.1"}])
         self.assertIn("| 60 cases, 3 runs each, pass rate at least 0.9 |", steps["build-app"]["task"])
 
     def test_render_refuses_what_the_complete_check_rejects(self):
@@ -430,13 +430,15 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
                 "a seam no criterion uses",
                 {**record(), "seams": record()["seams"] + [{**record()["seams"][0], "name": "tablet"}]},
                 SPEC_TEXT,
-                "error: seam 'tablet' is used by no criterion\n",
+                "error: " + RECORD_PATH + ": seam 'tablet' is used by no criterion\n",
             ),
             (
                 "a criterion has an unproven reason that is not text",
                 second_criterion(record(), unproven=None),
                 SPEC_TEXT,
-                "error: criterion 5.2 has unproven that is not a non-empty string\n",
+                "error: " + RECORD_PATH + " does not match h11-interphase-record.schema.json: "
+                "#/criteria/1/unproven type: null is not of type string\n"
+                "error: " + RECORD_PATH + ": criterion 5.2 has unproven that is not a non-empty string\n",
             ),
         )
         for label, source, spec_text, expected in cases:
@@ -448,7 +450,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
         source = {**record(), "criteria": criteria[:1] + [{key: value for key, value in criteria[1].items() if key != "unproven"}]}
         self.assertEqual(
             self.refused(source, SPEC_TEXT),
-            "error: criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
+            "error: " + RECORD_PATH + ": criterion 5.2 sits at a seam the builder cannot run and is not marked unproven\n",
         )
 
     def test_render_refuses_a_step_assumption_without_a_known_intent_line(self):

@@ -278,7 +278,7 @@ class ResumeContextTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn(HEADING + "broken\n", output)
 
-    def test_a_partly_written_record_still_prints(self):
+    def test_a_partly_written_record_is_refused_not_digested(self):
         module = self.load()
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
@@ -294,22 +294,23 @@ class ResumeContextTest(unittest.TestCase):
                     "junk",
                 ],
             })
+            self.write(folder, "partial.decisions.md", DECISIONS_TEXT)
             code, output = self.session(module, root)
         self.assertEqual(code, 0)
-        lines = output.splitlines()
-        self.assertEqual(
-            lines[lines.index("Record digest (" + str(folder / "partial.record.json") + "):") + 1:],
-            [
-                "Criteria:",
-                "- 5.1 No seam (seam: )",
-                "- 5.2 Numeric (seam: unit-tests)",
-                "- 5.3  (seam: )",
-                "- 5.4 Listed (seam: ['unit-tests'])",
-                "- 5.5 Old shape (seam: ) Unproven: needs the phone",
-                "Steps:",
-            ],
-        )
-
+        record_path = str(folder / "partial.record.json")
+        lines = self.block_for(output, "partial").splitlines()
+        refusal = record_path + " (written by interphase) does not match h11-interphase-record.schema.json:"
+        self.assertEqual(lines[:2], [HEADING + "partial", self.ignore_line(folder, "partial")])
+        self.assertIn(DECISIONS_TEXT, self.block_for(output, "partial"))
+        self.assertIn(refusal, lines)
+        errors = lines[lines.index(refusal) + 1:]
+        for pointer in ("# required", "#/criteria/0 required", "#/criteria/1/number type", "#/criteria/5 type"):
+            with self.subTest(pointer=pointer):
+                self.assertTrue(any(line.startswith("- " + pointer) for line in errors), errors)
+        self.assertTrue(all(line.startswith("- #") for line in errors), errors)
+        self.assertEqual([line for line in lines if line in ("Criteria:", "Steps:")], [])
+        self.assertFalse(any(line.startswith("Record digest") for line in lines), lines)
+        self.assertFalse(any(line.startswith("- 5.") for line in lines), lines)
 
 if __name__ == "__main__":
     unittest.main()
