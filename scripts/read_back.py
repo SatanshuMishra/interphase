@@ -15,18 +15,17 @@ def load_sibling(name):
     return module
 
 
+owned_names = load_sibling("owned_names")
 render_record = load_sibling("render_record")
 check_record = render_record.check_record
 record_seams = check_record.record_seams
 owned_formats = check_record.owned_formats
-H11 = "h11-interphase-record"
-H11_FILE = H11 + ".schema.json"
 
 
 def refusals(path, record):
     return tuple(
-        "%s (written by interphase) does not match %s: %s" % (path, H11_FILE, message)
-        for message in owned_formats.errors(H11, record)
+        owned_names.mismatch(owned_names.written_by_interphase(path), owned_names.H11, message)
+        for message in owned_formats.errors(owned_names.H11, record)
     )
 
 

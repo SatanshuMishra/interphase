@@ -2,9 +2,6 @@ import importlib.util
 import json
 import pathlib
 
-H11 = "h11-interphase-record"
-H12 = "h12-interphase-items"
-SCHEMA_SUFFIX = ".schema.json"
 ERROR = "error"
 
 
@@ -15,6 +12,7 @@ def load_sibling(name):
     return module
 
 
+owned_names = load_sibling("owned_names")
 owned_formats = load_sibling("owned_formats")
 check_record = load_sibling("check_record")
 check_items = load_sibling("check_items")
@@ -23,7 +21,7 @@ atomic_file = load_sibling("atomic_file")
 
 def schema_lines(path, name, value):
     return tuple(
-        "%s does not match %s: %s" % (path, name + SCHEMA_SUFFIX, message)
+        owned_names.mismatch(path, name, message)
         for message in owned_formats.errors(name, value)
     )
 
@@ -37,7 +35,7 @@ def parsed(text):
 
 def record_gate(path, record_text, complete):
     readable, record = parsed(record_text)
-    shape = schema_lines(path, H11, record) if readable else ()
+    shape = schema_lines(path, owned_names.H11, record) if readable else ()
     findings = tuple(
         "%s: %s" % (path, message)
         for severity, message in check_record.check(record_text, complete=complete)
@@ -47,17 +45,11 @@ def record_gate(path, record_text, complete):
 
 
 def item_findings(items, spec_data):
-    if not isinstance(items, list):
-        return (check_items.error("items file is not a JSON array"),)
-    if not items:
-        return (check_items.error("items file is an empty array"),)
-    source = check_items.spec_source(items)
-    spec = () if source is None else check_items.check_spec_bytes(items, source[0], source[1], spec_data)
-    return check_items.check_step_rules(items) + spec
+    return check_items.check_value(items, lambda steps: check_items.check_spec_data(steps, spec_data))
 
 
 def items_gate(path, items, spec_text, amendment):
-    shape = schema_lines(path, H12, items)
+    shape = schema_lines(path, owned_names.H12, items)
     found = item_findings(items, spec_text.encode("utf-8"))
     chosen = check_items.amendment_findings(found) if amendment else found
     return shape + tuple("%s: %s" % (path, message) for severity, _, message in chosen if severity == ERROR)

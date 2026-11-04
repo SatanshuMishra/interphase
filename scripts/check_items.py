@@ -632,6 +632,13 @@ def check_criteria(steps, headings):
     return unclaimed + idle
 
 
+def check_spec_data(steps, data):
+    source = spec_source(steps)
+    if source is None:
+        return ()
+    return check_spec_bytes(steps, source[0], source[1], data)
+
+
 def check_spec(steps):
     source = spec_source(steps)
     if source is None:
@@ -652,10 +659,6 @@ def check_spec_bytes(steps, path, sha, data):
     )
     headings = parse_headings(data.decode("utf-8", errors="replace"))
     return mismatch + check_spec_refs(steps, headings) + check_criteria(steps, headings)
-
-
-def check_steps(steps):
-    return check_step_rules(steps) + check_spec(steps)
 
 
 def check_step_rules(steps):
@@ -679,11 +682,19 @@ def check_text(text):
         steps = json.loads(text)
     except ValueError as exc:
         return (error("items file is not valid JSON: %s" % exc),)
+    return check_value(steps, check_spec)
+
+
+def shape_findings(steps):
     if not isinstance(steps, list):
         return (error("items file is not a JSON array"),)
     if not steps:
         return (error("items file is an empty array"),)
-    return check_steps(steps)
+    return ()
+
+
+def check_value(steps, spec_check):
+    return shape_findings(steps) or check_step_rules(steps) + spec_check(steps)
 
 
 def check_file(path):

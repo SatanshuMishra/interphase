@@ -8,10 +8,6 @@ import sys
 RECORD_SUFFIX = ".record.json"
 DECISIONS_SUFFIX = ".decisions.md"
 IN_PROGRESS = "in-progress"
-H11 = "h11-interphase-record"
-H11_FILE = H11 + ".schema.json"
-REFUSAL = "{} (written by interphase) does not match " + H11_FILE + ":"
-UNCHECKED = "The record could not be checked against " + H11_FILE + ": {}"
 HEADING = "interphase run in progress: {}"
 IGNORE_UNLESS = (
     "Ignore this unless this conversation is continuing that interphase run. "
@@ -19,17 +15,26 @@ IGNORE_UNLESS = (
 )
 
 
-def load_owned_formats():
-    path = pathlib.Path(__file__).resolve().with_name("owned_formats.py")
-    spec = importlib.util.spec_from_file_location("interphase_resume_owned_formats", str(path))
+def load_script(name):
+    path = pathlib.Path(__file__).resolve().with_name(name + ".py")
+    spec = importlib.util.spec_from_file_location("interphase_resume_" + name, str(path))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
+def load_owned_formats():
+    return load_script("owned_formats")
+
+
+owned_names = load_script("owned_names")
+REFUSAL = owned_names.mismatch_lead(owned_names.written_by_interphase("{}"), owned_names.H11)
+UNCHECKED = "The record could not be checked against " + owned_names.schema_file(owned_names.H11) + ": {}"
+
+
 def h11_errors(record):
     try:
-        return "errors", tuple(load_owned_formats().errors(H11, record))
+        return "errors", tuple(load_owned_formats().errors(owned_names.H11, record))
     except Exception as error:
         return "unchecked", type(error).__name__
 
