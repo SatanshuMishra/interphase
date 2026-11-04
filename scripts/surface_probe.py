@@ -78,7 +78,6 @@ def load_sibling(name):
 
 
 check_items = load_sibling("check_items")
-atomic_file = load_sibling("atomic_file")
 record_seams = load_sibling("record_seams")
 
 
@@ -495,11 +494,11 @@ def read_record(path):
 
 
 def write_record(path, record):
+    handoff_gate = load_sibling("handoff_gate")
     try:
-        atomic_file.replace(path, (json.dumps(record, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
-    except (OSError, UnicodeEncodeError):
-        return False
-    return True
+        return handoff_gate.write_record(path, record)
+    except OSError:
+        return ("cannot write: " + path,)
 
 
 def main(argv):
@@ -516,8 +515,9 @@ def main(argv):
         print("cannot read a JSON object from: " + record_path, file=sys.stderr)
         return 2
     results = probe_all(record, root, timeout)
-    if not write_record(record_path, updated(record, results, unattended)):
-        print("cannot write: " + record_path, file=sys.stderr)
+    problems = write_record(record_path, updated(record, results, unattended))
+    if problems:
+        print("\n".join(problems), file=sys.stderr)
         return 2
     for entry, _ in results:
         print("%s: %s" % (entry["status"], failure_text(entry)))

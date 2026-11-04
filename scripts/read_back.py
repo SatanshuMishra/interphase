@@ -15,32 +15,22 @@ def load_sibling(name):
     return module
 
 
+owned_names = load_sibling("owned_names")
 render_record = load_sibling("render_record")
 check_record = render_record.check_record
 record_seams = check_record.record_seams
-is_text = check_record.check_items.is_text
+owned_formats = check_record.owned_formats
 
 
-def is_line(line):
-    return isinstance(line, dict) and not check_record.schema_check.errors(check_record.K1, line)
-
-
-def is_seam(seam):
-    return isinstance(seam, dict) and is_text(seam.get("name")) and is_text(seam.get("interface"))
-
-
-def is_criterion(criterion):
-    return isinstance(criterion, dict) and all(
-        is_text(criterion.get(key)) for key in ("number", "title", "seam")
+def refusals(path, record):
+    return tuple(
+        owned_names.mismatch(owned_names.written_by_interphase(path), owned_names.H11, message)
+        for message in owned_formats.errors(owned_names.H11, record)
     )
 
 
 def line_rows(criterion):
-    return tuple(
-        "- " + render_record.line_sentence(line)
-        for line in check_record.criterion_lines(criterion)
-        if is_line(line)
-    )
+    return tuple("- " + render_record.line_sentence(line) for line in check_record.criterion_lines(criterion))
 
 
 def criterion_rows(criterion):
@@ -69,12 +59,11 @@ def question(entry, criterion):
 
 
 def questions(record, criteria):
-    builders = record_seams.builder_seams(check_record.part(record, "seams"))
+    builders = record_seams.builder_seams(tuple(record["seams"]))
     owners = {
         line["id"]: criterion
         for criterion in criteria
         for line in check_record.criterion_lines(criterion)
-        if is_line(line)
     }
     return tuple(
         question(entry, owners[entry["check"]])
@@ -84,8 +73,8 @@ def questions(record, criteria):
 
 
 def read_back(record):
-    seams = tuple(seam for seam in check_record.part(record, "seams") if is_seam(seam))
-    criteria = tuple(criterion for criterion in check_record.part(record, "criteria") if is_criterion(criterion))
+    seams = tuple(record["seams"])
+    criteria = tuple(record["criteria"])
     blocks = tuple("\n".join(seam_rows(seam, criteria)) for seam in seams)
     asked = questions(record, criteria)
     surfaces = ("\n".join((SURFACES_HEADING,) + asked),) if asked else ()
@@ -123,6 +112,10 @@ def main(argv):
     if record is None:
         print("%s: %s" % (problem, path), file=sys.stderr)
         return 2
+    refused = refusals(path, record)
+    if refused:
+        print("\n".join(refused), file=sys.stderr)
+        return 1
     print(read_back(record))
     return 0
 

@@ -76,15 +76,26 @@ def listing(folder):
 
 class RecordWriteTest(unittest.TestCase):
     def assert_left_whole(self, folder, path, before, names, code, output, message):
+        self.assert_left_whole_saying(folder, path, before, names, code, output, message + str(path))
+
+    def assert_left_whole_saying(self, folder, path, before, names, code, output, expected):
         self.assertEqual(code, 2, output)
-        self.assertIn(message + str(path), output)
+        self.assertIn(expected, output)
         self.assertNotIn("Traceback", output)
         self.assertEqual(pathlib.Path(path).read_bytes(), before)
         self.assertEqual(listing(folder), names)
 
     def test_a_failed_record_rewrite_leaves_the_record_whole(self):
-        cases = (("file size limit", padded_record(), True), ("unencodable text", surrogate_record(), False))
-        for label, record, limited in cases:
+        cases = (
+            ("file size limit", padded_record(), True, lambda path: "cannot write: " + str(path)),
+            (
+                "unencodable text",
+                surrogate_record(),
+                False,
+                lambda path: str(path) + ": record holds text that is not valid Unicode",
+            ),
+        )
+        for label, record, limited, expected in cases:
             for name in ("surface_probe.py", "outcomes.py"):
                 with self.subTest(case=label, script=name), tempfile.TemporaryDirectory() as base:
                     records = pathlib.Path(base) / "records"
@@ -94,7 +105,9 @@ class RecordWriteTest(unittest.TestCase):
                     before = record_path.read_bytes()
                     names = listing(records)
                     code, output = run(record_commands(base, record_path)[name], base, limited)
-                    self.assert_left_whole(records, record_path, before, names, code, output, "cannot write: ")
+                    self.assert_left_whole_saying(
+                        records, record_path, before, names, code, output, expected(record_path)
+                    )
 
     def test_a_failed_spec_rewrite_leaves_the_spec_whole(self):
         with tempfile.TemporaryDirectory() as base:
