@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T07:02:18.270Z
+Updated: 2026-11-04T07:02:18.404Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/loc
 
 ## Next step
 
-The owner merges interphase #62, then says so to start interphase Integration on feat/lock-only-passable-tests; the owner starts mitosis Clean-up by saying #35 merged.
+The owner merges interphase #62 and says so, which starts interphase Integration on feat/lock-only-passable-tests; the owner starts mitosis Clean-up by saying #35 merged.
 
 Needs: R3.
 
