@@ -523,6 +523,53 @@ class PerMspCheckAuthorItemsTest(ItemsFixture, unittest.TestCase):
         )
 
 
+SHARED_AUTHORS = (
+    ("check-author", {"msp": "check-author"}),
+    ("write-tests", {}),
+)
+
+
+def with_shared_author(name, fields):
+    def change(steps):
+        authored = with_author(steps)
+        renamed = [
+            dict(step, name=name, **fields)
+            if step["name"] == "check-author"
+            else dict(step, after=[name if item == "check-author" else item for item in step["after"]])
+            for step in authored
+        ]
+        return with_named(with_named(renamed, "interface", msp="front"), "client", msp="back")
+
+    return change
+
+
+class SharedCheckAuthorItemsTest(ItemsFixture, unittest.TestCase):
+    def test_check_items_accepts_a_shared_check_author_whose_files_split_by_msp(self):
+        for name, fields in SHARED_AUTHORS:
+            with self.subTest(author=name):
+                code, errors, _ = self.run_check(with_shared_author(name, fields))
+                self.assertEqual(errors, ())
+                self.assertEqual(code, 0)
+
+    def test_check_items_refuses_a_shared_check_author_file_that_two_msps_name(self):
+        def leaked(name, fields):
+            def change(steps):
+                shared = with_shared_author(name, fields)(steps)
+                entry = {"file": "tests/test_interface.py", "test": "test_interface_exists"}
+                client = next(step for step in shared if step["name"] == "client")
+                return with_named(shared, "client", acceptance=client["acceptance"] + [entry])
+
+            return change
+
+        for name, fields in SHARED_AUTHORS:
+            with self.subTest(author=name):
+                self.assert_error(
+                    leaked(name, fields),
+                    "check-author step %r writes file 'tests/test_interface.py', which acceptance entries of "
+                    "steps with msp 'back' and msp 'front' name; a locked file belongs to one msp" % name,
+                )
+
+
 class AmendmentItemsTest(ScriptLoader, unittest.TestCase):
     def amendment_steps(self, spec_path, sha):
         return [

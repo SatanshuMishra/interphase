@@ -108,7 +108,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `msp` | no | A label that makes Steps ship together as one change. |
 | `spec_ref` | no, but interphase always sets it | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
 | `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. Each shows in the pull request that builds the Step. |
-| `role` | no | Only the value `check-author`. When the record has a `locked` list of test files, the render script writes one such Step per msp, named `check-author-<msp>`, or one named `check-author` when no Step that owns a locked row carries an msp. Each writes its msp's locked tests from the acceptance lines and test rows before anything in that msp is built. Every other Step of its msp names it in `after`, and no other Step lists one of its files. |
+| `role` | no | Only the value `check-author`. When the record has a `locked` list of test files, the render script writes one such Step per msp, named `check-author-<msp>`, or one named `check-author` for the owners of locked rows that carry no msp. Each writes its msp's locked tests from the acceptance lines and test rows before anything in that msp is built. Every other Step of its msp names it in `after`, and no other Step lists one of its files. The one named `check-author` is unlabelled whatever its `msp` says: it has the `msp` `check-author` when only Steps that own no locked row carry an msp, and then every Step names it in `after`. A file it writes may be named by acceptance entries of one msp only. |
 
 No other fields are allowed.
 

@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -6,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 H11_FILE = "h11-interphase-record.schema.json"
 H12_FILE = "h12-interphase-items.schema.json"
@@ -267,6 +270,24 @@ class RenderItemsGateTest(unittest.TestCase):
             items = json.loads((folder / "amend.items.json").read_text(encoding="utf-8"))
         self.assertEqual([item["name"] for item in items], [LOG_STEP["name"]], items)
         self.assertEqual(vendored_errors("h12-interphase-items", items), ())
+
+    def test_render_writes_nothing_when_the_items_gate_refuses(self):
+        record, spec_text = fixtures()
+        renderer = load_path("owned_formats_render_main", script_path("render_record.py"))
+        refusal = "items.json does not match %s: #/0/files minItems" % H12_FILE
+        with tempfile.TemporaryDirectory() as base:
+            folder, _ = demo_folder(base)
+            record_path = write_demo(folder, record, spec_text)
+            items_path = folder / "items.json"
+            printed = io.StringIO()
+            arguments = ["--record", str(record_path), "--spec", str(folder / "demo.md"), "--items", str(items_path)]
+            with mock.patch.object(renderer.handoff_gate, "items_gate", return_value=(refusal,)):
+                with contextlib.redirect_stdout(printed):
+                    code = renderer.main(arguments)
+            self.assertEqual(code, 1, printed.getvalue())
+            self.assertEqual((folder / "demo.md").read_bytes(), spec_text.encode("utf-8"))
+            self.assertFalse(items_path.exists())
+        self.assertIn("error: " + refusal, printed.getvalue().splitlines())
 
     def test_the_items_gate_refuses_a_check_author_with_no_files_and_names_each_error(self):
         record, spec_text = fixtures()

@@ -521,6 +521,33 @@ def check_lock_leakage(others, authors):
     )
 
 
+def naming_msps(others, path):
+    return tuple(
+        sorted(
+            frozenset(
+                describe_msp(msp_of(step))
+                for _, step in others
+                for entry in entries(step)
+                if path_key(entry["file"]) == path_key(path)
+            )
+        )
+    )
+
+
+def check_unlabelled_split(others, authors):
+    return tuple(
+        error(
+            "%s step %r writes file %r, which acceptance entries of steps with %s name; "
+            "a locked file belongs to one msp" % (CHECK_AUTHOR, author["name"], path, " and ".join(msps))
+        )
+        for author in authors
+        if author_msp(author) is None
+        for path in sorted(step_files(author))
+        for msps in (naming_msps(others, path),)
+        if len(msps) > 1
+    )
+
+
 def check_author_lane(steps):
     authors = tuple(step for _, step in named_steps(steps) if is_author(step))
     others = tuple((index, step) for index, step in enumerate(steps) if isinstance(step, dict) and not is_author(step))
@@ -541,6 +568,7 @@ def check_author_lane(steps):
         + check_author_msps(authors)
         + unordered
         + check_lock_leakage(others, authors)
+        + check_unlabelled_split(others, authors)
         + written
     )
 
