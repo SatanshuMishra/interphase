@@ -55,6 +55,10 @@ def load_path(name, path):
     return module
 
 
+def feasibility():
+    return load_path("owned_formats_items_check_feasibility", repository_root() / "tests" / "feasibility_fixture.py")
+
+
 def fixtures():
     tests = repository_root() / "tests"
     lane = load_path("owned_formats_items_check_lane", tests / "test_check_author_lane.py")
@@ -94,7 +98,7 @@ class ItemsCheckIdTest(unittest.TestCase):
             home.mkdir()
             (folder / "demo.md").write_text(spec_text, encoding="utf-8")
             record_path = folder / "demo.record.json"
-            record_path.write_text(json.dumps(with_drawn_total(record)), encoding="utf-8")
+            record_path.write_text(json.dumps(feasibility().feasible(with_drawn_total(record))), encoding="utf-8")
             items_path = folder / "items.json"
             result = subprocess.run(
                 [

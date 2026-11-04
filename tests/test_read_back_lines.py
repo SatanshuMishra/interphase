@@ -7,6 +7,10 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 RUNNABLE_SEAM = {
     "name": "script-cli",
@@ -66,6 +70,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 ROW_B = {
     "file": "tests/test_b.py",
@@ -74,6 +80,8 @@ ROW_B = {
     "expect": "the summary names both checks",
     "step": "build-b",
     "check": "C2.1",
+    "loads": ["scripts/a.py", "scripts/b.py"],
+    "needs": ["scripts/b.py"],
 }
 OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
 
@@ -205,7 +213,7 @@ def run(arguments, cwd):
 
 def write_record(base, record):
     path = pathlib.Path(base) / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasible(record)), encoding="utf-8")
     return path
 
 

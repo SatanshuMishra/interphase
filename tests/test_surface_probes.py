@@ -8,6 +8,10 @@ import tempfile
 import time
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 RUNNABLE_SEAM = {
     "name": "script-cli",
@@ -109,6 +113,8 @@ def row(line, position):
         "expect": line["pass"],
         "step": "build-surface",
         "check": line["id"],
+        "loads": ["scripts/drive.py"],
+        "needs": ["scripts/drive.py"],
     }
 
 
@@ -187,7 +193,7 @@ def inherited_environment(home):
 
 def write_record(base, record):
     path = pathlib.Path(base) / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasible(record)), encoding="utf-8")
     return path
 
 

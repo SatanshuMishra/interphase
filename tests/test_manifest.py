@@ -33,7 +33,7 @@ class TestManifest(unittest.TestCase):
         parts = manifest["version"].split(".")
         self.assertEqual(len(parts), 3)
         version = tuple(int(part) for part in parts)
-        self.assertGreater(version, (0, 14, 0))
+        self.assertGreater(version, (0, 15, 0))
 
 
 class TestMarketplace(unittest.TestCase):

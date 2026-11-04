@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -9,7 +10,7 @@ COMPLETE = "--complete"
 RECORD_KEYS = ("seams", "criteria", "steps")
 STOPPED = "stopped"
 STATUSES = ("in-progress", "handed-off", STOPPED)
-OPTIONAL_RECORD_KEYS = ("status", "rounds", "locked", "probes", "stop", "outcomes")
+OPTIONAL_RECORD_KEYS = ("status", "rounds", "locked", "probes", "stop", "outcomes", "unaffected", "feasibility")
 SEAM_KEYS = ("name", "interface", "catches", "misses", "builder_runs")
 CRITERION_KEYS = (
     "number",
@@ -27,6 +28,12 @@ CRITERION_REQUIRED = ("number", "title", "text", "seam", "tests")
 CASE_TABLES = ("security", "refusal")
 DOMAIN_KEYS = ("name", "over", "classes")
 TEST_KEYS = ("file", "name", "given", "expect", "step")
+LOADS = "loads"
+NEEDS = "needs"
+ABSENT = "absent"
+ROW_PATH_KEYS = (LOADS, NEEDS)
+ROW_FEASIBILITY_KEYS = ROW_PATH_KEYS + (ABSENT,)
+ABSENT_KEYS = ("command", "shows")
 COVERS = "covers"
 CHECK = "check"
 VARIES = ("input", "output", "measured")
@@ -47,6 +54,7 @@ STEP_KEYS = (
 )
 STEP_REQUIRED = ("name", "files", "criteria")
 RESERVED_STEP = "check-author"
+MSP_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 RENDERED_KEYS = ("source", "acceptance", "spec_ref")
 NUMBER_RE = re.compile(r"[0-9]+\.[0-9]+")
 ROUND_KEYS = ("kind", "questions", "changed")
@@ -57,6 +65,15 @@ STOP_KEYS = ("phase", "reason")
 OUTCOME_KEYS = ("store", "entries", "repeated")
 REPEATED_KEYS = ("kind", "count")
 NOT_UNICODE = "record holds text that is not valid Unicode"
+UNAFFECTED_KEYS = ("file", "reason")
+FEASIBILITY_KEYS = ("digest", "results")
+RESULT_KEYS = ("check", "subject", "status", "detail")
+RESULT_STATUSES = ("pass", "fail")
+DIGEST_RE = re.compile(r"[0-9a-f]{64}")
+DIGEST_PARTS = ("seams", "criteria", "locked", "unaffected")
+DIGEST_STEP_KEYS = ("name", "files", "after", "msp")
+NO_FEASIBILITY = "record has a locked list but no feasibility results; run lock_feasibility.py"
+STALE_FEASIBILITY = "the record changed since lock_feasibility.py ran; run it again"
 
 
 def load_sibling(name):
@@ -225,6 +242,14 @@ def steps_by_name(steps):
     }
 
 
+def steps_through(step_name, steps):
+    by_name = steps_by_name(steps)
+    if step_name not in by_name:
+        return ()
+    reached = frozenset((step_name,)) | check_items.reachable(check_items.after_graph(steps), step_name)
+    return tuple(step for name, step in by_name.items() if name in reached)
+
+
 def criterion_label(index, criterion):
     number = criterion.get("number") if isinstance(criterion, dict) else None
     return "criterion %s" % number if check_items.is_text(number) else "criterion %d" % (index + 1)
@@ -366,6 +391,42 @@ def check_check(tag, test, criterion, complete):
     return (error("%s names unknown acceptance line %s" % (tag, test[CHECK])),)
 
 
+def is_path_list(value):
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(check_items.is_text(path) and not check_items.bad_path(path) for path in value)
+    )
+
+
+def check_row_paths(tag, test, criterion, complete):
+    shapes = tuple(
+        error("%s has %s that is not a non-empty list of repository-relative paths" % (tag, key))
+        for key in ROW_PATH_KEYS
+        if key in test and not is_path_list(test[key])
+    )
+    required = (
+        tuple(
+            error("%s lacks %s, which every row of a criterion with acceptance lines states" % (tag, key))
+            for key in ROW_PATH_KEYS
+            if key not in test
+        )
+        if complete and has_lines(criterion)
+        else ()
+    )
+    return shapes + required
+
+
+def is_absent(value):
+    return is_entry(value, ABSENT_KEYS) and all(check_items.is_text(value[key]) for key in ABSENT_KEYS)
+
+
+def check_absent(tag, test):
+    if ABSENT not in test or is_absent(test[ABSENT]):
+        return ()
+    return (error("%s has absent that is not an object with exactly non-empty string command and shows" % tag),)
+
+
 def check_test(who, position, test, criterion, by_name, locked, complete):
     tag = entry_label(who, position, test)
     if not well_formed(test):
@@ -374,6 +435,7 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
     tabled = "case_table" in criterion
     allowed = (
         TEST_KEYS
+        + ROW_FEASIBILITY_KEYS
         + ((COVERS,) if tabled else ())
         + (POPULATION_KEYS if varying else ())
         + ((CHECK,) if has_lines(criterion) else ())
@@ -383,6 +445,8 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
         unknown_keys(tag, test, allowed)
         + check_covers(tag, test, criterion)
         + check_check(tag, test, criterion, complete)
+        + check_row_paths(tag, test, criterion, complete)
+        + check_absent(tag, test)
         + population
         + check_test_step(tag, test, criterion, by_name, locked)
     )
@@ -644,10 +708,14 @@ def check_step_keys(who, step):
     )
 
 
+def is_reserved(name):
+    return isinstance(name, str) and (name == RESERVED_STEP or name.startswith(RESERVED_STEP + "-"))
+
+
 def check_reserved_name(step):
-    if step.get("name") != RESERVED_STEP:
+    if not is_reserved(step.get("name")):
         return ()
-    return (error("step name %r is reserved for the rendered %s Step" % (RESERVED_STEP, RESERVED_STEP)),)
+    return (error("step name %r is reserved for the rendered %s Step" % (step["name"], RESERVED_STEP)),)
 
 
 def check_step_criteria(who, step, numbers):
@@ -778,6 +846,115 @@ def check_locked(record, criteria, steps, complete):
     return shape + written
 
 
+def locked_rows(criteria):
+    return tuple(test for criterion in criteria if has_lines(criterion) for test in criterion_tests(criterion))
+
+
+def label_of(msp):
+    return "msp %r" % msp if isinstance(msp, str) else "no msp"
+
+
+def msp_label(step):
+    return label_of(step.get("msp"))
+
+
+def row_labels(rows, by_name):
+    labels = tuple(msp_label(by_name[test["step"]]) for test in rows if test["step"] in by_name)
+    return tuple(text for position, text in enumerate(labels) if text not in labels[:position])
+
+
+def distinct_paths(paths):
+    texts = tuple(path for path in paths if isinstance(path, str))
+    keys = tuple(check_items.path_key(path) for path in texts)
+    return tuple(path for position, path in enumerate(texts) if keys[position] not in keys[:position])
+
+
+def rows_in(path, rows):
+    key = check_items.path_key(path)
+    return tuple(test for test in rows if check_items.path_key(test["file"]) == key)
+
+
+def check_locked_msps(record, criteria, steps, complete):
+    paths = record.get("locked")
+    if not complete or not isinstance(paths, list):
+        return ()
+    rows = locked_rows(criteria)
+    by_name = steps_by_name(steps)
+    return tuple(
+        error("locked file %s holds rows of Steps of %s; each locked file belongs to one msp" % (path, " and ".join(labels)))
+        for path in distinct_paths(paths)
+        for labels in (row_labels(rows_in(path, rows), by_name),)
+        if len(labels) > 1
+    )
+
+
+def loading_rows(path, rows):
+    return tuple(
+        test
+        for test in rows
+        if isinstance(test.get(LOADS), list)
+        if check_items.shared_paths((path,), tuple(load for load in test[LOADS] if isinstance(load, str)))
+    )
+
+
+def step_msp(step):
+    msp = step.get("msp")
+    return msp if isinstance(msp, str) else None
+
+
+def unheld_loader_msps(paths, rows, steps):
+    by_name = steps_by_name(steps)
+    return tuple(
+        (path, tuple(dict.fromkeys(step_msp(by_name[test["step"]]) for test in loading_rows(path, rows) if test["step"] in by_name)))
+        for path in distinct_paths(paths)
+        if not rows_in(path, rows)
+    )
+
+
+def unheld_locked_error(path, loader_msps, owner_labels):
+    loader_labels = tuple(label_of(msp) for msp in loader_msps)
+    if len(loader_labels) > 1:
+        return (
+            error(
+                "locked file %s holds no row and is loaded by rows of Steps of %s; each locked file belongs to one msp"
+                % (path, " and ".join(loader_labels))
+            ),
+        )
+    if not loader_labels and owner_labels and "no msp" not in owner_labels:
+        return (
+            error(
+                "locked file %s holds no row and no locked row loads it, so no msp's check-author would write it"
+                % path
+            ),
+        )
+    return ()
+
+
+def check_unheld_locked(record, criteria, steps, complete):
+    paths = record.get("locked")
+    if not complete or not isinstance(paths, list):
+        return ()
+    rows = locked_rows(criteria)
+    owner_labels = row_labels(rows, steps_by_name(steps))
+    return tuple(
+        found
+        for path, loader_msps in unheld_loader_msps(paths, rows, steps)
+        for found in unheld_locked_error(path, loader_msps, owner_labels)
+    )
+
+
+def check_owner_msps(criteria, steps, complete):
+    if not complete:
+        return ()
+    owners = frozenset(test["step"] for test in locked_rows(criteria))
+    return tuple(
+        error("%s owns a locked row and has msp %r, which is not lowercase kebab-case" % (check_items.label(index, step), step["msp"]))
+        for index, step in enumerate(steps)
+        if isinstance(step, dict) and check_items.is_text(step.get("name")) and step["name"] in owners
+        if isinstance(step.get("msp"), str) and not MSP_RE.fullmatch(step["msp"])
+    )
+
+
 def is_entry(entry, keys):
     return isinstance(entry, dict) and sorted(entry) == sorted(keys)
 
@@ -845,6 +1022,89 @@ def check_surface_probes(record, seams, complete):
     )
 
 
+def check_unaffected_entry(index, entry):
+    if is_entry(entry, UNAFFECTED_KEYS) and all(check_items.is_text(entry[key]) for key in UNAFFECTED_KEYS):
+        return ()
+    return (
+        error(
+            "record unaffected entry %d is not an object with exactly non-empty string file and reason" % (index + 1)
+        ),
+    )
+
+
+def check_unaffected(record):
+    if "unaffected" not in record:
+        return ()
+    entries = record["unaffected"]
+    if not isinstance(entries, list):
+        return (error("record unaffected is not a list"),)
+    return tuple(finding for index, entry in enumerate(entries) for finding in check_unaffected_entry(index, entry))
+
+
+def digest_step(step):
+    return {key: step[key] for key in DIGEST_STEP_KEYS if key in step} if isinstance(step, dict) else step
+
+
+def failed_results(results):
+    return [entry for entry in results if not isinstance(entry, dict) or entry.get("status") != "pass"]
+
+
+def feasibility_digest(record, results=()):
+    judged = {key: record.get(key, []) for key in DIGEST_PARTS}
+    listed = record.get("steps", [])
+    steps = [digest_step(step) for step in listed] if isinstance(listed, list) else listed
+    sealed = {**judged, "steps": steps, "failed": failed_results(results)}
+    canonical = json.dumps(sealed, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def is_result(entry):
+    return (
+        is_entry(entry, RESULT_KEYS)
+        and all(check_items.is_text(entry[key]) for key in RESULT_KEYS)
+        and entry["status"] in RESULT_STATUSES
+    )
+
+
+def is_feasibility(value):
+    return (
+        is_entry(value, FEASIBILITY_KEYS)
+        and isinstance(value["digest"], str)
+        and DIGEST_RE.fullmatch(value["digest"]) is not None
+        and isinstance(value["results"], list)
+        and all(is_result(entry) for entry in value["results"])
+    )
+
+
+def check_feasibility_shape(record):
+    if "feasibility" not in record or is_feasibility(record["feasibility"]):
+        return ()
+    return (
+        error(
+            "record feasibility is not an object with exactly a digest of 64 lowercase hex digits and results, "
+            "a list of objects with exactly non-empty string check, subject, status ('pass' or 'fail') and detail"
+        ),
+    )
+
+
+def check_feasibility(record, complete):
+    if not complete or not isinstance(record.get("locked"), list):
+        return ()
+    if "feasibility" not in record:
+        return (error(NO_FEASIBILITY),)
+    feasibility = record["feasibility"]
+    if not is_feasibility(feasibility):
+        return ()
+    current = feasibility_digest(record, feasibility["results"])
+    stale = () if feasibility["digest"] == current else (error(STALE_FEASIBILITY),)
+    failed = tuple(
+        error("feasibility check %s of %s failed: %s" % (entry["check"], entry["subject"], entry["detail"]))
+        for entry in feasibility["results"]
+        if entry["status"] != "pass"
+    )
+    return stale + failed
+
+
 def check_stopped(record, complete):
     if not complete or record.get("status") != STOPPED:
         return ()
@@ -908,8 +1168,14 @@ def check(text, complete=False):
         + check_criteria(criteria, seams, steps, record_locked(record), complete)
         + check_steps(steps, criteria)
         + check_locked(record, criteria, steps, complete)
+        + check_locked_msps(record, criteria, steps, complete)
+        + check_unheld_locked(record, criteria, steps, complete)
+        + check_owner_msps(criteria, steps, complete)
         + check_probes(record)
         + check_surface_probes(record, seams, complete)
+        + check_unaffected(record)
+        + check_feasibility_shape(record)
+        + check_feasibility(record, complete)
         + check_stop(record)
         + check_stopped(record, complete)
         + check_outcomes(record, complete)

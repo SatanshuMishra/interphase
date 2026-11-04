@@ -56,7 +56,7 @@ def with_first_text(suffix):
 
 
 def padded_record():
-    return with_first_text(" pad" * 800)
+    return test_check_author_lane.feasible(with_first_text(" pad" * 800))
 
 
 def surrogate_record():

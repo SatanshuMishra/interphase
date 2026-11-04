@@ -23,8 +23,11 @@ def malformed_records():
         case
         for value in UNHASHABLE
         for case in (
-            ("check %r" % (value,), fixtures.with_criterion(base, 0, tests=[{**fixtures.ROW_A, "check": value}])),
-            ("seam %r" % (value,), fixtures.with_criterion(failed_probes(base), 0, seam=value)),
+            (
+                "check %r" % (value,),
+                fixtures.feasible(fixtures.with_criterion(base, 0, tests=[{**fixtures.ROW_A, "check": value}])),
+            ),
+            ("seam %r" % (value,), fixtures.feasible(fixtures.with_criterion(failed_probes(base), 0, seam=value))),
         )
     )
 
@@ -67,6 +70,23 @@ class MalformedRecordTest(unittest.TestCase):
                             any(line.startswith("error: ") and "5.1" in line for line in result.stdout.splitlines()),
                             result.stdout,
                         )
+                        self.assertFalse(items.exists())
+
+    def test_validators_refuse_a_non_string_step_name_with_a_reason(self):
+        base = fixtures.complete_record()
+        for value in UNHASHABLE:
+            record = fixtures.feasible(fixtures.with_step(base, 0, name=value))
+            with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as home:
+                path = pathlib.Path(folder) / "demo.record.json"
+                spec = pathlib.Path(folder) / "demo.md"
+                items = pathlib.Path(folder) / "items.json"
+                for label, arguments in validators(path, spec, items):
+                    with self.subTest(name=value, script=label):
+                        path.write_text(json.dumps(record), encoding="utf-8")
+                        spec.write_text(outcome_fixtures.SPEC_WITHOUT_KIND, encoding="utf-8")
+                        result = run(label.split(" ")[0], arguments, folder, home)
+                        self.assertNotIn("Traceback", result.stderr)
+                        self.assertEqual(result.returncode, 1, result.stderr)
                         self.assertFalse(items.exists())
 
     def test_surface_probe_refuses_a_non_string_check_or_seam_and_leaves_the_record(self):

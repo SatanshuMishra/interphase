@@ -1,0 +1,5 @@
+# Locked tests are proven passable inside the planned write-sets and locked per MSP
+
+Status: accepted
+
+Before a test is locked, interphase checks at spec time that every file it loads exists or is written by its Step or an earlier one, that the files it needs are in those write-sets, that its behaviour is absent today, and that every existing test referring to a changed file is owned or named unaffected; the results are stored in the record with a digest of the parts they judge, and a record with stale or failed results never renders. The test body itself is born in the check author, so its task requires a passing probe implementation inside the row's write-sets and a failure today by assertion, never by a harness crash. The render script writes one check author per msp, so an MSP's tree holds only its own locked tests and those of the MSPs it builds on. We chose this over leaving feasibility to the builder's lock, which found these faults only after hours of build, and over one check author for the whole run, which put later MSPs' red tests in the first MSP's tree.

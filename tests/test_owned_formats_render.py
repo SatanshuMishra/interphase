@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -6,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 H11_FILE = "h11-interphase-record.schema.json"
 H12_FILE = "h12-interphase-items.schema.json"
@@ -55,6 +58,8 @@ LOGGED_ROW = {
     "expect": "the log names 3",
     "step": "log-total",
     "check": "C3.1",
+    "loads": ["scripts/c.py"],
+    "needs": ["scripts/c.py"],
 }
 
 
@@ -71,6 +76,14 @@ def load_path(name, path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def gate():
+    return load_path("owned_formats_render_gate", repository_root() / "scripts" / "handoff_gate.py")
+
+
+def feasibility():
+    return load_path("owned_formats_render_feasibility", repository_root() / "tests" / "feasibility_fixture.py")
 
 
 def fixtures():
@@ -121,7 +134,7 @@ def demo_folder(base):
 def write_demo(folder, record, spec_text):
     (folder / "demo.md").write_text(spec_text, encoding="utf-8")
     path = folder / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasibility().feasible(record)), encoding="utf-8")
     return path
 
 
@@ -246,32 +259,58 @@ class RenderRecordGateTest(unittest.TestCase):
 
 
 class RenderItemsGateTest(unittest.TestCase):
-    def test_an_amendment_whose_check_author_has_no_files_is_refused_before_writing(self):
+    def test_an_amendment_with_no_test_rows_renders_valid_items_with_no_check_author(self):
         record, spec_text = fixtures()
         with tempfile.TemporaryDirectory() as base:
             folder, home = demo_folder(base)
             write_demo(folder, amended(record), spec_text)
             result = render(folder, home, "amend.items.json", amendment=1)
             output = output_of(result)
-            self.assertEqual(result.returncode, 1, output)
-            self.assertEqual((folder / "demo.md").read_bytes(), spec_text.encode("utf-8"), output)
-            self.assertFalse((folder / "amend.items.json").exists(), output)
-        self.assertNotEqual(naming(result.stdout, ("amend.items.json", H12_FILE, "#/0/files minItems")), [], output)
-        self.assertNotEqual(
-            naming(result.stdout, ("step 'check-author' has files that is not a non-empty list",)), [], output
-        )
+            self.assertEqual(result.returncode, 0, output)
+            items = json.loads((folder / "amend.items.json").read_text(encoding="utf-8"))
+        self.assertEqual([item["name"] for item in items], [LOG_STEP["name"]], items)
+        self.assertEqual(vendored_errors("h12-interphase-items", items), ())
+
+    def test_render_writes_nothing_when_the_items_gate_refuses(self):
+        record, spec_text = fixtures()
+        renderer = load_path("owned_formats_render_main", script_path("render_record.py"))
+        refusal = "items.json does not match %s: #/0/files minItems" % H12_FILE
+        with tempfile.TemporaryDirectory() as base:
+            folder, _ = demo_folder(base)
+            record_path = write_demo(folder, record, spec_text)
+            items_path = folder / "items.json"
+            printed = io.StringIO()
+            arguments = ["--record", str(record_path), "--spec", str(folder / "demo.md"), "--items", str(items_path)]
+            with mock.patch.object(renderer.handoff_gate, "items_gate", return_value=(refusal,)):
+                with contextlib.redirect_stdout(printed):
+                    code = renderer.main(arguments)
+            self.assertEqual(code, 1, printed.getvalue())
+            self.assertEqual((folder / "demo.md").read_bytes(), spec_text.encode("utf-8"))
+            self.assertFalse(items_path.exists())
+        self.assertIn("error: " + refusal, printed.getvalue().splitlines())
+
+    def test_the_items_gate_refuses_a_check_author_with_no_files_and_names_each_error(self):
+        record, spec_text = fixtures()
         with tempfile.TemporaryDirectory() as base:
             folder, home = demo_folder(base)
             write_demo(folder, proven(record), spec_text)
             result = render(folder, home, "amend.items.json", amendment=1)
             output = output_of(result)
             self.assertEqual(result.returncode, 0, output)
-            self.assertTrue((folder / "amend.items.json").is_file(), output)
-            items = json.loads((folder / "amend.items.json").read_text(encoding="utf-8"))
+            items_path = folder / "amend.items.json"
+            items = json.loads(items_path.read_text(encoding="utf-8"))
+            rendered_spec = (folder / "demo.md").read_text(encoding="utf-8")
         authors = [item for item in items if isinstance(item, dict) and item.get("name") == CHECK_AUTHOR]
         self.assertEqual(len(authors), 1, items)
         self.assertIn(LOGGED_ROW["file"], authors[0].get("files", []))
         self.assertEqual(vendored_errors("h12-interphase-items", items), ())
+        emptied = [{**item, "files": []} if item is authors[0] else item for item in items]
+        refusals = gate().items_gate(str(items_path), emptied, rendered_spec, True)
+        refused = "\n".join("error: " + line for line in refusals)
+        self.assertNotEqual(naming(refused, ("amend.items.json", H12_FILE, "files minItems")), [], refused)
+        self.assertNotEqual(
+            naming(refused, ("step 'check-author' has files that is not a non-empty list",)), [], refused
+        )
 
 
 if __name__ == "__main__":

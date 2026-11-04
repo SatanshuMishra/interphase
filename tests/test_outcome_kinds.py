@@ -7,6 +7,10 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 REPOSITORY = "demo-app"
 REMOTE = "https://github.com/example/demo-app.git"
@@ -42,6 +46,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 REPEATED_KIND = "stale cache key"
 SPEC_HEAD = (
@@ -98,7 +104,8 @@ def complete_record(outcomes):
             }
         ],
     }
-    return json.loads(json.dumps(record if outcomes is None else {**record, "outcomes": outcomes}))
+    checked = feasible(record)
+    return json.loads(json.dumps(checked if outcomes is None else {**checked, "outcomes": outcomes}))
 
 
 def arguments_of(repo, outcome, root_cause=None, symptom=None):

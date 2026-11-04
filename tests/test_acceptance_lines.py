@@ -7,6 +7,10 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 SEAM = {
     "name": "script-cli",
@@ -38,6 +42,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 ROW_B = {
     "file": "tests/test_b.py",
@@ -46,6 +52,8 @@ ROW_B = {
     "expect": "the summary names both checks",
     "step": "build-b",
     "check": "C2.1",
+    "loads": ["scripts/a.py", "scripts/b.py"],
+    "needs": ["scripts/b.py"],
 }
 LOCKED = ["tests/test_a.py", "tests/test_b.py"]
 OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
@@ -142,7 +150,7 @@ def check_record(record, complete):
     script = script_path("check_record.py")
     with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as home:
         path = pathlib.Path(folder) / "demo.record.json"
-        path.write_text(json.dumps(record), encoding="utf-8")
+        path.write_text(json.dumps(feasible(record)), encoding="utf-8")
         flags = ["--complete"] if complete else []
         result = subprocess.run(
             [sys.executable, str(script)] + flags + [str(path)],

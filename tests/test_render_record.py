@@ -5,8 +5,13 @@ import io
 import json
 import os
 import pathlib
+import sys
 import tempfile
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
 
 ELLIPSIS = "…"
 REQUEST = (
@@ -64,9 +69,19 @@ CHECK_AUTHOR_OPENING = (
     "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
     "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
     "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
-    "Once committed, these files are locked: no later Step may change them."
+    "Once committed, these files are locked: no later Step may change them. "
+    "Load each module from the path its row lists after Loads, never a path you infer. "
+    "Before handing back, prove each test can pass inside the planned files: write a probe implementation only "
+    "inside the files its row lists after Its probe may write, and never commit it; run the test against it until "
+    "it passes. Prove each test fails on today's code by an assertion failure or a missing module, never by a crash "
+    "in the harness such as a TypeError, a ReferenceError, or a collection, import-time or setup error. "
+    "A test that cannot pass against any probe inside those files is reported back as failed with the reason, "
+    "never weakened."
 )
-TOTAL_ROW_LINE = "- `tests/test_app.py` `test_total` (C1.1): given a total of 3; expects 3 is returned."
+TOTAL_ROW_LINE = (
+    "- `tests/test_app.py` `test_total` (C1.1): given a total of 3; expects 3 is returned. "
+    "Loads: src/app.py. Needs: src/app.py. Its probe may write: src/app.py."
+)
 ROW = {
     "file": "tests/test_app.py",
     "name": "test_total",
@@ -74,6 +89,8 @@ ROW = {
     "expect": "3 is returned",
     "step": "build-app",
     "check": "C1.1",
+    "loads": ["src/app.py"],
+    "needs": ["src/app.py"],
 }
 APP_LINE = {
     "id": "C1.1",
@@ -163,6 +180,7 @@ def record():
                 "files": ["src/tune.py"],
                 "criteria": ["5.2"],
                 "task": "Tune the app for the phone.",
+                "msp": "first",
             },
         ],
         "locked": ["tests/test_app.py"],
@@ -258,7 +276,7 @@ class RenderFixture:
     def write_fixture(self, folder, source, spec_text):
         base = pathlib.Path(folder)
         (base / "docs" / "specs").mkdir(parents=True)
-        (base / RECORD_PATH).write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+        (base / RECORD_PATH).write_text(json.dumps(feasible(source), ensure_ascii=False), encoding="utf-8")
         (base / SPEC_PATH).write_text(spec_text, encoding="utf-8")
 
     def run_main(self, folder, argv=ARGV):
@@ -326,7 +344,7 @@ class RenderRecordTest(RenderFixture, unittest.TestCase):
 
     def test_render_function_takes_no_root(self):
         module = self.load("render_record")
-        errors, spec_text, items = module.render(json.dumps(record()), SPEC_TEXT, "/specs/demo.md")
+        errors, spec_text, items = module.render(json.dumps(feasible(record())), SPEC_TEXT, "/specs/demo.md")
         self.assertEqual(errors, ())
         self.assertEqual(spec_text, RENDERED_SPEC)
         self.assertEqual(
@@ -743,7 +761,7 @@ class AmendmentRenderTest(RenderFixture, unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             _, items_text = self.rendered(folder, amended(record()))
         items = json.loads(items_text)
-        self.assertEqual([item["name"] for item in items], ["check-author", "build-app", "fix-app"])
+        self.assertEqual([item["name"] for item in items], ["check-author-first", "build-app", "fix-app"])
         for item in items:
             with self.subTest(step=item["name"]):
                 self.assertNotIn("amendment", item)
@@ -762,20 +780,20 @@ class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
 
     def test_check_author_comes_first_with_the_locked_paths(self):
         first = self.items_of(record())[0]
-        self.assertEqual(first["name"], "check-author")
+        self.assertEqual(first["name"], "check-author-first")
         self.assertEqual(first["role"], "check-author")
         self.assertEqual(first["files"], ["tests/test_app.py"])
         self.assertEqual(first["acceptance"], [])
         self.assertEqual(first["spec_ref"], ["5.1"])
-        self.assertEqual(first["msp"], "check-author")
+        self.assertEqual(first["msp"], "first")
 
     def test_check_author_task_holds_each_covered_block_and_its_rows(self):
         first = self.items_of(record())[0]
         self.assertEqual(first["task"], CHECK_AUTHOR_OPENING + "\n\n" + BLOCK_5_1 + "\n\n" + TOTAL_ROW_LINE)
 
     def test_check_author_has_no_msp_when_no_step_has_one(self):
-        step = {key: value for key, value in record()["steps"][0].items() if key != "msp"}
-        first = self.items_of(replace_step(record(), 0, step))[0]
+        steps = [{key: value for key, value in step.items() if key != "msp"} for step in record()["steps"]]
+        first = self.items_of({**record(), "steps": steps})[0]
         self.assertNotIn("msp", first)
 
     def test_check_author_gathers_the_assumptions_of_covering_steps_once(self):
@@ -790,20 +808,24 @@ class CheckAuthorRenderTest(RenderFixture, unittest.TestCase):
     def test_every_other_item_names_check_author_first_in_after(self):
         source = replace_step(record(), 1, {**record()["steps"][1], "after": ["build-app"]})
         items = {item["name"]: item for item in self.items_of(source)}
-        self.assertEqual(items["build-app"]["after"], ["check-author"])
-        self.assertEqual(items["tune-app"]["after"], ["check-author", "build-app"])
+        self.assertEqual(items["build-app"]["after"], ["check-author-first"])
+        self.assertEqual(items["tune-app"]["after"], ["check-author-first", "build-app"])
 
     def test_amendment_check_author_holds_only_locked_paths_with_covered_rows(self):
         source = amended({**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]})
         source = replace_step(source, 1, {**source["steps"][1], "criteria": ["5.1", "5.2"]})
+        source = first_criterion(source, tests=[{**ROW, "step": "fix-app"}])
         items = self.items_of(source, argv=ARGV + ("--amendment", "1"))
         self.assertEqual([item["name"] for item in items], ["check-author", "fix-app"])
         self.assertEqual(items[0]["files"], ["tests/test_app.py"])
         self.assertEqual(items[1]["after"], ["check-author"])
 
     def test_full_render_check_author_holds_every_locked_path(self):
-        source = {**record(), "locked": ["tests/test_app.py", "tests/test_phone.py"]}
-        self.assertEqual(self.items_of(source)[0]["files"], ["tests/test_app.py", "tests/test_phone.py"])
+        unlabelled = [{key: value for key, value in step.items() if key != "msp"} for step in record()["steps"]]
+        source = {**record(), "steps": unlabelled, "locked": ["tests/test_app.py", "tests/test_phone.py"]}
+        first = self.items_of(source)[0]
+        self.assertEqual(first["name"], "check-author")
+        self.assertEqual(first["files"], ["tests/test_app.py", "tests/test_phone.py"])
 
     def test_amendment_covering_no_lines_has_no_check_author(self):
         items = self.items_of(amended(record()), argv=ARGV + ("--amendment", "1"))
