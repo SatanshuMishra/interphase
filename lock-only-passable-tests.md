@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T01:31:15.223Z
+Updated: 2026-11-04T01:31:39.829Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-When the test modules pass, commit the C4 and P3 fix and the C5 README change, fix-check each commit, then review round 3.
+When the round 3 suite ends, dispatch code-reviewer and security-reviewer with the round 3 briefs, then validate, record and verdict the round.
 
 Needs: D2.
 
