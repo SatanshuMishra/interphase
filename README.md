@@ -108,7 +108,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `msp` | no | A label that makes Steps ship together as one change. |
 | `spec_ref` | no, but interphase always sets it | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
 | `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. Each shows in the pull request that builds the Step. |
-| `role` | no | Only the value `check-author`. The render script writes one such Step first when the record has a `locked` list of test files: it writes every locked test from the acceptance lines and test rows before anything is built. Every other Step names it in `after`, and no other Step lists one of its files. |
+| `role` | no | Only the value `check-author`. When the record has a `locked` list of test files, the render script writes one such Step per msp, named `check-author-<msp>`, or one named `check-author` when no Step that owns a locked row carries an msp. Each writes its msp's locked tests from the acceptance lines and test rows before anything in that msp is built. Every other Step of its msp names it in `after`, and no other Step lists one of its files. |
 
 No other fields are allowed.
 
@@ -153,6 +153,14 @@ This checker confirms that every name in the record resolves, that every criteri
 A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs cell.
 
 A criterion for security-sensitive behaviour, or for behaviour that exists to refuse something, is a case table: its `case_table` is `security` or `refusal`, its `domains` list the classes of each input the code tells apart, and each of its tests is one row with `given`, `expect` and the classes it `covers`. Any other criterion is a few rows with no domains. The checker reports a class no row covers, domains on a criterion with no `case_table`, and a `case_table` with no domains.
+
+Check that every locked test can pass inside the Steps' files:
+
+```
+python3 /path/to/interphase/scripts/lock_feasibility.py --record docs/specs/<slug>.record.json --repo .
+```
+
+It checks against the committed HEAD that every file a locked test loads exists at HEAD, is locked or is written by its Step or a Step it comes after, that every file it needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record.
 
 Render the spec's Test seams section and the items file from a record:
 

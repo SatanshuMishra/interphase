@@ -55,7 +55,8 @@ class ReadmeTest(unittest.TestCase):
         rows = [line for line in read_readme().splitlines() if line.startswith("| `role` | no | ")]
         self.assertEqual(len(rows), 1)
         self.assertIn("Only the value `check-author`.", rows[0])
-        self.assertIn("Every other Step names it in `after`", rows[0])
+        self.assertIn("one such Step per msp, named `check-author-<msp>`", rows[0])
+        self.assertIn("Every other Step of its msp names it in `after`", rows[0])
 
     def test_readme_names_every_output_file(self):
         text = read_readme()
