@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T06:32:54.458Z
+Updated: 2026-11-04T06:57:02.552Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -51,3 +51,5 @@ Needs: R3.
 - Failed Lanes' first attempts: ~/.mitosis/mitosis/per-msp-locks-no-limits/lane-1-attempt-1.diff and ~/.mitosis/interphase/lock-only-passable-tests/lane-3-attempt-1.diff
 - Mitosis review records: ~/.mitosis/mitosis/per-msp-locks-no-limits/review/ (round folders, obligations, assumptions); base worktree for suites at its base-tree folder
 - Mitosis 0.11 held-Lane replay bug and the state repair: mitosis-0.11-held-lane-replay.md in the shared notes folder
+- Mitosis run folder alias: ~/.mitosis/runs/mitosis-per-msp-locks-no-limits/per-msp-locks-no-limits links to ~/.mitosis/runs/mitosis/per-msp-locks-no-limits, because pipeline names runs after the checkout folder
+- Mitosis Integration outputs: ~/.mitosis/mitosis/per-msp-locks-no-limits/integration.checks.out and integration.suite.json (suite passes on 3.9 and 3.14 at eb1b25e)
