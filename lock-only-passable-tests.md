@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-03T23:31:19.973Z
+Updated: 2026-11-04T00:06:34.974Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis MSP per-msp-lock is gated at 3831e1a (37 of 37 acceptance tests pass) and its branch mitosis/per-msp-lock holds dfc8a92 with GLOSSARY.md and ADR 0016 on top, nothing pushed. Its state.json was hand-repaired after mitosis 0.11 replayed a held Lane from a cleaned clone. Review round 1 is under way, its suite running against the base tree at fbe6a42. Two tests outside every write-set, test_docs and test_referee_docs, still pin version 0.11.0 and need the review fix pass. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis MSP per-msp-lock is gated at 3831e1a (37 of 37 acceptance tests pass) and its branch mitosis/per-msp-lock holds dfc8a92 with GLOSSARY.md and ADR 0016 on top, nothing pushed. Its state.json was hand-repaired after mitosis 0.11 replayed a held Lane from a cleaned clone. Review round 1's suite fails only on the version_is_0_11_0 tests in test_docs and test_referee_docs, which sit outside every write-set and need the fix pass; its three reviewers are running. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
