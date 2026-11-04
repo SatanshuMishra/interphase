@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T06:32:18.030Z
+Updated: 2026-11-04T06:32:54.458Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -15,7 +15,7 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/lock-feasibility after that branch had merged, so its four commits reach feat/lock-only-passable-tests only through https://github.com/SatanshuMishra/interphase/pull/62 (ready, assigned to the owner, bound to this session, awaiting the owner's merge). Mitosis's feature branch holds #34; round 3's code-reviewer could not run past its limit. H11 and H12 carry this spec's new fields.
+Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/lock-feasibility after that branch had merged, so its four commits reach feat/lock-only-passable-tests only through https://github.com/SatanshuMishra/interphase/pull/62 (ready, assigned to the owner, bound to this session, awaiting the owner's merge). Mitosis's feature branch holds #34, and its Integration checks, suite, plan and readiness are running in the integration worktree; round 3's code-reviewer could not run past its limit. H11 and H12 carry this spec's new fields.
 
 ## Next step
 
