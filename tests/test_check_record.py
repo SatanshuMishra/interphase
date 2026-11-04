@@ -4,8 +4,13 @@ import io
 import json
 import os
 import pathlib
+import sys
 import tempfile
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible, passed_results, record_checker
 
 TEST_ENTRY = {
     "file": "tests/test_app.py",
@@ -14,6 +19,8 @@ TEST_ENTRY = {
     "expect": "3 is returned",
     "step": "build-app",
     "check": "C1.1",
+    "loads": ["src/app.py"],
+    "needs": ["src/app.py"],
 }
 UNCHECKED_ENTRY = {key: value for key, value in TEST_ENTRY.items() if key != "check"}
 PRESENT_ENTRY = {**TEST_ENTRY, "name": "test_present", "given": "a total of 4", "expect": "4 is returned"}
@@ -55,6 +62,10 @@ PHONE_CRITERION = {
     "tests": [],
     "unproven": "needs the phone",
 }
+
+
+def record_text(record):
+    return json.dumps(feasible(record))
 
 
 def base_record():
@@ -132,7 +143,7 @@ class RecordFixture:
         return module
 
     def check(self, record, complete):
-        return self.load().check(json.dumps(record), complete=complete)
+        return self.load().check(record_text(record), complete=complete)
 
     def run_main(self, argv, content=None):
         module = self.load()
@@ -161,7 +172,7 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
                 self.assertEqual(self.check(record, True), ())
                 for argv in (["--complete", "record.json"], ["record.json", "--complete"]):
                     with self.subTest(argv=argv):
-                        code, out, _ = self.run_main(argv, json.dumps(record))
+                        code, out, _ = self.run_main(argv, record_text(record))
                         self.assertEqual(code, 0)
                         self.assertEqual(out, "")
 
@@ -215,9 +226,9 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
         strict = self.check(empty, True)
         self.assertEqual(messages(strict, "error"), expected)
         self.assertEqual(len(strict), 3, strict)
-        code, _, _ = self.run_main(["record.json"], json.dumps(empty))
+        code, _, _ = self.run_main(["record.json"], record_text(empty))
         self.assertEqual(code, 0)
-        code, _, _ = self.run_main(["--complete", "record.json"], json.dumps(empty))
+        code, _, _ = self.run_main(["--complete", "record.json"], record_text(empty))
         self.assertEqual(code, 1)
         self.assertEqual(self.check(without(base_record(), "steps", 0, "task"), True), ())
         unclaimed = change(with_phone(), "steps", 0, criteria=["5.1"])
@@ -352,7 +363,7 @@ class CheckRecordTest(RecordFixture, unittest.TestCase):
         self.assertEqual(self.check(change(populated, "criteria", 0, varies="output"), True), ())
 
     def test_exit_codes_and_usage(self):
-        record = json.dumps(base_record())
+        record = record_text(base_record())
         code, _, err = self.run_main([])
         self.assertEqual(code, 2)
         self.assertIn("usage:", err)
@@ -445,9 +456,9 @@ class SeamRecordTest(RecordFixture, unittest.TestCase):
         record = append(base_record(), "seams", dict(PHONE_SEAM))
         self.assertEqual(self.check(record, False), (("warning", "seam 'phone-screen' is used by no criterion"),))
         self.assertEqual(self.check(record, True), (("error", "seam 'phone-screen' is used by no criterion"),))
-        code, _, _ = self.run_main(["record.json"], json.dumps(record))
+        code, _, _ = self.run_main(["record.json"], record_text(record))
         self.assertEqual(code, 0)
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(record))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(record))
         self.assertEqual(code, 1)
         self.assertEqual(out, "error: seam 'phone-screen' is used by no criterion\n")
 
@@ -483,10 +494,10 @@ class ProofRuleRecordTest(RecordFixture, unittest.TestCase):
         message = "criterion 5.2 sits at a seam the builder cannot run and is not marked unproven"
         loose = self.check(record, False)
         self.assertEqual(loose, (("warning", message),))
-        code, _, _ = self.run_main(["record.json"], json.dumps(record))
+        code, _, _ = self.run_main(["record.json"], record_text(record))
         self.assertEqual(code, 0)
         self.assertEqual(self.check(record, True), (("error", message),))
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(record))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(record))
         self.assertEqual(code, 1)
         self.assertEqual(out, "error: " + message + "\n")
 
@@ -773,6 +784,32 @@ class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
             ("step name 'check-author' is reserved for the rendered check-author Step",),
         )
 
+    def test_an_owning_step_whose_msp_is_not_kebab_case_is_refused_when_complete(self):
+        for msp in ("Alpha", "alpha_1", "alpha-", "alpha\n"):
+            with self.subTest(msp=msp):
+                record = change(base_record(), "steps", 0, msp=msp)
+                self.assertEqual(self.errors(record, False), ())
+                self.assertEqual(
+                    self.errors(record, True),
+                    ("step 'build-app' owns a locked row and has msp %r, which is not lowercase kebab-case" % msp,),
+                )
+
+    def test_a_locked_file_holding_rows_of_a_labelled_and_an_unlabelled_step_is_refused_when_complete(self):
+        tune = {"name": "tune-app", "files": ["src/tune.py"], "criteria": ["5.1"], "task": "Tune it.", "msp": "alpha"}
+        record = append(base_record(), "steps", tune)
+        tests = [TEST_ENTRY, {**PRESENT_ENTRY, "step": "tune-app"}]
+        record = replace_at(record, "criteria", 0, {**record["criteria"][0], "tests": tests})
+        self.assertEqual(self.errors(record, False), ())
+        self.assertEqual(
+            self.errors(record, True),
+            (
+                "locked file tests/test_app.py holds rows of Steps of no msp and msp 'alpha'; "
+                "each locked file belongs to one msp",
+            ),
+        )
+        labelled = change(record, "steps", 0, msp="alpha")
+        self.assertEqual(self.errors(labelled, True), ())
+
 
 class LaterKeysRecordTest(RecordFixture, unittest.TestCase):
     def test_a_stopped_record_with_its_stop_has_the_shape_but_is_not_complete(self):
@@ -892,11 +929,11 @@ class AmendmentRecordTest(RecordFixture, unittest.TestCase):
 class RoundsRecordTest(RecordFixture, unittest.TestCase):
     def error_lines(self, record, complete=True):
         argv = ["--complete", "record.json"] if complete else ["record.json"]
-        code, out, _ = self.run_main(argv, json.dumps(record))
+        code, out, _ = self.run_main(argv, record_text(record))
         return code, tuple(line for line in out.splitlines() if line.startswith("error:"))
 
     def test_record_without_rounds_is_valid(self):
-        code, out, _ = self.run_main(["--complete", "record.json"], json.dumps(base_record()))
+        code, out, _ = self.run_main(["--complete", "record.json"], record_text(base_record()))
         self.assertEqual(code, 0)
         self.assertFalse(any("round" in line for line in out.splitlines()), out)
 
@@ -940,6 +977,43 @@ class RoundsRecordTest(RecordFixture, unittest.TestCase):
                     errors,
                 )
 
+
+def with_a_failed_result(record):
+    results = passed_results(record)
+    return [{**results[0], "status": "fail", "detail": "outside every write-set"}] + results[1:]
+
+
+def sealed(record, results):
+    return {**record, "feasibility": {"digest": record_checker.feasibility_digest(record, results), "results": results}}
+
+
+class FeasibilitySealTest(RecordFixture, unittest.TestCase):
+    def complete_errors(self, record):
+        return messages(self.load().check(json.dumps(record), complete=True), "error")
+
+    def test_a_result_flipped_from_fail_to_pass_is_refused(self):
+        record = base_record()
+        stored = sealed(record, with_a_failed_result(record))
+        flipped = {**stored, "feasibility": {**stored["feasibility"], "results": passed_results(record)}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(flipped))
+
+    def test_emptied_results_are_refused(self):
+        record = base_record()
+        stored = sealed(record, with_a_failed_result(record))
+        emptied = {**stored, "feasibility": {**stored["feasibility"], "results": []}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(emptied))
+
+    def test_a_dropped_failed_result_is_refused(self):
+        record = base_record()
+        results = with_a_failed_result(record)
+        stored = sealed(record, results)
+        dropped = {**stored, "feasibility": {**stored["feasibility"], "results": results[1:]}}
+        self.assertIn(record_checker.STALE_FEASIBILITY, self.complete_errors(dropped))
+
+    def test_passing_results_sealed_without_results_are_accepted(self):
+        record = base_record()
+        stored = {**record, "feasibility": {"digest": record_checker.feasibility_digest(record), "results": passed_results(record)}}
+        self.assertEqual(tuple(self.complete_errors(stored)), ())
 
 if __name__ == "__main__":
     unittest.main()

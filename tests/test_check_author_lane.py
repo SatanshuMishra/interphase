@@ -7,6 +7,10 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from feasibility_fixture import feasible
+
 TIMEOUT = 60
 SEAM = {
     "name": "script-cli",
@@ -47,6 +51,8 @@ ROW_A = {
     "expect": "3 is returned",
     "step": "build-a",
     "check": "C1.1",
+    "loads": ["scripts/a.py"],
+    "needs": ["scripts/a.py"],
 }
 ROW_B = {
     "file": "tests/test_b.py",
@@ -55,10 +61,14 @@ ROW_B = {
     "expect": "the summary names both checks",
     "step": "build-b",
     "check": "C2.1",
+    "loads": ["scripts/b.py"],
+    "needs": ["scripts/b.py"],
 }
 LOCKED = ["tests/test_a.py", "tests/test_b.py"]
 OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
 CHECK_AUTHOR = "check-author"
+MSP = "build"
+BUILD_AUTHOR = CHECK_AUTHOR + "-" + MSP
 
 
 def load_referee():
@@ -106,14 +116,14 @@ def complete_record():
                         "files": ["scripts/a.py"],
                         "criteria": ["5.1"],
                         "task": "Build the total.",
-                        "msp": "build",
+                        "msp": MSP,
                     },
                     {
                         "name": "build-b",
                         "files": ["scripts/b.py"],
                         "criteria": ["5.2"],
                         "task": "Build the summary.",
-                        "msp": "build",
+                        "msp": MSP,
                     },
                 ],
                 "locked": LOCKED,
@@ -161,7 +171,7 @@ def run(arguments, cwd):
 
 def write_record(base, record):
     path = pathlib.Path(base) / "demo.record.json"
-    path.write_text(json.dumps(record), encoding="utf-8")
+    path.write_text(json.dumps(feasible(record)), encoding="utf-8")
     return path
 
 
@@ -237,14 +247,14 @@ class CheckAuthorLaneTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as base:
             items, _ = self.rendered_items(base)
         first = items[0]
-        self.assertEqual(first.get("name"), CHECK_AUTHOR)
+        self.assertEqual(first.get("name"), BUILD_AUTHOR)
         self.assertEqual(first.get("role"), CHECK_AUTHOR)
         self.assertEqual(first.get("files"), LOCKED)
         self.assertEqual(first.get("acceptance"), [])
         refs = first.get("spec_ref", [])
         for number in ("5.1", "5.2"):
             self.assertTrue(any(ref == number or ref.startswith(number + " ") for ref in refs), refs)
-        self.assertEqual(first.get("msp"), CHECK_AUTHOR)
+        self.assertEqual(first.get("msp"), MSP)
         task = first.get("task", "")
         for text in (TOTAL_TEXT, SUMMARY_TEXT) + SENTENCES + (ROW_A["name"], ROW_B["name"]):
             self.assertIn(text, task)
@@ -252,9 +262,9 @@ class CheckAuthorLaneTest(unittest.TestCase):
     def test_every_other_step_comes_after_the_check_author(self):
         with tempfile.TemporaryDirectory() as base:
             items, _ = self.rendered_items(base)
-        self.assertEqual(items[0].get("name"), CHECK_AUTHOR)
+        self.assertEqual(items[0].get("name"), BUILD_AUTHOR)
         for item in items[1:]:
-            self.assertIn(CHECK_AUTHOR, item.get("after", []), item["name"])
+            self.assertIn(BUILD_AUTHOR, item.get("after", []), item["name"])
         steps = by_name(items)
         for name, row in (("build-a", ROW_A), ("build-b", ROW_B)):
             self.assertIn(name, steps)
@@ -270,16 +280,16 @@ class CheckAuthorLaneTest(unittest.TestCase):
             code, output = run([script_path("check_items.py"), items_path], base)
             self.assertEqual(code, 0, output)
             self.assertEqual(error_lines(output), [])
-            self.assertEqual(items[0].get("name"), CHECK_AUTHOR)
+            self.assertEqual(items[0].get("name"), BUILD_AUTHOR)
             broken = (
-                ("moved second", moved_second(items), (CHECK_AUTHOR,)),
+                ("moved second", moved_second(items), (BUILD_AUTHOR,)),
                 (
                     "gains an acceptance test",
-                    with_item(items, CHECK_AUTHOR, acceptance=[{"file": LOCKED[0], "test": ROW_A["name"]}]),
-                    (CHECK_AUTHOR, "acceptance"),
+                    with_item(items, BUILD_AUTHOR, acceptance=[{"file": LOCKED[0], "test": ROW_A["name"]}]),
+                    (BUILD_AUTHOR, "acceptance"),
                 ),
-                ("loses its place in another item's after", without_after(items, "build-b", CHECK_AUTHOR), ("build-b", CHECK_AUTHOR)),
-                ("carries role builder", with_item(items, CHECK_AUTHOR, role="builder"), ("role",)),
+                ("loses its place in another item's after", without_after(items, "build-b", BUILD_AUTHOR), ("build-b", BUILD_AUTHOR)),
+                ("carries role builder", with_item(items, BUILD_AUTHOR, role="builder"), ("role",)),
                 (
                     "a build item lists a locked path",
                     with_item(items, "build-a", files=["scripts/a.py", LOCKED[0]]),

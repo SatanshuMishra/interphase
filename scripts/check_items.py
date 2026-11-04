@@ -474,6 +474,47 @@ def check_author_order(steps):
     )
 
 
+def msp_of(step):
+    msp = step.get("msp")
+    return msp if isinstance(msp, str) else None
+
+
+def describe_msp(msp):
+    return "no msp" if msp is None else "msp %r" % msp
+
+
+def check_author_msps(authors):
+    return tuple(
+        error(
+            "%s steps %r and %r both carry %s; each %s step needs its own msp"
+            % (CHECK_AUTHOR, first["name"], second["name"], describe_msp(msp_of(first)), CHECK_AUTHOR)
+        )
+        for position, second in enumerate(authors)
+        for first in (next(author for author in authors[:position + 1] if msp_of(author) == msp_of(second)),)
+        if first is not second
+    )
+
+
+def check_lock_leakage(others, authors):
+    return tuple(
+        error(
+            "%s with %s has acceptance file %r, which %s step %r with %s writes"
+            % (
+                label(index, step),
+                describe_msp(msp_of(step)),
+                entry["file"],
+                CHECK_AUTHOR,
+                author["name"],
+                describe_msp(msp_of(author)),
+            )
+        )
+        for index, step in others
+        for entry in entries(step)
+        for author in authors
+        if msp_of(author) != msp_of(step) and path_key(entry["file"]) in path_keys(step_files(author))
+    )
+
+
 def check_author_lane(steps):
     authors = tuple(step for _, step in named_steps(steps) if is_author(step))
     others = tuple((index, step) for index, step in enumerate(steps) if isinstance(step, dict) and not is_author(step))
@@ -481,7 +522,7 @@ def check_author_lane(steps):
         error("%s does not name %s step %r in its after" % (label(index, step), CHECK_AUTHOR, author["name"]))
         for index, step in others
         for author in authors
-        if author["name"] not in after_list(step)
+        if msp_of(author) == msp_of(step) and author["name"] not in after_list(step)
     )
     written = tuple(
         error("%s lists file %r, which %s step %r writes" % (label(index, step), path, CHECK_AUTHOR, author["name"]))
@@ -489,7 +530,13 @@ def check_author_lane(steps):
         for author in authors
         for path in shared_paths(step_files(step), step_files(author))
     )
-    return check_author_order(steps) + unordered + written
+    return (
+        check_author_order(steps)
+        + check_author_msps(authors)
+        + unordered
+        + check_lock_leakage(others, authors)
+        + written
+    )
 
 
 def check_hazards(steps, graph):

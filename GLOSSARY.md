@@ -46,8 +46,16 @@ The record's list of the test files that implement acceptance lines; the check a
 _Avoid_: frozen tests, protected files
 
 **Check author**:
-The one Step, rendered first in the items file with role check-author, that writes every acceptance line's test before anything is built and never writes the code under test.
+A Step, rendered before every other Step in the items file with role check-author, that writes the acceptance lines' tests of one MSP before anything is built and never writes the code under test; a record whose Steps carry no msp has one for the whole run.
 _Avoid_: test writer, referee Step
+
+**Feasibility check**:
+A check, made before a test is locked, that the planned test can pass inside the planned write-sets: what it loads and needs is reachable, its behaviour is absent today, and every existing test it can break is owned or named unaffected.
+_Avoid_: lock check, viability check
+
+**Probe implementation**:
+A minimal, uncommitted implementation the check author writes only inside the files a row's Step and the Steps before it may write, to show the row's test can pass there.
+_Avoid_: stub build, sample fix
 
 **Surface probe**:
 A timed check, made before the read-back, that an acceptance line's surface can be driven here: its command on PATH, Playwright, a VMLab machine or claude.
