@@ -1,7 +1,7 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T02:04:18.701Z
-Next ids: c4 D5 R3 S1
+Updated: 2026-11-04T02:05:39.658Z
+Next ids: c4 D5 R4 S1
 
 ## Goal
 
@@ -19,9 +19,7 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-Run SHIP=1 ~/.mitosis/mitosis/per-msp-locks-no-limits/run.zsh --resume --proven-head per-msp-lock=$(git -C ~/.mitosis/runs/mitosis/per-msp-locks-no-limits/trees/per-msp-lock rev-parse HEAD), check the branch history was not rewritten, then open the mitosis pull request with the rendered title and body, assign, comment, bind and set the monitor.
-
-Needs: D2, D4, R2.
+Send the final report to the coordinator, leading with the three pull request links, then park the thread with the next step that the owner merges #60 into mitosis/lock-feasibility, then #59 and mitosis #34, and starts Integration by saying they merged.
 
 ## Decisions in force
 
@@ -32,7 +30,7 @@ Needs: D2, D4, R2.
 
 ## Open risks
 
-- R2 The app refuses to turn on Auto-Fix for a PR opened through GitHub MCP create_pull_request, and a session binds one PR at a time: interphase #59 is bound with Auto-Fix off, and #60 is unbound, so the owner turns Auto-Fix on and binds #60 themselves. Bears on c1.
+- R3 The app refuses Auto-Fix for a PR opened through GitHub MCP create_pull_request, and a session binds one PR: interphase #59 is bound with Auto-Fix off, while interphase #60 and mitosis #34 are unbound, so the owner binds them and turns Auto-Fix on. Bears on c2.
 
 ## Settled, do not reopen
 
