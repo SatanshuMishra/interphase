@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T02:06:11.228Z
+Updated: 2026-11-04T06:32:18.030Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). Mitosis is shipped as a ready pull request assigned to the owner, review comment posted: https://github.com/SatanshuMishra/mitosis/pull/34 (mitosis/per-msp-lock at 7f7f597 into feat/per-msp-locks-no-limits), green at review round 3 after fixing C1, S1, S2, U1, U2, C4 and P3 and advisories C2, C3 and C5; round 3's code-reviewer could not run past its limit. The final report to the coordinator is not yet sent. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase #59 and #60 and mitosis #34 are merged, but #60 landed on mitosis/lock-feasibility after that branch had merged, so its four commits reach feat/lock-only-passable-tests only through https://github.com/SatanshuMishra/interphase/pull/62 (ready, assigned to the owner, bound to this session, awaiting the owner's merge). Mitosis's feature branch holds #34; round 3's code-reviewer could not run past its limit. H11 and H12 carry this spec's new fields.
 
 ## Next step
 
-The owner merges interphase #60 into mitosis/lock-feasibility, then #59, then mitosis #34, binds #60 and #34 and turns on Auto-Fix as R3 says, and starts Integration by saying the MSP pull requests merged.
+Run Integration for mitosis on feat/per-msp-locks-no-limits now, and for interphase on feat/lock-only-passable-tests once the owner merges #62; tell the coordinator when mitosis's FEATURE pull request into main opens.
 
 Needs: R3.
 
