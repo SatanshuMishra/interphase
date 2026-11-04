@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T02:04:13.856Z
+Updated: 2026-11-04T02:04:18.701Z
 Next ids: c4 D5 R3 S1
 
 ## Goal
@@ -19,9 +19,9 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-When the round 3 suite ends, dispatch code-reviewer and security-reviewer with the round 3 briefs, then validate, record and verdict the round.
+Run SHIP=1 ~/.mitosis/mitosis/per-msp-locks-no-limits/run.zsh --resume --proven-head per-msp-lock=$(git -C ~/.mitosis/runs/mitosis/per-msp-locks-no-limits/trees/per-msp-lock rev-parse HEAD), check the branch history was not rewritten, then open the mitosis pull request with the rendered title and body, assign, comment, bind and set the monitor.
 
-Needs: D2.
+Needs: D2, D4, R2.
 
 ## Decisions in force
 
