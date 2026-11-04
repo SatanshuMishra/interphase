@@ -1,7 +1,7 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T02:04:13.753Z
-Next ids: c4 D4 R3 S1
+Updated: 2026-11-04T02:04:13.856Z
+Next ids: c4 D5 R3 S1
 
 ## Goal
 
@@ -28,6 +28,7 @@ Needs: D2.
 - D1 Hand-off boundary: build the interphase spec lock-only-passable-tests with mitosis 0.11.0 from feat/lock-only-passable-tests, running plan, build, review and ship in this session.
 - D2 Hand-off boundary: build the mitosis spec per-msp-locks-no-limits as one MSP from feat/per-msp-locks-no-limits: Build now with mitosis 0.11.0 from feat/per-msp-locks-no-limits, with run home ~/.mitosis/mitosis/per-msp-locks-no-limits, running plan, build, review and ship in this session.
 - D3 Ship boundary: push interphase lock-feasibility and feasibility-instructions as ready pull requests: Ship both now, with --proven-head lock-feasibility=c8a20df and feasibility-instructions=7e994b5, then open each pull request through GitHub MCP create_pull_request, assign it, bind it with ccd_pr and turn Auto-Fix on.
+- D4 Ship boundary: push mitosis per-msp-lock as a ready pull request: Ship now: SHIP=1 run.zsh --resume --proven-head per-msp-lock=7f7f597, then open the pull request through GitHub MCP create_pull_request with the title and body mitosis renders, assign it to the owner, post the review comment, bind it with ccd_pr and try Auto-Fix.
 
 ## Open risks
 
