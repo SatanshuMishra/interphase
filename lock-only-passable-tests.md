@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T01:08:54.226Z
+Updated: 2026-11-04T01:14:26.608Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -15,11 +15,11 @@ Spec 3 of the unattended-runs program: interphase checks every locked test for f
 
 ## Where things stand
 
-Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis MSP per-msp-lock is gated at 3831e1a (37 of 37 acceptance tests pass) and its branch mitosis/per-msp-lock holds dfc8a92 with GLOSSARY.md and ADR 0016 on top, nothing pushed. Its state.json was hand-repaired after mitosis 0.11 replayed a held Lane from a cleaned clone. Review round 1 holds 12 findings, the blocking candidates being S1 (CRITICAL: a consumer's referee misses deletion of a producer's merged locked test), S2 (HIGH: the referee restore drops that test), C1 (HIGH: interphase 0.14's check-author carrying msp check-author is refused) and U1/U2 (the version_is_0_11_0 pins in test_docs and test_referee_docs). Round 1's blockers C1, S1, S2, U1 and U2 and advisories C2 and C3 are fixed on mitosis/per-msp-lock at b038cd9, receipts in tests/test_per_msp_lock_review.py, every fix commit fix-checked; S2's static selecting check still names the base-entry overlay in revert_implementation, which its behavioural repro shows correct. Review round 2's suite passes on Python 3.9 and 3.14 with no findings, and its code-reviewer and security-reviewer are running. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
+Interphase is shipped as ready pull requests, both assigned to the owner: https://github.com/SatanshuMishra/interphase/pull/59 (lock-feasibility, into feat/lock-only-passable-tests, review comment posted, bound to this session) and https://github.com/SatanshuMishra/interphase/pull/60 (feasibility-instructions, stacked on mitosis/lock-feasibility, so it merges into that branch before #59 merges). The mitosis MSP per-msp-lock is gated at 3831e1a (37 of 37 acceptance tests pass) and its branch mitosis/per-msp-lock holds dfc8a92 with GLOSSARY.md and ADR 0016 on top, nothing pushed. Its state.json was hand-repaired after mitosis 0.11 replayed a held Lane from a cleaned clone. Review round 1 holds 12 findings, the blocking candidates being S1 (CRITICAL: a consumer's referee misses deletion of a producer's merged locked test), S2 (HIGH: the referee restore drops that test), C1 (HIGH: interphase 0.14's check-author carrying msp check-author is refused) and U1/U2 (the version_is_0_11_0 pins in test_docs and test_referee_docs). Round 1's blockers C1, S1, S2, U1 and U2 and advisories C2 and C3 are fixed on mitosis/per-msp-lock at b038cd9, receipts in tests/test_per_msp_lock_review.py, every fix commit fix-checked; S2's static selecting check still names the base-entry overlay in revert_implementation, which its behavioural repro shows correct. Review round 2's suite passes on Python 3.9 and 3.14; the security reviewer found nothing, and the code reviewer found C4 (HIGH: the S1 fix judges an unmerged producer's locked test, so a consumer whose producer failed is referee-reverted and gets the producer's test) and C5 (LOW: README misstates which check-author is unlabelled). C4's red receipt is committed at 188b26b and the validator is judging round 2's candidates. H11 and H12 carry this spec's new fields, H12 allowing msp check-author on the plain check-author.
 
 ## Next step
 
-When the round 2 suite ends, dispatch code-reviewer and security-reviewer with the round 2 briefs, then validate, record and verdict the round.
+When the round 2 reviewers return, gather their findings, validate, record and verdict the round.
 
 Needs: D2.
 
