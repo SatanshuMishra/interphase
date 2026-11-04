@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T00:18:42.714Z
+Updated: 2026-11-04T00:19:31.028Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-When the round 1 reviewers return, gather their findings with the suite and standards findings into candidates, validate them, record and verdict, then fix the confirmed ones and the version pins on mitosis/per-msp-lock.
+When the four diagnoses return, record each with pipeline diagnosis, rerun the verdict, then fix each fixable kind on mitosis/per-msp-lock with a red receipt first, plus advisories C2 and C3, and review round 2.
 
 Needs: D2.
 
