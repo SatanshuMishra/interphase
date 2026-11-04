@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: active
-Updated: 2026-11-04T01:24:56.748Z
+Updated: 2026-11-04T01:25:15.554Z
 Next ids: c4 D4 R3 S1
 
 ## Goal
@@ -19,7 +19,7 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-When the round 2 diagnoses return, record them, rerun the verdict, fix C4 by judging and restoring a held producer path only once its lock commit is in the head, close P3 as its diagnosis says, fix C5, then review round 3.
+When the test modules pass, commit the C4 and P3 fix and the C5 README change, fix-check each commit, then review round 3.
 
 Needs: D2.
 
