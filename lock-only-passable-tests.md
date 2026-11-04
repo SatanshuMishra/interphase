@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T20:01:11.456Z
+Updated: 2026-11-04T20:01:14.171Z
 Next ids: c4 D5 R5 S1
 
 ## Goal
@@ -56,4 +56,5 @@ Needs: R3, R4.
 - Mitosis Integration outputs: ~/.mitosis/mitosis/per-msp-locks-no-limits/integration.checks.out and integration.suite.json (suite passes on 3.9 and 3.14 at eb1b25e)
 - Mitosis code-reviewer rerun: ~/.mitosis/mitosis/per-msp-locks-no-limits/review/round-3/per-msp-lock.code-reviewer.rerun.agent.json
 - Interphase Integration outputs: ~/.mitosis/interphase/lock-only-passable-tests/integration.checks.out and integration.suite.json (suite passes at 121ec43)
+- Interphase main-merge outputs: ~/.mitosis/interphase/lock-only-passable-tests/integration-main-merge.checks.out and integration-main-merge.suite.json; the merge, release and review-fix commits are 701253b, b6a3dd4 and 2e666f8 on feat/lock-only-passable-tests
 - Interphase run folder aliases: ~/.mitosis/charming-satoshi-3757e3/lock-only-passable-tests and ~/.mitosis/runs/charming-satoshi-3757e3/lock-only-passable-tests link to the interphase run home and run folder, because pipeline names runs after this worktree's folder; the stale record that stood there is kept beside it as lock-only-passable-tests.stale-feature-record
