@@ -1,6 +1,6 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
-Status: active
-Updated: 2026-11-04T02:05:52.506Z
+Status: parked
+Updated: 2026-11-04T02:06:11.228Z
 Next ids: c4 D5 R4 S1
 
 ## Goal
@@ -19,7 +19,9 @@ Interphase is shipped as ready pull requests, both assigned to the owner: https:
 
 ## Next step
 
-Send the final report to the coordinator, leading with the three pull request links, then park the thread with the next step that the owner merges #60 into mitosis/lock-feasibility, then #59 and mitosis #34, and starts Integration by saying they merged.
+The owner merges interphase #60 into mitosis/lock-feasibility, then #59, then mitosis #34, binds #60 and #34 and turns on Auto-Fix as R3 says, and starts Integration by saying the MSP pull requests merged.
+
+Needs: R3.
 
 ## Decisions in force
 
