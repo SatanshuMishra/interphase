@@ -1,7 +1,7 @@
 # lock-only-passable-tests: interphase locks only acceptance tests that can pass, each into its own MSP; mitosis loses its wall-clock limits
 Status: parked
-Updated: 2026-11-04T08:09:16.947Z
-Next ids: c4 D5 R4 S1
+Updated: 2026-11-04T08:09:43.047Z
+Next ids: c4 D5 R5 S1
 
 ## Goal
 
@@ -19,7 +19,7 @@ Every MSP pull request is merged, and feat/lock-only-passable-tests holds #60's 
 
 ## Next step
 
-The owner merges interphase #62 and says so, which starts interphase Integration on feat/lock-only-passable-tests; the owner starts mitosis Clean-up by saying #35 merged.
+Read interphase Integration's results and open its FEATURE pull request into main as integration-plan directs, then report the mitosis code-reviewer rerun as a comment on #35.
 
 Needs: R3.
 
@@ -32,7 +32,8 @@ Needs: R3.
 
 ## Open risks
 
-- R3 The app refuses Auto-Fix for a PR opened through GitHub MCP create_pull_request, and a session binds one PR: interphase #59 is bound with Auto-Fix off, while interphase #60 and mitosis #34 are unbound, so the owner binds them and turns Auto-Fix on. Bears on c2.
+- R3 The app refuses Auto-Fix for a PR opened through GitHub MCP create_pull_request, and a session binds one PR, so the owner binds the FEATURE pull requests and turns Auto-Fix on. Bears on c1 and c2.
+- R4 This interphase checkout cannot fast-forward to main because its local GLOSSARY.md differs from main's; it is left as it is, and Integration reads only the FEATURE branch.
 
 ## Settled, do not reopen
 
@@ -53,3 +54,5 @@ Needs: R3.
 - Mitosis 0.11 held-Lane replay bug and the state repair: mitosis-0.11-held-lane-replay.md in the shared notes folder
 - Mitosis run folder alias: ~/.mitosis/runs/mitosis-per-msp-locks-no-limits/per-msp-locks-no-limits links to ~/.mitosis/runs/mitosis/per-msp-locks-no-limits, because pipeline names runs after the checkout folder
 - Mitosis Integration outputs: ~/.mitosis/mitosis/per-msp-locks-no-limits/integration.checks.out and integration.suite.json (suite passes on 3.9 and 3.14 at eb1b25e)
+- Mitosis code-reviewer rerun: ~/.mitosis/mitosis/per-msp-locks-no-limits/review/round-3/per-msp-lock.code-reviewer.rerun.agent.json
+- Interphase Integration outputs: ~/.mitosis/interphase/lock-only-passable-tests/integration.checks.out and integration.suite.json
