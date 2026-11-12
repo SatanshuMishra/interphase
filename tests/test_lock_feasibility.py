@@ -40,6 +40,12 @@ OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": 
 OLD_TEST_UNAFFECTED = {"file": OLD_TEST, "reason": "it only checks that the total module imports"}
 USAGE_PARTS = ("lock_feasibility.py", "--record", "--repo")
 CHANGED_SINCE = "the record changed since lock_feasibility.py ran"
+AMENDMENT_STEP = "build-extra"
+EXTRA = "src/extra.py"
+ADDED_NAME = "test_total_counts"
+LOCKED_TEST = "import unittest\n\n\nclass Total(unittest.TestCase):\n    def %s(self):\n        pass\n" % ROW_NAME
+BUILT_BEFORE = "built before amendment"
+ALREADY_PASSING = "already passing on today's code"
 
 
 def repository_root():
@@ -202,11 +208,11 @@ class FeasibilityCase(unittest.TestCase):
     def stored(self, path):
         return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
-    def run_script(self, arguments, stdin=subprocess.DEVNULL):
+    def run_script(self, arguments, stdin=subprocess.DEVNULL, cwd=None):
         try:
             result = subprocess.run(
                 [sys.executable] + [str(argument) for argument in arguments],
-                cwd=str(self.repo),
+                cwd=str(cwd if cwd is not None else self.repo),
                 env=self.environment(),
                 stdin=stdin,
                 capture_output=True,
@@ -444,6 +450,15 @@ class StoredResultTest(FeasibilityCase):
         self.assertTrue(stored, self.stored(path).get("feasibility"))
         self.assertEqual([result for result in stored if result.get("status") != "pass"], [])
 
+    def test_a_relative_repo_path_is_read_from_the_callers_folder(self):
+        self.make_repository()
+        path = self.write_record(feasible_record())
+        code, output = self.run_script(
+            [script_path("lock_feasibility.py"), "--record", path, "--repo", self.repo.name],
+            cwd=self.root,
+        )
+        self.assertEqual(code, 0, output)
+
     def test_a_folder_outside_git_exits_2(self):
         folder = self.root / "plain"
         folder.mkdir()
@@ -452,6 +467,95 @@ class StoredResultTest(FeasibilityCase):
         self.assertEqual(code, 2, output)
         named = (str(folder), os.path.realpath(str(folder)))
         self.assertTrue(any(name in output for name in named), output)
+
+
+def amendment_step(number=1, name=AMENDMENT_STEP, after=(STEP,)):
+    return {**step(name, [EXTRA], after=after), "amendment": number}
+
+
+def added_row(step_name=AMENDMENT_STEP, absent=None):
+    return {**row([NEW_TOTAL], [EXTRA], absent), "name": ADDED_NAME, "step": step_name}
+
+
+class AmendmentTest(FeasibilityCase):
+    def build(self, files):
+        for relative, text in files:
+            self.write(relative, text)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "build")
+
+    def amend(self, path, steps, rows=()):
+        stored = self.stored(path)
+        first = stored["criteria"][0]
+        criteria = [{**first, "tests": first["tests"] + [dict(entry) for entry in rows]}] + stored["criteria"][1:]
+        amended = {**stored, "criteria": criteria, "steps": stored["steps"] + [dict(entry) for entry in steps]}
+        path.write_text(json.dumps(amended, indent=2), encoding="utf-8")
+
+    def built_new_file_record(self):
+        code, output, path = self.checked(record(row([NEW_TOTAL], [NEW_TOTAL]), [step(STEP, [NEW_TOTAL])]))
+        self.assertEqual(code, 0, output)
+        self.build(((NEW_TOTAL, EDITED_TOTAL), (ROW_FILE, LOCKED_TEST)))
+        return path
+
+    def test_a_row_an_earlier_step_built_passes_when_an_amendment_adds_a_step(self):
+        path = self.built_new_file_record()
+        self.amend(path, [amendment_step()])
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 0, output)
+        self.assertTrue(lines_with(output, "pass", ROW_NAME, BUILT_BEFORE + " 1"), output)
+        complete, complete_output = self.complete_check(path)
+        self.assertEqual(complete, 0, complete_output)
+
+    def test_a_built_row_with_absent_evidence_passes_when_an_amendment_adds_a_step(self):
+        code, output, path = self.checked(feasible_record())
+        self.assertEqual(code, 0, output)
+        self.build(((TOTAL, EDITED_TOTAL), (ROW_FILE, LOCKED_TEST)))
+        self.amend(path, [amendment_step()])
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(failure_lines(output, ALREADY_PASSING), [], output)
+        complete, complete_output = self.complete_check(path)
+        self.assertEqual(complete, 0, complete_output)
+
+    def test_a_row_the_amendment_adds_is_still_judged(self):
+        path = self.built_new_file_record()
+        self.amend(path, [amendment_step()], rows=[added_row()])
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 1, output)
+        self.assertTrue(failure_lines(output, ADDED_NAME, "no absent"), output)
+        self.assertEqual(failure_lines(output, ROW_NAME), [], output)
+
+    def test_a_row_no_build_delivered_is_still_judged_at_an_amendment(self):
+        entry = record(existing_row(total_absent("total 3", "echo total 4")), [step(STEP, [TOTAL]), amendment_step()])
+        code, output, _ = self.checked(entry)
+        self.assertEqual(code, 1, output)
+        self.assertTrue(failure_lines(output, ROW_NAME, ALREADY_PASSING), output)
+
+    def test_a_record_with_no_amendment_is_judged_though_its_rows_test_is_at_head(self):
+        entry = record(existing_row(), [step(STEP, [TOTAL])])
+        code, output, _ = self.checked(entry, extra=((ROW_FILE, LOCKED_TEST),))
+        self.assertEqual(code, 1, output)
+        self.assertTrue(failure_lines(output, ROW_NAME, "no absent"), output)
+
+    def test_an_earlier_amendments_row_whose_test_is_not_written_is_still_judged(self):
+        path = self.built_new_file_record()
+        later = amendment_step(2, "build-more", after=(AMENDMENT_STEP,))
+        self.amend(path, [amendment_step(), {**later, "files": ["src/more.py"]}], rows=[added_row()])
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 1, output)
+        self.assertTrue(failure_lines(output, ADDED_NAME, "no absent"), output)
+
+    def test_an_amendment_number_changed_after_the_run_is_refused(self):
+        path = self.built_new_file_record()
+        self.amend(path, [amendment_step()])
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 0, output)
+        stored = self.stored(path)
+        renumbered = stored["steps"][:-1] + [{**stored["steps"][-1], "amendment": 2}]
+        path.write_text(json.dumps({**stored, "steps": renumbered}, indent=2), encoding="utf-8")
+        complete, complete_output = self.complete_check(path)
+        self.assertEqual(complete, 1, complete_output)
+        self.assertIn(CHANGED_SINCE, complete_output)
 
 
 if __name__ == "__main__":

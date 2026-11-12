@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1
+
+- lock_feasibility.py passes a locked row an earlier Step already built when an amendment adds a Step, without running its absent check again. A row counts as built when its Step carries a lower amendment number than the newest in the record and its test's name is in its locked file at HEAD. 0.16.0 judged every row against HEAD on every run, so after a build an amendment's run refused each built row, as no absent though every load exists at HEAD or as already passing on today's code, and the only way through was a false absent entry. A row the amendment adds, and a row no build has delivered, are judged as before.
+- The feasibility digest covers each Step's amendment number, so a number changed after the run makes the stored results stale.
+- lock_feasibility.py reads a relative --repo path from the folder it was started in. It named the folder to git twice, as the working folder and as -C, so any relative path but . was looked up under itself and refused as unreadable with exit 2.
+
 ## 0.16.0
 
 - lock_feasibility.py checks each test before it is locked: every file it loads exists or is written by its Step or an earlier one, the files it needs are in those write-sets, it fails on today's code, and every existing test that refers to a changed file is owned by a Step or named unaffected. The record stores the results with a digest of the parts they judge.

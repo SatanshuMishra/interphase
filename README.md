@@ -160,7 +160,7 @@ Check that every locked test can pass inside the Steps' files:
 python3 /path/to/interphase/scripts/lock_feasibility.py --record docs/specs/<slug>.record.json --repo .
 ```
 
-It checks against the committed HEAD that every file a locked test loads exists at HEAD, is locked or is written by its Step or a Step it comes after, that every file it needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record.
+It checks against the committed HEAD that every file a locked test loads exists at HEAD, is locked or is written by its Step or a Step it comes after, that every file it needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record. When an amendment adds a Step, a row an earlier Step already built, whose test is in its locked file at HEAD, passes its absent check without being run again.
 
 Render the spec's Test seams section and the items file from a record:
 

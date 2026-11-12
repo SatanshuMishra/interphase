@@ -147,6 +147,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Add the missing classes and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
 - Name in each new row's `check` the acceptance line it implements, adding the line when its criterion has none for it, and add the row's test file to the record's `locked` list rather than to the new Step's files.
 - Give the work of the new rows to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
+- Run `lock_feasibility.py` again as in phase 6 once the new rows and the new Step are in the record. It judges absent for the rows the amendment adds and for every row no build has delivered, and passes a row an earlier Step already built, whose test is in its locked file at HEAD, without running its absent again.
 - Fill every gap from the intent as the section After the interview says, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`.
 - Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.
 - Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.
