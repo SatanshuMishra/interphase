@@ -239,9 +239,36 @@ def absent_outcome(absent, checkout):
     return (False, "already passing on today's code: the output lacks %s" % absent["shows"])
 
 
-def absent_results(row, at_head, checkout):
+def has_word(text, word):
+    return re.search(r"(?<!\w)" + re.escape(word) + r"(?!\w)", text) is not None
+
+
+def amendment_of(step):
+    number = step.get("amendment")
+    return number if check_record.is_count(number, 1) else 0
+
+
+def built_before(row, steps, at_head, root):
+    latest = max((amendment_of(step) for step in steps), default=0)
+    owner = check_record.steps_by_name(steps).get(row["step"])
+    if owner is None or amendment_of(owner) >= latest or not is_file_in(row["file"], at_head):
+        return None
+    return latest if has_word(head_text(root, row["file"]), row["name"]) else None
+
+
+def absent_results(row, steps, at_head, checkout):
     if not loads_exist(row, at_head):
         return ()
+    amendment = built_before(row, steps, at_head, checkout.root)
+    if amendment is not None:
+        return (
+            result(
+                "absent",
+                row_subject(row),
+                True,
+                "built before amendment %d: its locked test is at HEAD" % amendment,
+            ),
+        )
     absent = row.get(check_record.ABSENT)
     if absent is None:
         return (result("absent", row_subject(row), False, "no absent, though every load exists at HEAD"),)
@@ -258,7 +285,7 @@ def row_results(row, steps, at_head, locked, checkout):
     return (
         load_results(row, at_head, writable, locked)
         + need_results(row, writable)
-        + absent_results(row, at_head, checkout)
+        + absent_results(row, steps, at_head, checkout)
     )
 
 
@@ -285,7 +312,7 @@ def names_file(text, changed):
     name = posixpath.basename(changed)
     if posixpath.splitext(name)[0] in GENERIC_STEMS:
         return False
-    return re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", text) is not None
+    return has_word(text, name)
 
 
 def refers_to_changed(test, text, changed):

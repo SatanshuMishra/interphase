@@ -71,7 +71,7 @@ RESULT_KEYS = ("check", "subject", "status", "detail")
 RESULT_STATUSES = ("pass", "fail")
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 DIGEST_PARTS = ("seams", "criteria", "locked", "unaffected")
-DIGEST_STEP_KEYS = ("name", "files", "after", "msp")
+DIGEST_STEP_KEYS = ("name", "files", "after", "msp", "amendment")
 NO_FEASIBILITY = "record has a locked list but no feasibility results; run lock_feasibility.py"
 STALE_FEASIBILITY = "the record changed since lock_feasibility.py ran; run it again"
 
