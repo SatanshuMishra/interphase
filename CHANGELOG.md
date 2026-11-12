@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.2
+
+- The scout agent names its model and effort, opus at high, where it inherited both from the session that dispatched it. Every recorded dispatch ran on Opus at high because the opening sessions did; a session opened on another model would have run its fact finding there, and the spec reviewer already named its own.
+
 ## 0.16.1
 
 - lock_feasibility.py passes a locked row an earlier Step already built when an amendment adds a Step, without running its absent check again. A row counts as built when its Step carries a lower amendment number than the newest in the record and its test's name is in its locked file at HEAD. 0.16.0 judged every row against HEAD on every run, so after a build an amendment's run refused each built row, as no absent though every load exists at HEAD or as already passing on today's code, and the only way through was a false absent entry. A row the amendment adds, and a row no build has delivered, are judged as before.
