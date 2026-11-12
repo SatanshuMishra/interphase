@@ -208,11 +208,11 @@ class FeasibilityCase(unittest.TestCase):
     def stored(self, path):
         return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
-    def run_script(self, arguments, stdin=subprocess.DEVNULL):
+    def run_script(self, arguments, stdin=subprocess.DEVNULL, cwd=None):
         try:
             result = subprocess.run(
                 [sys.executable] + [str(argument) for argument in arguments],
-                cwd=str(self.repo),
+                cwd=str(cwd if cwd is not None else self.repo),
                 env=self.environment(),
                 stdin=stdin,
                 capture_output=True,
@@ -449,6 +449,15 @@ class StoredResultTest(FeasibilityCase):
         stored = results(self.stored(path))
         self.assertTrue(stored, self.stored(path).get("feasibility"))
         self.assertEqual([result for result in stored if result.get("status") != "pass"], [])
+
+    def test_a_relative_repo_path_is_read_from_the_callers_folder(self):
+        self.make_repository()
+        path = self.write_record(feasible_record())
+        code, output = self.run_script(
+            [script_path("lock_feasibility.py"), "--record", path, "--repo", self.repo.name],
+            cwd=self.root,
+        )
+        self.assertEqual(code, 0, output)
 
     def test_a_folder_outside_git_exits_2(self):
         folder = self.root / "plain"

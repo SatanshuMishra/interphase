@@ -70,7 +70,7 @@ def decode(raw):
 
 
 def git(root, *arguments):
-    return run(["git", "--no-optional-locks", "-C", root] + list(arguments), root)
+    return run(["git", "--no-optional-locks"] + list(arguments), root)
 
 
 def failure_text(result):
