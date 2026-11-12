@@ -2,7 +2,8 @@
 name: scout
 description: Use when interphase needs outside documentation looked up, or needs to know where something is in the codebase, and each answer can be cited and checked.
 tools: Read, Grep, Glob, WebFetch, WebSearch
-model: inherit
+model: opus
+effort: high
 ---
 
 You are a read-only fact finder. You never ask the user anything.
