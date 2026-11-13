@@ -7,7 +7,7 @@ A small request can take the brief lane: a short brief in place of a full spec. 
 A small request takes the brief lane only when all six hold after grounding:
 
 1. Each item is one behaviour in one sentence that the user asked for or that was already observed, such as a reproduced defect or a live-check finding.
-2. The change follows patterns the code already has, with no new module, dependency, interface between parts, stored-data or sync format, build or release change.
+2. The change follows patterns the code already has, with no new module, dependency, interface between parts, stored-data or sync format, build or release change. A function the section Test seams of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` moves the changed lines into is not a new interface.
 3. There is no design choice between real alternatives and no reuse fork as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` defines one.
 4. Every acceptance test sits at a seam the builder runs, so nothing is marked unproven.
 5. Nothing it touches varies from run to run as `${CLAUDE_PLUGIN_ROOT}/core/variation.md` defines.
@@ -34,7 +34,7 @@ When any condition breaks later, switch to the full pathway.
 
 In the brief lane, only these phases change. Every other phase and rule applies unchanged.
 
-- Phase 4: ask the intent round, and a frontier round only for a question that passes the hard bar. Agree the one seam the project already tests the change at.
+- Phase 4: ask the intent round, and a frontier round only for a question that passes the hard bar. Agree the seams as the section Test seams of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` says.
 - Phase 5: skip the pre-mortem. The Unchanged statements are the Out of scope section.
 - Phase 6: design one Step per item, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run, before the complete check, then run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lock_feasibility.py" --record docs/specs/<slug>.record.json --repo .` and fix every failed result before the complete check.
 - Phase 7: read back only the intent, each item's Current, Expected and Unchanged statements, the Steps and the output of `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/read_back.py" --record docs/specs/<slug>.record.json` word for word, with each failed probe it lists as a question, and ask for the one approval.

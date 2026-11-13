@@ -286,7 +286,7 @@ class CoreBriefTest(unittest.TestCase):
         changes = section(text, "## What changes")
         self.assertIn("Every other phase and rule applies unchanged.", changes)
         expected = (
-            ("- Phase 4:", ("ask the intent round", "only for a question that passes the hard bar", "the one seam")),
+            ("- Phase 4:", ("ask the intent round", "only for a question that passes the hard bar", "Agree the seams as the section Test seams")),
             ("- Phase 5:", ("skip the pre-mortem", "The Unchanged statements are the Out of scope section.")),
             (
                 "- Phase 6:",

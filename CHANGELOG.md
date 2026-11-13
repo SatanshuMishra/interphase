@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0
+
+- A spec places each behaviour at the seam of the part that owns it: the smallest unit whose public interface promises the behaviour, called with values inside the test runner's own process. A seam at the product's front door is kept for what the way in itself owns and for crossings: a way in the request adds on its success and one failure path, a failure kind or a guard it adds, each role a guard must deny, and a way in to a changed behaviour that no test crosses yet. Every other meeting point the request changes, such as an instruction file and the tool it names, gets its crossing too. Earlier releases asked for the seams the project already tests at and the highest seam that observes the behaviour, with one seam as the ideal, so every case of a decision was specified as a test that starts the whole product; such a suite can only be run whole, and its acceptance tests are locked, so no later stage could move them.
+- A test row keeps the part's real collaborators. It replaces only what cannot run locally with the same result every time, at the edge where it leaves the process, and never a function inside the code under test.
+- A line whose test runs inside the test runner's own process has the surface family `library`, a call of the dispatcher or the root screen there included. A way-in family means the test starts a separate process, a browser or a device.
+- A written rule of the project on where its tests go that disagrees is reported in the spec as an overridden project rule and not followed, except in a repository the request says belongs to someone else.
+- A bug's draft failing test is written against the part that produces the symptom, as a crossing of the way in when the fault is in the way in, and against the component that renders it when what the reporter saw is rendered, falling back to the part at fault where the two cannot run together inside the test runner.
+- The spec reviewer reports a criterion about a decision placed at the front door when a part promises that behaviour, and two tests that cross the same path of one way in. It no longer reports a spec for having more than one seam. The prototype pathway compares each screen with its mockup rendered on its own, and a function a small change is moved into does not take it out of the brief lane.
+- A check the seam rule leaves to the product test or the build job, such as a real start that needs a device or a browser, gets no criterion; the spec's Risks section lists it and the hand-off reports it.
+- The record format is unchanged.
+
 ## 0.16.2
 
 - The scout agent names its model and effort, opus at high, where it inherited both from the session that dispatched it. Every recorded dispatch ran on Opus at high because the opening sessions did; a session opened on another model would have run its fact finding there, and the spec reviewer already named its own.
