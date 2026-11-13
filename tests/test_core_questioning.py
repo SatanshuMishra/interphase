@@ -101,11 +101,12 @@ class QuestioningTest(unittest.TestCase):
         self.assertIn("When the user states how something works and the code disagrees, ask which is right.", body)
         self.assertIn("When a term is settled, write it to the glossary at once.", body)
 
-    def test_seams_are_agreed_before_any_test_and_ideally_one(self):
+    def test_seams_are_agreed_before_any_test_and_sit_at_the_owning_part(self):
         body = section("## Test seams")
         for phrase in (
             "Agree the seams before any acceptance criterion is written against them.",
-            "the ideal number is one.",
+            "Give each behaviour the seam of the part that owns it.",
+            "Never place a behaviour at the front door",
             "one line on what it catches and one on what it misses",
             "Write no acceptance test at a seam the user has not agreed.",
         ):

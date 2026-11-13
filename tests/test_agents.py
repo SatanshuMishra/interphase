@@ -159,7 +159,7 @@ class AgentsTest(unittest.TestCase):
             "- Domain language: a term used against its glossary definition",
             "a decision that reverses an ADR without saying it supersedes it",
             "- Seams: an acceptance test at a seam the spec does not list",
-            "or more seams than the change needs.",
+            "or a seam that no part and no meeting point the request changes or must cross calls for.",
             "against the project's `GLOSSARY.md` and the ADRs in `docs/adr/` when they exist.",
         ):
             with self.subTest(marker=marker):

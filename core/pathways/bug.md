@@ -12,7 +12,7 @@ Reproduce the bug before you ask about it.
 - Find the last known good and first known bad version when history matters. Use `git bisect` only inside a probe worktree.
 - Write one to five ranked hypotheses about the cause. Make each one something a single run could disprove.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
-- Write the draft failing test that reproduces the symptom at `docs/specs/<slug>.repro.<ext>`, in the project's own test framework.
+- Write the draft failing test that reproduces the symptom at `docs/specs/<slug>.repro.<ext>`, in the project's own test framework. Follow the symptom to the part that produces it and write the draft against that part's public interface, asserting the reported symptom itself: the wrong value, file or message. When the fault is in the way in, such as the wrong part reached or a result lost on the way back, write it as a crossing of the way in. When what the reporter saw is rendered, such as something not showing, write it against the component that renders it, run on its own with the real part that feeds it, never against the root app; where those two cannot run together inside the test runner without the front door, write it against the part at fault, and the reproduction run is the reading of what the reporter saw.
 - Run the draft only inside a probe worktree (see Probes): copy it to the path where the test belongs in that worktree, run it there with the project's single-test command, then remove the worktree. Never copy it into the user's own test folders.
 - Record its failing output in the spec's Reproduction and cause section, or in its Evidence section in the brief lane.
 

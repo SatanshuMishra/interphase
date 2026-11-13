@@ -10,7 +10,7 @@ These rules apply to every spec on every pathway.
 4. Follow the project's own written rules and patterns. Keep to the conventions its written rules and existing code follow.
 5. Use what the language, libraries or project already provide. Never rebuild what the standard library, a dependency or the project already does.
 
-The project's own written rules, its glossary and its ADRs win when they conflict with the other four. In an unattended run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
+The project's own written rules, its glossary and its ADRs win when they conflict with the other four. In an unattended run, a requirement the context calls for in the requested work wins over a written rule or a convention, following the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`. On where a test goes, the section Test seams of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` wins over a written rule or a convention of the project, in every run.
 
 A copy is the same rule written in two places that must always change together. Two pieces of code that look alike but change for different reasons are not a copy.
 
@@ -42,6 +42,6 @@ Write the spec's Reuse and change subsection as three lists: Reused as is, Kept 
 
 When a project rule overrode one of the other four, add one line after the three lists that starts with Project rule followed: and names the rule and the file it is written in.
 
-When a requirement overrode a project rule or convention in an unattended run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement.
+When a requirement overrode a project rule or convention in an unattended run, add one line after the three lists that starts with Project rule overridden: and names the rule or convention, where it is written or followed, and the requirement. Add the same line, in any run, when the section Test seams of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` overrode a written rule of the project on where its tests go.
 
 Never write a proof for each rule.

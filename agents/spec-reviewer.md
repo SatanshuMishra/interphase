@@ -19,7 +19,7 @@ Check against these categories:
 - Consistency: contradictions between sections, or between the spec and the decisions file.
 - Clarity: a requirement two builders would read differently.
 - Domain language: a term used against its glossary definition, two words used for one glossary term, or a decision that reverses an ADR without saying it supersedes it.
-- Seams: an acceptance test at a seam the spec does not list, a test that reaches inside the code instead of observing behaviour at its seam, or more seams than the change needs.
+- Seams: an acceptance test at a seam the spec does not list, a test that reaches inside the code instead of observing behaviour at its seam, a criterion about a decision placed at the product's front door when a part's public interface promises that behaviour or the owning Step can move its lines into one, two tests that cross the same path of one way in other than one for each role it must deny, or a seam that no part and no meeting point the request changes or must cross calls for.
 - Case table: behaviour that is security-sensitive or exists to refuse something with no case table, a case table on any other behaviour, or a case table missing a class a real path delivers, read at a line you find by searching the code, such as an absent field, an empty value or a truncated value. Name the file and line.
 - Outside fact: a claim about software outside the repository that no recorded command and output shows and the spec does not list as an assumption.
 - Scope: more than one independent subsystem.
