@@ -219,7 +219,7 @@ class CorePhasesTest(unittest.TestCase):
     def test_phase_3_finds_seams_and_never_waits_on_the_user(self):
         body = phase_body("## Phase 3: Ground")
         for phrase in (
-            "Find the seams the project already tests at",
+            "Find, for each behaviour the request touches, the part that owns it",
             "whether the builder can run tests there",
             "Never end a turn only to wait for it.",
             "mark it unconfirmed",

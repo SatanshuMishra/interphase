@@ -68,10 +68,31 @@ Follow `${CLAUDE_PLUGIN_ROOT}/core/domain.md` throughout the interview.
 
 A seam is the public interface a test observes behaviour at, without reaching inside. Agree the seams before any acceptance criterion is written against them.
 
-- Prefer a seam the project already tests at to a new one, and the highest seam that observes the behaviour.
-- Use as few seams as the change allows; the ideal number is one.
+- Give each behaviour the seam of the part that owns it. The part that owns a behaviour is the smallest unit whose public interface promises it: the function that decides which rows are overdue, not the command that later prints them. Its tests call that interface the way its real callers do, with values, inside the test runner's own process, and assert on what it returns, writes or raises. A part whose only public interface is its own process, such as a hook or a shell script, is run alone through that interface.
+- Write each test row with the part's real collaborators. A program that runs locally and gives the same result every time is one of them: git on a temporary repository, the product's own database engine in a disposable local instance whose schema is built by applying the project's migrations, the file system in a temporary directory. A row replaces only what cannot run that way, a remote service, a paid or networked session, the clock or randomness, and replaces it at the edge where it leaves the process: never a function inside the code under test, and never the store whose query or policy the behaviour depends on. A stub stands in for a local program only to produce a condition the real one cannot be made to produce. A criterion for behaviour that varies from run to run is the exception: its rows run the real call, as `${CLAUDE_PLUGIN_ROOT}/core/variation.md` says.
+- Never place a behaviour at the front door, whether its test would start the product or call the dispatcher, the whole application object or the root screen inside the test runner. A criterion sits at the front door only for what the front door itself owns, or as a crossing.
+- A meeting point is where two surfaces owned by different mechanisms must agree: a way in and the part it hands to, a prompt or instruction file and the tool it names, a hook and the state a tool wrote, a manifest and the loader that reads it, a client and the server it was generated against. A crossing is one flow that goes through both sides for real. Give each meeting point where the request changes what passes across, an argument, a return shape, a failure kind, a guard or a name one side looks up on the other, a seam, and write each crossing as its own criterion there.
+- Cross a way in the request adds once on its success path and once on a failure path, through the dispatcher inside the test runner's own process wherever the dispatcher can be called there.
+- Cross a failure kind or a guard the request adds to any way in once, asserting what the caller receives: the status, the exit code or the error value. Assert each role that must be denied as denied at the way in it is denied from.
+- Cross once a way in that reaches a behaviour the request changes and that no existing test crosses.
+- Start the product for real once for each kind of thing only a real start shows, the arguments arriving, the exit code or status, the output streams, start-up or a signal, where no existing test already does. Anything this section leaves to the product test or the build job, such as a real start that needs a device, an emulator, a browser or a package build, gets no criterion, and the spec's Risks section lists it as left there.
+- Never write one crossing for each case of a decision: the cases sit at the part that decides.
+- When the only way to a behaviour today is the front door, the seam is still the part: its interface is the function the owning Step moves the changed lines into, and the Step's task says so.
+- Give a line whose test runs inside the test runner's own process the surface family `library`, with the interface it calls as its target; that includes a test that calls the dispatcher, the whole application object or the root screen there. A way-in family, such as `cli`, `http`, `browser` or `mobile`, means the test starts a separate process, a browser or a device.
+- The seams the project's tests already sit at show its habits and never choose the seam. A written rule of the project on where its tests go that disagrees with this section is not followed: say so when you propose the seams, and record it in the spec as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` records an overridden project rule. In a repository the request says belongs to someone else, its written rule governs, and without one the placement its existing tests use does.
+- Use as few seams as this allows: one for each part the request changes and one for each meeting point it crosses.
 - Propose each seam with one line on what it catches and one on what it misses, and whether the builder can run tests there.
 - Put the seams to the user as a frontier question. Write no acceptance test at a seam the user has not agreed.
+
+The same rule in the common shapes of product:
+
+| Product | A behaviour's seam | Crossed at the front door |
+|---|---|---|
+| Command-line tool | the function that decides, with values; the command's own function only for what the command itself owns, the order of its steps, its exit code and the text it returns, one test for each outcome the command itself distinguishes and never one for each case of a decision it calls, a bug's reproduction test excepted | the dispatcher handed one command; one real start of the installed command for arguments arriving, exit code and output streams |
+| Network service | the function that decides | one route through the in-process test client for what routing, validation or access control produce; a real server on localhost once: serialisation, middleware order, the error shape on the wire |
+| App with a screen | the state holder; one screen or component rendered on its own, never the root app | the root app handed one route inside the test runner: the route and its redirects resolve and the screen's control reaches its state holder |
+| Library | its public functions | none in the suite; the build job installs the built package and imports it once |
+| Script with no functions | the script itself, run alone with its input and environment set | its caller, once: where the caller is the product's own code, that code running the real script; where it is an outside program such as a harness, the registration resolved to the script and one recorded real input, with the live call left to the product test |
 
 ## Push back on scope
 
