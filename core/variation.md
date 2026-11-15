@@ -20,7 +20,6 @@ Specify each varying behaviour as a population, never as one example.
 - Spread the cases across those ways.
 - Draft a held-out set during the interview: cases nothing is ever tuned on.
 - Show the user a sample of at least one held-out case for each way the input varies in a frontier round, and get approval. In an unattended run, record the held-out set as an assumption instead.
-- Carry the held-out cases in full in the task of the Step that tests them, the way a bug's draft test is carried.
 
 Each varying criterion's text states its kind, the ways its input varies, the held-out set and the pass rule.
 

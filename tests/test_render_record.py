@@ -66,10 +66,11 @@ RENDERED_SPEC = (
 PROVES = "Acceptance criteria this Step proves:"
 CHECK_AUTHOR_OPENING = (
     "Write the acceptance tests below before anything is built, and never write the code they test. "
-    "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
+    "Write each test in the file and under the name it lists, replacing a test the file already holds under that "
+    "name, from the given and the expected result it lists, "
     "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
     "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
-    "Once committed, these files are locked: no later Step may change them. "
+    "Once committed, these files are locked: no builder Step may change them. "
     "Load each module from the path its row lists after Loads, never a path you infer. "
     "Before handing back, prove each test can pass inside the planned files: write a probe implementation only "
     "inside the files its row lists after Its probe may write, and never commit it; run the test against it until "

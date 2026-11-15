@@ -13,6 +13,9 @@ USAGE = "usage: python3 surface_probe.py --record RECORD --repo ROOT [--unattend
 VALUED = ("--record", "--repo", "--timeout")
 UNATTENDED = "--unattended"
 DEFAULT_TIMEOUT = 60.0
+STOPPED = "stopped"
+IN_PROGRESS = "in-progress"
+STOP_PHASE = "probe"
 ASSIGNMENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 NO_EXECUTABLE = "command names no executable"
 OPERATOR_CHARACTERS = "();<>|&"
@@ -450,13 +453,26 @@ def failure_text(entry):
     return "%s %s %s: %s" % (entry["check"], entry["probe"], entry["target"], entry["detail"])
 
 
+def stopped_here(record):
+    stop = record.get("stop")
+    return record.get("status") == STOPPED and isinstance(stop, dict) and stop.get("phase") == STOP_PHASE
+
+
+def resumed(record):
+    if not stopped_here(record):
+        return record
+    return {**{key: value for key, value in record.items() if key != "stop"}, "status": IN_PROGRESS}
+
+
 def updated(record, results, unattended):
     probed = {**record, "probes": [entry for entry, _ in results]}
     blocking = tuple(entry for entry, blocks in results if blocks)
-    if not unattended or not blocking:
+    if not blocking:
+        return resumed(probed)
+    if not unattended:
         return probed
     reason = "surface probe failed: " + "; ".join(failure_text(entry) for entry in blocking)
-    return {**probed, "status": "stopped", "stop": {"phase": "probe", "reason": reason}}
+    return {**probed, "status": STOPPED, "stop": {"phase": STOP_PHASE, "reason": reason}}
 
 
 def parse_timeout(text):

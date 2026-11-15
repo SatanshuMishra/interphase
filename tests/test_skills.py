@@ -89,19 +89,13 @@ class SkillsTest(unittest.TestCase):
                 self.assertLess(len(text.splitlines()), 80)
                 self.assertNotIn("mitosis", text.lower())
 
-    def test_pathway_skills_reread_after_a_summary(self):
-        step = "6. If this conversation was summarized or cleared during this run, re-read `docs/specs/<slug>.record.json`, `docs/specs/<slug>.decisions.md` and `${CLAUDE_PLUGIN_ROOT}/core/phases.md` before acting."
+    def test_pathway_skills_leave_the_reread_to_rule_13_and_the_hook(self):
         for pathway in PATHWAYS:
             with self.subTest(pathway=pathway):
                 _, body = split_skill(read_skill(pathway))
                 lines = body.splitlines()
-                self.assertIn(step, lines)
-                fifth = [
-                    index for index, line in enumerate(lines)
-                    if line.startswith("5. If phase 2 classifies")
-                ]
-                self.assertEqual(len(fifth), 1)
-                self.assertGreater(lines.index(step), fifth[0])
+                self.assertTrue(lines[-1].startswith("5. If phase 2 classifies"), lines[-1])
+                self.assertNotIn("re-read", body)
 
     def test_project_skill_points_to_its_playbook_and_template(self):
         frontmatter, body = split_skill(read_skill("project"))

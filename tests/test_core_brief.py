@@ -277,7 +277,7 @@ class CoreBriefTest(unittest.TestCase):
             "Write `- Lane: full, replacing the brief lane.` to the decisions file.",
             "Keep the record and the decisions. Criteria keep their numbers: every template numbers them 5.x.",
             "Continue with the full phases and the pathway's own template.",
-            "an unattended run stays unattended.",
+            "Before the read-back is approved, an attended run goes on with the frontier rounds of the interview; after it, and in an unattended run, fill what the switch opens as the section After the interview",
         ):
             self.assertIn(needle, switch, needle)
 
@@ -313,7 +313,6 @@ class CoreBriefTest(unittest.TestCase):
                 "- Phase 9:",
                 (
                     '/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md"',
-                    '/scripts/check_record.py" --complete docs/specs/<slug>.record.json',
                     '/scripts/check_items.py" docs/specs/<slug>.items.json',
                     "Do not dispatch the `interphase:spec-reviewer` agent.",
                 ),
@@ -325,7 +324,8 @@ class CoreBriefTest(unittest.TestCase):
             for needle in needles:
                 self.assertIn(needle, line, needle)
         self.assertNotIn("approval", bullet(changes, "- Phase 9:"))
-        self.assertIn("An unattended run in the brief lane asks no intent round and holds no read-back", changes)
+        self.assertNotIn("check_record.py", bullet(changes, "- Phase 9:"))
+        self.assertNotIn("unattended run in the brief lane", text)
 
     def test_brief_template_has_its_sections(self):
         lines = read(TEMPLATE).splitlines()

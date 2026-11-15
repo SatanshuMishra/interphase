@@ -53,7 +53,7 @@
       "Pending Retest",
       "Verified"
     ],
-    "repo_name": "receipts-tree",
+    "repo_name": "interphase",
     "receipts_version": "0.9.5"
   },
   "gates": {

@@ -16,7 +16,7 @@ EXPECTED = {
         "description": "Use when a written interphase spec and its Steps need one fresh-eyes review before hand-off.",
         "tools": "Read, Grep, Glob",
         "model": "opus",
-        "effort": "high",
+        "effort": "xhigh",
     },
 }
 
@@ -103,10 +103,11 @@ class AgentsTest(unittest.TestCase):
             "Review the spec and the items file",
             "- Task drift:",
             "- Task independence:",
-            "- Build order:",
+            "- Build order: a Step that uses another Step's output without coming after it.",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, body)
+        self.assertNotIn("share a file", body)
 
     def test_spec_reviewer_checks_for_tracking_talk(self):
         _, body = split_frontmatter(read_agent("agents/spec-reviewer.md"))

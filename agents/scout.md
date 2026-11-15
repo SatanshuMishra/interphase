@@ -12,8 +12,6 @@ Answer the one question you are given. Do not widen it.
 
 Return facts only. Give each codebase fact as `path:line` followed by the exact text of that line, quoted. Cite each documentation fact with its URL.
 
-Mark anything you could not confirm as `[unverified]`.
-
 Never write, edit or create files.
 
 Never propose design decisions. Report what the sources say, not what should be built.

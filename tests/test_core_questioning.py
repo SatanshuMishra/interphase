@@ -108,7 +108,8 @@ class QuestioningTest(unittest.TestCase):
             "Give each behaviour the seam of the part that owns it.",
             "Never place a behaviour at the front door",
             "one line on what it catches and one on what it misses",
-            "Write no acceptance test at a seam the user has not agreed.",
+            "write no acceptance test at a seam the user has not agreed.",
+            "An unattended run agrees each seam from the intent and records it as an assumption.",
         ):
             self.assertIn(phrase, body)
 
@@ -143,7 +144,7 @@ class QuestioningTest(unittest.TestCase):
     def test_unattended_runs_infer_the_intent_and_resolve_from_context(self):
         body = section("## Unattended runs")
         for phrase in (
-            "When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, hold no interview: ask no question and seek no approval.",
+            "A run that rule 14 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` makes unattended holds no interview: ask no question and seek no approval.",
             "Write the `## Intent` section from the request and the project's context, ending each line `(inferred)`.",
             "Never fall back to the lightest option.",
             "`interphase:scout`",
@@ -157,11 +158,9 @@ class QuestioningTest(unittest.TestCase):
             "a size limit and a file-type check",
             "virus scanning, encryption at rest, an access audit log and a retention rule",
             "A run that starts unattended stays unattended",
-            "When a surface probe of Phase 6 fails for a line at a seam the builder runs, the run cannot prove that criterion here, so it stops instead of guessing",
-            "write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file",
-            "report the stop and the record's stop reason, and stop.",
         ):
             self.assertIn(phrase, body)
+        self.assertNotIn("cannot be driven here", body)
         for held_out in ("payroll", "allotment", "sign-in", "sign in", "accounts"):
             self.assertNotIn(held_out, body.lower(), held_out)
 

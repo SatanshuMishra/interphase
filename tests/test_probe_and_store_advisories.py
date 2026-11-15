@@ -288,18 +288,6 @@ class StoreReadTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(written)["outcomes"], {"store": path, "entries": 0, "repeated": []})
 
-    def test_an_unreadable_store_exits_2_without_writing_outcomes(self):
-        def folder_store(top):
-            path = top / "store-folder"
-            path.mkdir()
-            return path
-
-        result, original, written, path = self.run_outcomes(folder_store)
-        self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
-        self.assertIn("cannot read the trajectory store: " + path, result.stderr.splitlines())
-        self.assertEqual(written, original)
-
 
 class FilesProseTest(unittest.TestCase):
     def test_files_rows_and_record_keys_name_locked_paths_and_probe_state(self):

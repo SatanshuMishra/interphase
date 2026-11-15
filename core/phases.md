@@ -2,11 +2,11 @@
 
 The goal is not a perfect spec. It is that the user's intent is met. A missed intent means major rework; a cosmetic inconsistency can be fixed later. Every rule below serves that trade.
 
-A run has two parts. The interview, phases 3 to 7, is attended: the user answers rounds of questions and approves the read-back. From then on the run is autonomous to the end: it asks nothing and stops for nothing, and fills every gap from the recorded intent. An unattended run skips the interview altogether.
+A run has two parts. The interview, phases 3 to 7, is attended: the user answers rounds of questions and approves the read-back. From then on the run is autonomous to the end: it asks nothing, fills every gap from the recorded intent, and stops only where phases 6 and 10 say. An unattended run skips the interview altogether.
 
 ## Rules
 
-1. Never create, edit or delete a file in the user's working tree, except interphase's own output files: this run's files in the spec folder, the glossary files and the ADRs `${CLAUDE_PLUGIN_ROOT}/core/domain.md` describes.
+1. Never create, edit or delete a file in the user's working tree, except interphase's own output files: this run's files in the spec folder, the glossary files and the ADRs `${CLAUDE_PLUGIN_ROOT}/core/domain.md` describes; the guard alone removes the caches created since its snapshot.
 2. Never commit, push, stash, reset, check out or rebase in the user's repository.
 3. Never implement: the spec states the cause, the decisions and the acceptance tests, never the patch.
 4. Look up facts yourself; ask the user only for decisions that pass the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.
@@ -19,11 +19,11 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 11. Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.
 12. Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.
 13. Keep the interview in the record: write each round, seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.
-14. When the user's instructions say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.
+14. When `HARNESS_UNATTENDED` is `1` in the session's environment, or the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.
 
 ## Phase 1: Intake
 
-- When the request names a spec in the spec folder whose record says `handed-off` and asks to add a case to it or fix a gap in it, follow the section Amend a handed-off spec instead of the phases below.
+- When the request names a spec in the spec folder and asks to add a case to it, fix a gap in it or correct one of its rows, follow the section Amend a spec instead of the phases below, whatever its record's `status`.
 - Run every command in these phases from the repository root, the folder `git rev-parse --show-toplevel` prints.
 - Record the request word for word. It opens section 1 of the spec.
 - Choose a slug in lowercase kebab-case, at most 40 characters, drawn from the request. State it.
@@ -31,7 +31,7 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Take the guard snapshot: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" snapshot --repo . --owned "docs/specs/<slug>." --owned GLOSSARY --owned docs/adr/ --out docs/specs/<slug>.guard.json`. When a `GLOSSARY-MAP.md` exists, add one `--owned` for each glossary it names and one for `<dir>/docs/adr/`, where `<dir>` is that glossary's folder, whether or not that ADR folder exists yet.
 - Create `docs/specs/<slug>.decisions.md` with the heading `# Decisions for <title>`, the sentence `Questions the user settled. These are binding.`, then an empty `## Intent` section and an empty `## Decisions` section.
 - Create `docs/specs/<slug>.record.json` holding `{"seams": [], "criteria": [], "steps": [], "status": "in-progress"}`. Its format is in the section "Interview record" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
-- If the directory is not a git repository, skip the guard. Say so.
+- If the directory is not a git repository, skip the guard and say so, and say that phase 6 needs `git init` run first: `lock_feasibility.py` reads the committed HEAD.
 
 ## Phase 2: Classify
 
@@ -89,9 +89,9 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Ask any Step question only the user can answer in the same rounds as the rest.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run. It probes the surface of every acceptance line within a time limit and stores each result in the record's `probes`. A failed probe of a line at a seam the builder runs blocks; a failed probe at a seam the builder cannot run blocks nothing, because that criterion is already unproven.
 - In an attended run, each failed probe that blocks becomes a question of the read-back.
-- In an unattended run, a failed probe that blocks stops the run: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 says, report the stop and the record's stop reason, and stop.
-- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lock_feasibility.py" --record docs/specs/<slug>.record.json --repo .`. It checks every locked row's loads, needs and absent against the committed HEAD, and every existing test that refers to a changed file, and stores its results in the record's `feasibility`. Fix every failed result in the design: put a load or need outside the write-sets into the files of the row's Step or of a Step it comes after, or add the Step that writes it to the row's Step's `after`, drop or restate a behaviour that already exists, and give an existing test to the Step that changes what it tests or list it in `unaffected`. Run it again after every later record edit.
-- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error.
+- In an unattended run, a failed probe that blocks stops the run: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 says, report the stop and the record's stop reason, and stop. A later run of the same command whose probes pass returns the record to `in-progress`: take the guard snapshot again as in phase 1 and go on from here.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lock_feasibility.py" --record docs/specs/<slug>.record.json --repo .`. It checks every locked row's loads, needs and absent against the committed HEAD, and every existing test that refers to a changed file, and stores its results in the record's `feasibility`. Fix every failed result in the design: put a load or need outside the write-sets into the files of the row's Step or of a Step it comes after, or add the Step that writes it to the row's Step's `after`, drop or restate a behaviour that already exists, and give an existing test to the Step that changes what it tests or list it in `unaffected`. Run it again when the complete check says the record changed since it ran.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`. Fix every error; in an attended run a failed probe that blocks stays until the read-back settles it.
 
 ## Phase 7: Read back
 
@@ -120,15 +120,16 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-<pathway>.md" docs/specs/<slug>.md`.
 - Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`.
 - Fix every error. Read every warning and fix the ones that are real.
-- Dispatch the `interphase:spec-reviewer` agent once, with the spec path, the items path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`, and say whether the run is unattended. Fix once each issue it finds that would cause the wrong thing to be built, using your judgement: an issue that needs an input no real path delivers, or that the intent or a recorded decision already settles, is not one to fix. Fill any gap a fix opens as the section After the interview says. Never dispatch the reviewer again.
+- Dispatch the `interphase:spec-reviewer` agent once, with the spec path, the items path, the decisions path and the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`, and say whether the run is unattended. Fix once each issue it reports, using your judgement: an issue that the intent or a recorded decision already settles is not one to fix. Fill any gap a fix opens as the section After the interview says. Never dispatch the reviewer twice in one run.
 - Rerun the render script and both checks after the fixes.
 - Ask nothing. Go straight to Phase 10 in the same turn.
 
 ## Phase 10: Hand off
 
 - Promote what must outlast the spec into the glossary and the ADRs, following the section At hand-off of `${CLAUDE_PLUGIN_ROOT}/core/domain.md`.
-- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json`. The guard first removes the caches that running the project's code created since the snapshot.
-- If it reports a difference, stop. Tell the user exactly what changed.
+- Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tree_guard.py" verify --repo . --snapshot docs/specs/<slug>.guard.json --record docs/specs/<slug>.record.json`, with `--unattended` in an unattended run. The guard first removes the caches that running the project's code created since the snapshot.
+- It reports a file changed outside interphase's own output files, a probe worktree left behind, a stash added or dropped, another worktree's uncommitted changes gone without a commit, and every move of the head since the snapshot except a fast-forward from a merge or a pull to a commit the remote upstream recorded at the snapshot holds. Undo what this run changed, removing a leftover probe worktree with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/probe.py" remove --repo . --path <worktree>`, and verify again.
+- When a difference stays, stop: an attended run tells the user exactly what changed, and in an unattended run the guard has set the record's `status` to `stopped` with the difference as its `stop` reason, or added it to a stop already there. A later clean verify, once the difference is gone or the snapshot is taken again as in phase 1, returns the record to `in-progress`.
 - Delete `docs/specs/<slug>.guard.json` after a clean verify.
 - Set the record's `status` to `handed-off`.
 - Report the paths of the spec, the decisions file, the record, the items file, every glossary file and ADR written and, for bugs, the reproduction file.
@@ -136,20 +137,22 @@ A run has two parts. The interview, phases 3 to 7, is attended: the user answers
 - Report what the review changed, and the counts of Steps, unproven criteria and assumptions.
 - Stop. Do not suggest a tool to build it. Do not start building it.
 
-## Amend a handed-off spec
+## Amend a spec
 
-- Keep the slug, the spec, the decisions file and the record. Never start a new spec for a case a handed-off spec missed.
-- Take the guard snapshot as in phase 1, and set the record's `status` to `in-progress`.
+- Keep the slug, the spec, the decisions file and the record. While the spec is in the spec folder, never start a new one for a case it missed or a row it got wrong.
+- Take the guard snapshot as in phase 1, set the record's `status` to `in-progress` and remove its `stop`.
 - When the record was written by an earlier release, rewrite it to this release's shape: turn each entry of `environments` into a seam with `name`, `interface` set to its `what`, `catches`, `misses` and `builder_runs`; give each criterion the `seam` its tests ran at and remove its `where`, `facts` and `gives_way`; remove each test's `env` and every `gives-way:` entry from its `covers`; remove `facts`, `environments`, `reviews` and `open_issues` from the record; keep a criterion's `domains` only when it is security-sensitive or exists to refuse something, setting `case_table` and removing each domain's `fact`, and otherwise remove its domains and every test's `covers`.
 - Before the complete check, an earlier release's record also gains acceptance lines, a locked list, probes, feasibility results and outcomes: give each criterion at a seam the builder runs its acceptance lines as in phase 4, naming each in its rows' `check`, give each row its `loads`, `needs` and, when every load exists at HEAD, `absent` as in phase 4, list every row's test file in `locked`, run the surface probes and `lock_feasibility.py` as in phase 6, and run `outcomes.py` as in phase 3.
 - When the spec was written by an earlier release, rename its `Acceptance criteria` heading to `Test seams`, keeping its number, and skip the spec check below, which knows only this release's templates.
 - Number the amendment one more than the highest `amendment` of any Step in the record, or 1 when no Step has one.
 - Add the missing classes and rows to the criteria they belong to. Add a criterion only for a behaviour no criterion states.
+- Change a row that is wrong by correcting it and setting its `step` to the amendment's Step, so `lock_feasibility.py` judges it again and the check-author rewrites its test.
+- Withdraw a row by deleting it, with each acceptance line, criterion and Step only it kept, and take its file out of `locked` once no row names it; the amendment's Step then lists that file and removes the test. While another row names the file, a withdrawn test already at HEAD stays in it, so change the row instead when the amendment changes what it asserts.
 - Name in each new row's `check` the acceptance line it implements, adding the line when its criterion has none for it, and add the row's test file to the record's `locked` list rather than to the new Step's files.
-- Give the work of the new rows to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
-- Run `lock_feasibility.py` again as in phase 6 once the new rows and the new Step are in the record. It judges absent for the rows the amendment adds and for every row no build has delivered, and passes a row an earlier Step already built, whose test is in its locked file at HEAD, without running its absent again.
+- Give the work of the new and changed rows to a new Step with `amendment` set to that number, the files it changes, `after` naming the Steps whose code it changes, and a task written as in phase 8.
+- Run `lock_feasibility.py` again as in phase 6 once the rows and the new Step are in the record. It judges absent for the rows the amendment adds or changes and for every row no build has delivered, and passes a row an earlier Step already built, whose test is in its locked file at HEAD, without running its absent again.
 - Fill every gap from the intent as the section After the interview says, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json`.
 - Run the render script as in phase 8, then again with `--amendment <n>` and `--items docs/specs/<slug>.amend-<n>.items.json`.
 - Run the spec check as in phase 9, and the items check with `--amendment` on the amendment items file.
-- Dispatch the `interphase:spec-reviewer` agent as in phase 9, naming the criteria and the Step that changed.
+- Review as in phase 9, which a brief skips, naming the criteria and the Step that changed.
 - Hand off as in phase 10, and report the amendment items file in place of the items file.

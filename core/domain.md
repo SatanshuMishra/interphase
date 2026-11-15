@@ -52,7 +52,7 @@ Number ADRs in sequence, `0001-<slug>.md`, `0002-<slug>.md` and on, one past the
 {One to three sentences: the context, what was decided and why.}
 ```
 
-Add a `Status:` line (`proposed`, `accepted`, `deprecated` or `superseded by ADR-NNNN`), a Considered options section or a Consequences section only when it adds something a reader needs. Write each ADR so it stands alone: it never cites the spec, which is deleted after merge.
+Add a `Status:` line (`proposed`, `accepted`, `deprecated` or `superseded by ADR-NNNN`), a Considered options section or a Consequences section only when it adds something a reader needs. Write each ADR so it stands alone: it never cites the spec, which may be deleted after merge.
 
 ## At hand-off
 

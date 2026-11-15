@@ -108,7 +108,7 @@ class ReadmeTest(unittest.TestCase):
             section,
         )
         self.assertIn(
-            "each pathway tells Claude to re-read the record, the decisions and the phases before going on",
+            "and tells Claude to re-read the record, the decisions and the phases before going on",
             section,
         )
 
@@ -270,7 +270,7 @@ class ReadmeTest(unittest.TestCase):
         self.assertEqual(len(starts), 1)
         self.assertEqual(
             paragraphs[starts[0] + 1],
-            "To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.",
+            "To amend a spec, ask interphase by name to add the missed case to it or to correct a row. It adds, changes or withdraws rows, gives the work to a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.",
         )
 
 

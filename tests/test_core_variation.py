@@ -74,12 +74,11 @@ class CoreVariationTest(unittest.TestCase):
             "nothing is ever tuned on",
             "a sample of at least one held-out case for each way the input varies",
             "get approval",
-            "in full in the task of the step that tests them",
-            "the way a bug's draft test is carried",
             "each varying criterion's text states its kind, the ways its input varies, the held-out set and the pass rule.",
             "in an unattended run, record the held-out set as an assumption instead.",
         ):
             self.assertIn(needle, population, needle)
+        self.assertNotIn("in the task of the step", population)
 
     def test_variation_requires_outcome_grading_repeated_runs_and_rates(self):
         grading = section(read_variation(), "## Grade and pass").lower()

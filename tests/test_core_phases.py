@@ -15,7 +15,7 @@ HEADINGS = (
 )
 
 RULES = (
-    "Never create, edit or delete a file in the user's working tree, except interphase's own output files: this run's files in the spec folder, the glossary files and the ADRs `${CLAUDE_PLUGIN_ROOT}/core/domain.md` describes.",
+    "Never create, edit or delete a file in the user's working tree, except interphase's own output files: this run's files in the spec folder, the glossary files and the ADRs `${CLAUDE_PLUGIN_ROOT}/core/domain.md` describes; the guard alone removes the caches created since its snapshot.",
     "Never commit, push, stash, reset, check out or rebase in the user's repository.",
     "Never implement: the spec states the cause, the decisions and the acceptance tests, never the patch.",
     "Look up facts yourself; ask the user only for decisions that pass the hard bar of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md`.",
@@ -28,7 +28,7 @@ RULES = (
     "Never comment on, ask about or offer to change whether git tracks interphase's own output files, in anything you say or ask, or in the spec, decisions or items files.",
     "Never plan a copy of logic that already exists, and never bend existing code to fit a new use; follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md`.",
     "Keep the interview in the record: write each round, seam, criterion and Step to `docs/specs/<slug>.record.json` the moment it is settled, and after any summary of the conversation, re-read the record and the decisions file before acting.",
-    "When the user's instructions say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.",
+    "When `HARNESS_UNATTENDED` is `1` in the session's environment, or the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, the run is unattended: follow the section Unattended runs of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` in place of every question and approval.",
 )
 
 STEP_FILES = ("core/phases.md",)
@@ -79,7 +79,7 @@ class CorePhasesTest(unittest.TestCase):
         lead = read_phases().split("## Rules")[0]
         for phrase in (
             "The interview, phases 3 to 7, is attended",
-            "From then on the run is autonomous to the end: it asks nothing and stops for nothing, and fills every gap from the recorded intent.",
+            "From then on the run is autonomous to the end: it asks nothing, fills every gap from the recorded intent, and stops only where phases 6 and 10 say.",
             "An unattended run skips the interview altogether.",
         ):
             self.assertIn(phrase, lead)
@@ -98,9 +98,9 @@ class CorePhasesTest(unittest.TestCase):
         dispatch = tuple(line for line in review if line.startswith("- Dispatch the `interphase:spec-reviewer` agent once"))
         self.assertEqual(len(dispatch), 1)
         for phrase in (
-            "Fix once each issue it finds that would cause the wrong thing to be built",
+            "Fix once each issue it reports, using your judgement: an issue that the intent or a recorded decision already settles is not one to fix.",
             "Fill any gap a fix opens as the section After the interview says.",
-            "Never dispatch the reviewer again.",
+            "Never dispatch the reviewer twice in one run.",
             "say whether the run is unattended",
         ):
             self.assertIn(phrase, dispatch[0])
@@ -153,7 +153,7 @@ class CorePhasesTest(unittest.TestCase):
         )
         self.assertIn(
             "add the row's test file to the record's `locked` list rather than to the new Step's files",
-            phase_body("## Amend a handed-off spec"),
+            phase_body("## Amend a spec"),
         )
 
     def test_intake_owns_the_spec_files_the_glossary_and_the_adrs(self):
@@ -182,6 +182,18 @@ class CorePhasesTest(unittest.TestCase):
         review_body = phase_body("## Phase 9: Review")
         self.assertIn("the decisions path", review_body)
         self.assertIn("the path of `${CLAUDE_PLUGIN_ROOT}/core/practices.md`", review_body)
+
+    def test_a_stop_has_a_way_back(self):
+        design = phase_body("## Phase 6: Design the Steps")
+        self.assertIn("A later run of the same command whose probes pass returns the record to `in-progress`", design)
+        hand_off = phase_body("## Phase 10: Hand off")
+        for phrase in (
+            "verify --repo . --snapshot docs/specs/<slug>.guard.json --record docs/specs/<slug>.record.json`, with `--unattended` in an unattended run",
+            "It reports a file changed outside interphase's own output files, a probe worktree left behind, a stash added or dropped, another worktree's uncommitted changes gone without a commit, and every move of the head since the snapshot except a fast-forward from a merge or a pull to a commit the remote upstream recorded at the snapshot holds.",
+            "in an unattended run the guard has set the record's `status` to `stopped` with the difference as its `stop` reason, or added it to a stop already there",
+            "A later clean verify, once the difference is gone or the snapshot is taken again as in phase 1, returns the record to `in-progress`",
+        ):
+            self.assertIn(phrase, hand_off)
 
     def test_phases_mark_the_run_in_the_record(self):
         lines = phase_body("## Phase 10: Hand off").splitlines()
@@ -277,15 +289,15 @@ class CorePhasesTest(unittest.TestCase):
         lines = bullets(phase_body("## Phase 1: Intake"))
         self.assertEqual(
             lines[0],
-            "- When the request names a spec in the spec folder whose record says `handed-off` and asks to add a case to it or fix a gap in it, follow the section Amend a handed-off spec instead of the phases below.",
+            "- When the request names a spec in the spec folder and asks to add a case to it, fix a gap in it or correct one of its rows, follow the section Amend a spec instead of the phases below, whatever its record's `status`.",
         )
 
     def test_amend_section_follows_hand_off_and_migrates_earlier_records(self):
         lines = read_phases().splitlines()
         level_two = tuple(line for line in lines if line.startswith("## "))
         position = level_two.index("## Phase 10: Hand off")
-        self.assertEqual(level_two[position + 1], "## Amend a handed-off spec")
-        amend = phase_body("## Amend a handed-off spec")
+        self.assertEqual(level_two[position + 1], "## Amend a spec")
+        amend = phase_body("## Amend a spec")
         for phrase in (
             "turn each entry of `environments` into a seam",
             "remove `facts`, `environments`, `reviews` and `open_issues` from the record",
@@ -293,9 +305,13 @@ class CorePhasesTest(unittest.TestCase):
             "Fill every gap from the intent as the section After the interview says",
             "--amendment <n>",
             "report the amendment items file in place of the items file",
+            "set the record's `status` to `in-progress` and remove its `stop`",
+            "Change a row that is wrong by correcting it and setting its `step` to the amendment's Step",
+            "Withdraw a row by deleting it",
         ):
             self.assertIn(phrase, amend)
         self.assertNotIn("approval", amend)
+        self.assertNotIn("handed-off spec", read_phases())
 
 
 if __name__ == "__main__":
