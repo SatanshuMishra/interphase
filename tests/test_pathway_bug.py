@@ -96,7 +96,7 @@ class PathwayBugTest(unittest.TestCase):
         ground = "\n".join(playbook_section("## Ground"))
         self.assertIn(
             "An unattended run instead sets the record's `status` to `stopped` with a `stop` whose `phase` is "
-            "`ground` and whose `reason` says what was run and seen, reports it and stops.",
+            "`ground` and whose `reason` says what was run and seen, verifies the guard as Phase 10 says, reports it and stops.",
             ground,
         )
 

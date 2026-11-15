@@ -8,7 +8,7 @@ Reproduce the bug before you ask about it.
 
 - Gather the report's facts: steps, expected, actual, environment, version, how often.
 - Run the steps. Reproduce as many times as needed. Record every run's command and observed output.
-- If it does not reproduce, ask for the missing facts from the question bank before going further. An unattended run instead sets the record's `status` to `stopped` with a `stop` whose `phase` is `ground` and whose `reason` says what was run and seen, reports it and stops. Never invent reproduction steps.
+- If it does not reproduce, ask for the missing facts from the question bank before going further. An unattended run instead sets the record's `status` to `stopped` with a `stop` whose `phase` is `ground` and whose `reason` says what was run and seen, verifies the guard as Phase 10 says, reports it and stops. Never invent reproduction steps.
 - Find the last known good and first known bad version when history matters. Use `git bisect` only inside a probe worktree.
 - Write one to five ranked hypotheses about the cause. Make each one something a single run could disprove.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
