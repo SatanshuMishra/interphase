@@ -16,6 +16,8 @@ SNAPSHOT_FIELDS = ("head",) + COMPARED
 REFLOG_TOP = "reflog_top"
 STASHES = "stashes"
 DIRTY_WORKTREES = "dirty_worktrees"
+UPSTREAM = "upstream"
+REMOTE_REFS = "refs/remotes/"
 REFLOG_FORMAT = "--format=%H%x09%gd%x09%gs"
 STASH_FORMAT = "--format=%H%x09%gs"
 FAST_FORWARD_RE = re.compile(r"(merge [^:]+|pull( [^:]*)?): Fast-forward")
@@ -207,21 +209,20 @@ def read_stashes(repo):
     return [line for line in decode(result.stdout).split("\n") if line]
 
 
-def holds_changes(path):
-    result = run_git(path, ["status", "--porcelain=v1", "-z", "--untracked-files=normal"])
-    return result.returncode == 0 and bool(result.stdout)
+def worktree_changes(path):
+    result = run_git(path, ["status", "--porcelain=v1", "-z", "--untracked-files=all"])
+    return sorted(entry[3:] for entry in status_entries(result.stdout)) if result.returncode == 0 else None
 
 
 def read_dirty_worktrees(repo, worktrees):
     own = os.path.realpath(repo)
-    return sorted(
+    others = tuple(
         path
         for path in worktrees
-        if PROBE_MARKER not in path
-        and os.path.realpath(path) != own
-        and os.path.isdir(path)
-        and holds_changes(path)
+        if PROBE_MARKER not in path and os.path.realpath(path) != own and os.path.isdir(path)
     )
+    states = ((path, worktree_changes(path)) for path in others)
+    return [{"path": path, "head": read_head(path), "changes": changes} for path, changes in states if changes]
 
 
 def capture(repo, owned):
@@ -243,14 +244,29 @@ def load_snapshot(path):
         raise UsageError(f"unreadable snapshot: {path}: {error}")
     if not isinstance(data, dict) or any(field not in data for field in SNAPSHOT_FIELDS):
         raise UsageError(f"unreadable snapshot: {path}: missing fields")
-    malformed = [key for key in ("owned", "caches", STASHES, DIRTY_WORKTREES) if not is_string_list(data.get(key, []))]
+    malformed = [key for key in ("owned", "caches", STASHES) if not is_string_list(data.get(key, []))]
     if malformed:
         raise UsageError(f"unreadable snapshot: {path}: {malformed[0]} is not a list of strings")
+    dirty = data.get(DIRTY_WORKTREES, [])
+    if not isinstance(dirty, list) or not all(is_dirty_worktree(item) for item in dirty):
+        raise UsageError(f"unreadable snapshot: {path}: {DIRTY_WORKTREES} is not a list of worktrees")
+    upstream = data.get(UPSTREAM)
+    if upstream is not None and not (isinstance(upstream, str) and upstream.startswith(REMOTE_REFS)):
+        raise UsageError(f"unreadable snapshot: {path}: {UPSTREAM} is not a ref under {REMOTE_REFS}")
     return data
 
 
 def is_string_list(value):
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def is_dirty_worktree(value):
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("path"), str)
+        and (value.get("head") is None or isinstance(value.get("head"), str))
+        and is_string_list(value.get("changes"))
+    )
 
 
 def is_new_cache(path, known):
@@ -356,12 +372,23 @@ def stash_findings(snapshot, current):
     ]
 
 
-def removed_worktree_findings(snapshot, worktrees):
-    return [
-        f"worktree removed since the snapshot while it held uncommitted changes: {path}"
-        for path in snapshot.get(DIRTY_WORKTREES, [])
-        if path not in worktrees or not os.path.isdir(path)
-    ]
+def lost_work(entry, worktrees):
+    path = entry["path"]
+    if path not in worktrees or not os.path.isdir(path):
+        return [f"worktree removed since the snapshot while it held uncommitted changes: {path}"]
+    if read_head(path) != entry["head"]:
+        return []
+    changes = worktree_changes(path)
+    if changes is None:
+        return [f"cannot read the status of a worktree that held uncommitted changes: {path}"]
+    gone = [" from ".join(change.split("\0")) for change in entry["changes"] if change not in changes]
+    if not gone:
+        return []
+    return [f"uncommitted changes gone since the snapshot from a worktree whose head did not move: {path}: {', '.join(gone)}"]
+
+
+def lost_work_findings(snapshot, worktrees):
+    return [finding for entry in snapshot.get(DIRTY_WORKTREES, []) for finding in lost_work(entry, worktrees)]
 
 
 def snapshot_position(lines, snapshot):
@@ -385,8 +412,9 @@ def head_moves(entries, start):
 
 
 def read_upstream(repo):
-    result = run_git(repo, ["rev-parse", "--verify", "-q", "@{upstream}"])
-    return decode(result.stdout).strip() if result.returncode == 0 else None
+    result = run_git(repo, ["rev-parse", "--symbolic-full-name", "--verify", "-q", "@{upstream}"])
+    name = decode(result.stdout).strip() if result.returncode == 0 else ""
+    return name if name.startswith(REMOTE_REFS) else None
 
 
 def is_sync(repo, sha, subject, upstream):
@@ -416,7 +444,7 @@ def head_findings(repo, snapshot, head):
     if not lines:
         return [] if head == start else [f"head moved from {start} to {head} {NO_LOG}"]
     entries = tuple(entry_parts(line) for line in reversed(lines[: snapshot_position(lines, snapshot)]))
-    upstream = read_upstream(repo)
+    upstream = snapshot.get(UPSTREAM)
     moves = [
         move_finding(repo, sha, subject)
         for sha, subject in head_moves(entries, start)
@@ -433,7 +461,11 @@ def command_snapshot(args):
     owned = tuple(args.owned)
     current = capture(repo, owned)
     lines = read_reflog(repo, current["head"]) or ()
-    marks = {REFLOG_TOP: lines[0] if lines else None, DIRTY_WORKTREES: read_dirty_worktrees(repo, current["worktrees"])}
+    marks = {
+        REFLOG_TOP: lines[0] if lines else None,
+        DIRTY_WORKTREES: read_dirty_worktrees(repo, current["worktrees"]),
+        UPSTREAM: read_upstream(repo),
+    }
     state = dict(current, owned=list(owned), caches=read_caches(repo), **marks)
     try:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
@@ -500,7 +532,7 @@ def command_verify(args):
         + head_findings(repo, snapshot, current["head"])
         + compare(snapshot, current)
         + stash_findings(snapshot, current)
-        + removed_worktree_findings(snapshot, current["worktrees"])
+        + lost_work_findings(snapshot, current["worktrees"])
     )
     for finding in findings:
         print(f"error: {finding}")
