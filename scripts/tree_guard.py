@@ -5,16 +5,22 @@ import json
 import os
 import pathlib
 import posixpath
+import re
 import shutil
 import subprocess
 import sys
 
 PROBE_MARKER = "interphase-probe-"
-FIELDS = ("status", "diff_sha256", "worktrees")
+COMPARED = ("status", "diff_sha256", "worktrees")
+SNAPSHOT_FIELDS = ("head",) + COMPARED
+REFLOG_TOP = "reflog_top"
+REFLOG_FORMAT = "--format=%H%x09%gd%x09%gs"
+FAST_FORWARD_RE = re.compile(r"(?:merge|pull)(?: .*)?: Fast-forward")
+UNREACHABLE_REFLOG = "the HEAD reflog cannot be read back to the snapshot"
 STOPPED = "stopped"
 IN_PROGRESS = "in-progress"
 STOP_PHASE = "hand-off"
-DIFFERENCE = "the working tree differs from the guard snapshot: "
+DIFFERENCE = "the checkout differs from the guard snapshot: "
 ISOLATING_VARIABLES = (
     "GIT_DIR",
     "GIT_WORK_TREE",
@@ -179,10 +185,23 @@ def read_worktrees(repo):
     return sorted(line[len("worktree "):] for line in lines if line.startswith("worktree "))
 
 
+def read_reflog(repo, head):
+    if head is None:
+        return ()
+    result = run_git(
+        repo,
+        ["log", "--walk-reflogs", "--no-show-signature", "--date=unix", REFLOG_FORMAT, "HEAD", "--"],
+    )
+    lines = tuple(line for line in decode(result.stdout).split("\n") if line)
+    return lines if result.returncode == 0 and all(line.count("\t") >= 2 for line in lines) else None
+
+
 def capture(repo, owned):
+    head = read_head(repo)
     return {
+        "head": head,
         "status": read_status(repo, owned),
-        "diff_sha256": read_diff_digest(repo, read_head(repo), owned),
+        "diff_sha256": read_diff_digest(repo, head, owned),
         "worktrees": read_worktrees(repo),
     }
 
@@ -193,7 +212,7 @@ def load_snapshot(path):
             data = json.load(handle)
     except (OSError, ValueError) as error:
         raise UsageError(f"unreadable snapshot: {path}: {error}")
-    if not isinstance(data, dict) or any(field not in data for field in FIELDS):
+    if not isinstance(data, dict) or any(field not in data for field in SNAPSHOT_FIELDS):
         raise UsageError(f"unreadable snapshot: {path}: missing fields")
     if not is_string_list(data.get("owned", [])):
         raise UsageError(f"unreadable snapshot: {path}: owned is not a list of strings")
@@ -293,13 +312,58 @@ def field_findings(field, before, after):
 
 
 def compare(snapshot, current):
-    return [line for field in FIELDS for line in field_findings(field, snapshot[field], current[field])]
+    return [line for field in COMPARED for line in field_findings(field, snapshot[field], current[field])]
+
+
+def snapshot_position(lines, snapshot):
+    if lines is None:
+        return None
+    released = REFLOG_TOP not in snapshot
+    mark = snapshot["head"] if released else snapshot[REFLOG_TOP]
+    keys = tuple(line.split("\t", 1)[0] for line in lines) if released else lines
+    if mark is None:
+        return len(lines)
+    return keys.index(mark) if mark in keys else None
+
+
+def entry_parts(line):
+    sha, _, subject = line.split("\t", 2)
+    return sha, subject
+
+
+def head_moves(entries, start):
+    befores = (start,) + tuple(sha for sha, _ in entries[:-1])
+    return tuple((sha, subject) for before, (sha, subject) in zip(befores, entries) if sha != before)
+
+
+def move_finding(sha, subject):
+    operation, _, detail = subject.partition(": ")
+    return f"head moved by {operation} to {sha}" + (f": {detail}" if detail else "")
+
+
+def head_findings(repo, snapshot, head):
+    lines = read_reflog(repo, head)
+    position = snapshot_position(lines, snapshot)
+    if position is None:
+        return [UNREACHABLE_REFLOG]
+    entries = tuple(entry_parts(line) for line in reversed(lines[:position]))
+    reached = entries[-1][0] if entries else snapshot["head"]
+    moves = [
+        move_finding(sha, subject)
+        for sha, subject in head_moves(entries, snapshot["head"])
+        if not FAST_FORWARD_RE.fullmatch(subject)
+    ]
+    if reached == head:
+        return moves
+    return moves + [f"head moved from {snapshot['head']} to {head} with no reflog entry to explain it"]
 
 
 def command_snapshot(args):
     repo = repository_root(args.repo)
     owned = tuple(args.owned)
-    state = dict(capture(repo, owned), owned=list(owned), caches=read_caches(repo))
+    current = capture(repo, owned)
+    lines = read_reflog(repo, current["head"]) or ()
+    state = dict(current, owned=list(owned), caches=read_caches(repo), **{REFLOG_TOP: lines[0] if lines else None})
     try:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         atomic_file.replace(args.out, (json.dumps(state, indent=2, sort_keys=True) + "\n").encode("utf-8"))
@@ -349,7 +413,8 @@ def command_verify(args):
     removed, failures = remove_new_caches(repo, snapshot)
     for path in removed:
         print(f"removed cache: {path}")
-    findings = list(failures) + compare(snapshot, capture(repo, tuple(snapshot.get("owned", []))))
+    current = capture(repo, tuple(snapshot.get("owned", [])))
+    findings = list(failures) + head_findings(repo, snapshot, current["head"]) + compare(snapshot, current)
     for finding in findings:
         print(f"error: {finding}")
     refusals = () if record is None else store_record(args.record, record, judged(record, findings, args.unattended))

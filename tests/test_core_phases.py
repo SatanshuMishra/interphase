@@ -189,7 +189,7 @@ class CorePhasesTest(unittest.TestCase):
         hand_off = phase_body("## Phase 10: Hand off")
         for phrase in (
             "verify --repo . --snapshot docs/specs/<slug>.guard.json --record docs/specs/<slug>.record.json`, with `--unattended` in an unattended run",
-            "It reports only what this run could have changed in this checkout",
+            "It reports a change to a file outside interphase's own output files, a probe worktree left behind, and every move of the head since the snapshot other than a fast-forward from a merge or a pull.",
             "in an unattended run the guard has set the record's `status` to `stopped` with the difference as its `stop` reason",
             "A later clean verify, once the difference is gone or the snapshot is taken again as in phase 1, returns the record to `in-progress`",
         ):
