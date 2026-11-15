@@ -16,7 +16,7 @@ EXPECTED = {
         "description": "Use when a written interphase spec and its Steps need one fresh-eyes review before hand-off.",
         "tools": "Read, Grep, Glob",
         "model": "opus",
-        "effort": "high",
+        "effort": "xhigh",
     },
 }
 

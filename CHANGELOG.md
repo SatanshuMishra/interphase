@@ -15,6 +15,7 @@
 - Removed text that stated a rule twice or described nothing the code does: the re-read step of each pathway skill, the second statement of the probe stop, the builder instruction to write test rows, the held-out cases carried in a task, the fault for a write outside a Step's files, the scout's unverified mark, and the version folder in the README.
 - outcomes.py reads a trajectory store it cannot read as no history, as it already read a missing one: it names the store in one line, writes outcomes with no entries and exits 0, so the complete check accepts the record. It exited 2 and the run could not go on.
 - outcomes.py also counts the entries tagged with the agent.repo_name of receipts.config.json, the name receipts writes them under. interphase's own config names interphase, not the pipeline's temporary worktree.
+- The spec reviewer runs at effort xhigh.
 - The record format gains the optional row field draft. The guard snapshot of an earlier release is still read.
 
 ## 0.17.0
