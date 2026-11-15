@@ -354,6 +354,40 @@ class SurfaceProbesTest(unittest.TestCase):
         self.assertIn(("C2.1", "vmlab", "android"), probes, output)
         self.assertEqual(probes[("C2.1", "vmlab", "android")]["status"], "fail")
 
+    def test_a_probe_stop_clears_when_the_probes_pass_on_a_later_run(self):
+        with tempfile.TemporaryDirectory() as base:
+            stubs = {"playwright": STUBS["playwright"], "vmlab": vmlab_listing(BOTH_MACHINES)}
+            folder = path_folder(base, stubs=stubs)
+            record_path = write_record(base, record_of(FAMILY_LINES))
+            stopped_code, stopped_output = surface_probe(base, record_path, folder, "--unattended")
+            stopped = read_record(record_path)
+            claude = folder / "claude"
+            claude.write_text(STUBS["claude"], encoding="utf-8")
+            claude.chmod(0o755)
+            arguments = [script_path("surface_probe.py"), "--record", record_path, "--repo", base, "--unattended"]
+            code, output = run(arguments, base, isolated_environment(pathlib.Path(base) / "home", folder))
+            record = read_record(record_path)
+            _, complete_output = check_complete(base, record_path)
+        self.assertEqual(stopped_code, 1, stopped_output)
+        self.assertEqual(stopped.get("status"), "stopped", stopped_output)
+        self.assertEqual(stopped.get("stop", {}).get("phase"), "probe", stopped_output)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(record.get("status"), "in-progress", output)
+        self.assertNotIn("stop", record)
+        self.assertNotIn("record status is stopped", complete_output)
+
+    def test_passing_probes_leave_a_stop_of_another_phase(self):
+        stop = {"phase": "ground", "reason": "the fault did not reproduce"}
+        with tempfile.TemporaryDirectory() as base:
+            stubs = {**STUBS, "vmlab": vmlab_listing(BOTH_MACHINES)}
+            folder = path_folder(base, stubs=stubs)
+            record_path = write_record(base, {**record_of(FAMILY_LINES), "status": "stopped", "stop": stop})
+            code, output = surface_probe(base, record_path, folder, "--unattended")
+            record = read_record(record_path)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(record.get("status"), "stopped", output)
+        self.assertEqual(record.get("stop"), stop)
+
     def test_a_hanging_probe_ends_at_its_time_limit(self):
         line = {**MOBILE_LINE, "id": "C1.1"}
         self.assert_lines_are_k1((line,))

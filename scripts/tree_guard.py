@@ -10,7 +10,11 @@ import subprocess
 import sys
 
 PROBE_MARKER = "interphase-probe-"
-FIELDS = ("head", "branch", "status", "diff_sha256", "stash", "worktrees")
+FIELDS = ("status", "diff_sha256", "worktrees")
+STOPPED = "stopped"
+IN_PROGRESS = "in-progress"
+STOP_PHASE = "hand-off"
+DIFFERENCE = "the working tree differs from the guard snapshot: "
 ISOLATING_VARIABLES = (
     "GIT_DIR",
     "GIT_WORK_TREE",
@@ -94,11 +98,6 @@ def read_head(repo):
     return decode(result.stdout).strip() if result.returncode == 0 else None
 
 
-def read_branch(repo):
-    result = run_git(repo, ["symbolic-ref", "-q", "HEAD"])
-    return decode(result.stdout).strip() if result.returncode == 0 else None
-
-
 def status_entries(raw):
     tokens = [token for token in decode(raw).split("\0") if token]
     return tuple(join_renames(tokens, 0, ()))
@@ -174,11 +173,6 @@ def read_diff_digest(repo, head, owned):
     return hashlib.sha256(result.stdout).hexdigest()
 
 
-def read_stash(repo):
-    result = run_git(repo, ["stash", "list"])
-    return decode(result.stdout) if result.returncode == 0 else ""
-
-
 def read_worktrees(repo):
     result = run_git(repo, ["worktree", "list", "--porcelain"])
     lines = decode(result.stdout).splitlines() if result.returncode == 0 else []
@@ -186,13 +180,9 @@ def read_worktrees(repo):
 
 
 def capture(repo, owned):
-    head = read_head(repo)
     return {
-        "head": head,
-        "branch": read_branch(repo),
         "status": read_status(repo, owned),
-        "diff_sha256": read_diff_digest(repo, head, owned),
-        "stash": read_stash(repo),
+        "diff_sha256": read_diff_digest(repo, read_head(repo), owned),
         "worktrees": read_worktrees(repo),
     }
 
@@ -289,15 +279,7 @@ def remove_new_caches(repo, snapshot):
 
 
 def worktree_findings(before, after):
-    added = [path for path in after if path not in before]
-    removed = [path for path in before if path not in after]
-    probes = [path for path in added if PROBE_MARKER in path]
-    others = [path for path in added if PROBE_MARKER not in path]
-    probe_lines = [f"leftover probe worktree: {path}" for path in probes]
-    change_lines = (
-        [f"worktrees changed: added {others}, removed {removed}"] if others or removed else []
-    )
-    return probe_lines + change_lines
+    return [f"leftover probe worktree: {path}" for path in after if path not in before and PROBE_MARKER in path]
 
 
 def field_findings(field, before, after):
@@ -326,15 +308,53 @@ def command_snapshot(args):
     return 0
 
 
+def load_record(path):
+    try:
+        record = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError, RecursionError) as error:
+        raise UsageError(f"unreadable record: {path}: {error}")
+    if not isinstance(record, dict):
+        raise UsageError(f"unreadable record: {path}: not a JSON object")
+    return record
+
+
+def stopped_here(record):
+    stop = record.get("stop")
+    return record.get("status") == STOPPED and isinstance(stop, dict) and stop.get("phase") == STOP_PHASE
+
+
+def judged(record, findings, unattended):
+    if not findings:
+        if not stopped_here(record):
+            return record
+        return {**{key: value for key, value in record.items() if key != "stop"}, "status": IN_PROGRESS}
+    if not unattended or (record.get("status") == STOPPED and not stopped_here(record)):
+        return record
+    return {**record, "status": STOPPED, "stop": {"phase": STOP_PHASE, "reason": DIFFERENCE + "; ".join(findings)}}
+
+
+def store_record(path, before, after):
+    if after == before:
+        return ()
+    try:
+        return load_sibling("handoff_gate").write_record(path, after)
+    except OSError as error:
+        return (f"cannot write: {path}: {error}",)
+
+
 def command_verify(args):
     repo = repository_root(args.repo)
     snapshot = load_snapshot(args.snapshot)
+    record = load_record(args.record) if args.record else None
     removed, failures = remove_new_caches(repo, snapshot)
     for path in removed:
         print(f"removed cache: {path}")
     findings = list(failures) + compare(snapshot, capture(repo, tuple(snapshot.get("owned", []))))
     for finding in findings:
         print(f"error: {finding}")
+    refusals = () if record is None else store_record(args.record, record, judged(record, findings, args.unattended))
+    if refusals:
+        raise UsageError("; ".join(refusals))
     return 1 if findings else 0
 
 
@@ -350,6 +370,8 @@ def build_parser():
     verify = commands.add_parser("verify")
     verify.add_argument("--repo", required=True)
     verify.add_argument("--snapshot", required=True)
+    verify.add_argument("--record")
+    verify.add_argument("--unattended", action="store_true")
     verify.set_defaults(handler=command_verify)
     return parser
 

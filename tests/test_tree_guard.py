@@ -82,6 +82,34 @@ def run_main(module, argv):
     return code, buffer.getvalue()
 
 
+def guarded(guard, root, record):
+    repo = seed_repository(root)
+    snapshot = repo / "docs" / "specs" / "demo.guard.json"
+    code, output = run_main(
+        guard,
+        ["snapshot", "--repo", str(repo), "--owned", "docs/specs/demo.", "--out", str(snapshot)],
+    )
+    assert code == 0, output
+    record_path = repo / "docs" / "specs" / "demo.record.json"
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    return repo, snapshot, record_path
+
+
+def verify_with_record(guard, repo, snapshot, record_path, *flags):
+    return run_main(
+        guard,
+        ["verify", "--repo", str(repo), "--snapshot", str(snapshot), "--record", str(record_path), *flags],
+    )
+
+
+def read_json(path):
+    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+
+IN_PROGRESS = {"seams": [], "criteria": [], "steps": [], "status": "in-progress"}
+PROBE_STOP = {"phase": "probe", "reason": "surface probe failed: C1.1 command python3: not found"}
+
+
 class TreeGuardTest(unittest.TestCase):
     def test_tree_guard_passes_an_untouched_tree(self):
         guard = load_script("tree_guard")
@@ -120,12 +148,7 @@ class TreeGuardTest(unittest.TestCase):
             snapshot = pathlib.Path(root) / "guard.json"
             run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
             data = json.loads(snapshot.read_text(encoding="utf-8"))
-            self.assertEqual(
-                set(data),
-                {"head", "branch", "status", "diff_sha256", "stash", "worktrees", "owned", "caches"},
-            )
-            self.assertEqual(data["head"], git(repo, "rev-parse", "HEAD").strip())
-            self.assertTrue(data["branch"].startswith("refs/heads/"))
+            self.assertEqual(set(data), {"status", "diff_sha256", "worktrees", "owned", "caches"})
             self.assertEqual(data["status"], [])
             self.assertEqual(len(data["diff_sha256"]), 64)
             self.assertEqual(data["owned"], [])
@@ -262,6 +285,127 @@ class TreeGuardTest(unittest.TestCase):
             code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
             self.assertEqual(code, 1)
             self.assertIn("leftover probe", output)
+
+    def test_tree_guard_ignores_a_commit_made_meanwhile(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = pathlib.Path(root) / "guard.json"
+            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            write_file(repo / "other.txt", "another session\n")
+            git(repo, "add", "other.txt")
+            commit(repo, "feat: another session's work")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+            self.assertNotIn("error:", output)
+
+    def test_tree_guard_ignores_a_branch_change_made_meanwhile(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            snapshot = pathlib.Path(root) / "guard.json"
+            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            git(repo, "checkout", "-q", "-b", "another-branch")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+
+    def test_tree_guard_ignores_a_stash_dropped_meanwhile(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            (repo / "seed.txt").write_text("stashed\n", encoding="utf-8")
+            git(repo, "-c", "user.name=t", "-c", "user.email=t@example.com", "stash")
+            snapshot = pathlib.Path(root) / "guard.json"
+            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            git(repo, "stash", "drop")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+
+    def test_tree_guard_ignores_worktrees_that_are_not_probes(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo = seed_repository(root)
+            gone = pathlib.Path(root) / "lane-gone"
+            git(repo, "worktree", "add", "--detach", str(gone), "HEAD")
+            snapshot = pathlib.Path(root) / "guard.json"
+            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
+            git(repo, "worktree", "remove", "--force", str(gone))
+            git(repo, "worktree", "add", "--detach", str(pathlib.Path(root) / "lane-added"), "HEAD")
+            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
+            self.assertEqual(code, 0, output)
+
+    def test_an_unattended_difference_stops_the_record_with_its_reason(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo, snapshot, record_path = guarded(guard, root, IN_PROGRESS)
+            write_file(repo / "notes.txt", "stray\n")
+            code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            record = read_json(record_path)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: status changed", output)
+        self.assertEqual(record.get("status"), "stopped", output)
+        self.assertEqual(record.get("stop", {}).get("phase"), "hand-off", output)
+        self.assertIn("notes.txt", record.get("stop", {}).get("reason", ""))
+
+    def test_an_attended_difference_leaves_the_record(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo, snapshot, record_path = guarded(guard, root, IN_PROGRESS)
+            write_file(repo / "notes.txt", "stray\n")
+            code, output = verify_with_record(guard, repo, snapshot, record_path)
+            record = read_json(record_path)
+        self.assertEqual(code, 1, output)
+        self.assertEqual(record, IN_PROGRESS)
+
+    def test_a_clean_verify_clears_a_hand_off_stop(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root:
+            repo, snapshot, record_path = guarded(guard, root, IN_PROGRESS)
+            write_file(repo / "notes.txt", "stray\n")
+            verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            (repo / "notes.txt").unlink()
+            code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            record = read_json(record_path)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(record, IN_PROGRESS)
+
+    def test_the_guard_leaves_a_stop_of_another_phase(self):
+        guard = load_script("tree_guard")
+        stopped = {**IN_PROGRESS, "status": "stopped", "stop": PROBE_STOP}
+        with tempfile.TemporaryDirectory() as root:
+            repo, snapshot, record_path = guarded(guard, root, stopped)
+            clean_code, clean_output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            after_clean = read_json(record_path)
+            write_file(repo / "notes.txt", "stray\n")
+            code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            after_difference = read_json(record_path)
+        self.assertEqual(clean_code, 0, clean_output)
+        self.assertEqual(after_clean, stopped)
+        self.assertEqual(code, 1, output)
+        self.assertEqual(after_difference, stopped)
+
+    def test_a_record_the_gate_refuses_is_left_as_it_was(self):
+        guard = load_script("tree_guard")
+        refused = {**IN_PROGRESS, "notes": "not a record key"}
+        with tempfile.TemporaryDirectory() as root:
+            repo, snapshot, record_path = guarded(guard, root, refused)
+            write_file(repo / "notes.txt", "stray\n")
+            code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            record = read_json(record_path)
+        self.assertEqual(code, 2, output)
+        self.assertIn("error: status changed", output)
+        self.assertEqual(record, refused)
+
+    def test_tree_guard_exits_2_on_an_unreadable_record(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo, snapshot, record_path = guarded(guard, root, IN_PROGRESS)
+            record_path.write_text("not json", encoding="utf-8")
+            cache = repo / "pkg" / "__pycache__" / "x.cpython-312.pyc"
+            write_file(cache)
+            code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            self.assertEqual(code, 2, output)
+            self.assertTrue(cache.is_file(), output)
 
     def test_tree_guard_exits_2_outside_a_git_repository(self):
         script = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "tree_guard.py"
