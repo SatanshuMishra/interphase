@@ -67,7 +67,13 @@ class PathwayBugTest(unittest.TestCase):
 
     def test_bug_steps_use_the_record(self):
         steps = "\n".join(playbook_section("## Steps"))
-        self.assertIn("Record that file and test in the record as a test of criterion 5.1", steps)
+        self.assertIn(
+            "Record the draft test in the record as a row of criterion 5.1: the path where it belongs as its `file`, "
+            "the fix Step as its `step` and the draft's full text as its `draft`. Add that path to the record's "
+            "`locked` list, never to the fix Step's `files`.",
+            steps,
+        )
+        self.assertNotIn("in the fix Step's `task`", steps)
         self.assertIn("List criterion 5.1 in the fix Step's `criteria`", steps)
         self.assertNotIn("in the fix Step's `acceptance`", steps)
         self.assertNotIn("in its `spec_ref`", steps)
@@ -77,10 +83,27 @@ class PathwayBugTest(unittest.TestCase):
         self.assertIn("`${CLAUDE_PLUGIN_ROOT}/core/variation.md`", acceptance)
 
 
+    def test_bug_playbook_lists_behaviour_that_already_works_as_unaffected(self):
+        acceptance = "\n".join(playbook_section("## Acceptance"))
+        self.assertIn(
+            "- Write no criterion for behaviour that already works: list each existing test that shows it in the "
+            "record's `unaffected`, with why the fix cannot break it.",
+            acceptance,
+        )
+        self.assertNotIn("Add checks that the unchanged behaviour still works.", acceptance)
+
+    def test_an_unattended_bug_that_does_not_reproduce_stops_with_a_reason(self):
+        ground = "\n".join(playbook_section("## Ground"))
+        self.assertIn(
+            "An unattended run instead sets the record's `status` to `stopped` with a `stop` whose `phase` is "
+            "`ground` and whose `reason` says what was run and seen, reports it and stops.",
+            ground,
+        )
+
     def test_bug_playbook_cites_criteria_in_the_fix_boundary(self):
         lines = read("core/pathways/bug.md").splitlines()
         expected = '  - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>", citing the acceptance criterion that states it.'
-        unchanged = '  - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", citing the acceptance criterion that states it.'
+        unchanged = '  - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", naming the existing test that shows it when there is one.'
         self.assertIn(expected, lines)
         self.assertIn(unchanged, lines)
         self.assertEqual(lines.index(unchanged), lines.index(expected) + 1)

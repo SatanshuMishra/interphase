@@ -28,7 +28,7 @@ When any condition breaks later, switch to the full pathway.
 - Say so in one sentence that names the condition that broke.
 - Write `- Lane: full, replacing the brief lane.` to the decisions file.
 - Keep the record and the decisions. Criteria keep their numbers: every template numbers them 5.x.
-- Continue with the full phases and the pathway's own template. An attended run goes on with the frontier rounds of the interview; an unattended run stays unattended.
+- Continue with the full phases and the pathway's own template. Before the read-back is approved, an attended run goes on with the frontier rounds of the interview; after it, and in an unattended run, fill what the switch opens as the section After the interview of `${CLAUDE_PLUGIN_ROOT}/core/questioning.md` says.
 
 ## What changes
 
@@ -39,6 +39,4 @@ In the brief lane, only these phases change. Every other phase and rule applies 
 - Phase 6: design one Step per item, and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/surface_probe.py" --record docs/specs/<slug>.record.json --repo .`, with `--unattended` in an unattended run, before the complete check, then run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lock_feasibility.py" --record docs/specs/<slug>.record.json --repo .` and fix every failed result before the complete check.
 - Phase 7: read back only the intent, each item's Current, Expected and Unchanged statements, the Steps and the output of `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/read_back.py" --record docs/specs/<slug>.record.json` word for word, with each failed probe it lists as a question, and ask for the one approval.
 - Phase 8: copy `${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md` instead of the pathway template.
-- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md`, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_record.py" --complete docs/specs/<slug>.record.json` and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. Do not dispatch the `interphase:spec-reviewer` agent.
-
-An unattended run in the brief lane asks no intent round and holds no read-back, as every unattended run does.
+- Phase 9: run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec.py" --template "${CLAUDE_PLUGIN_ROOT}/core/templates/spec-brief.md" docs/specs/<slug>.md` and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_items.py" docs/specs/<slug>.items.json`. Do not dispatch the `interphase:spec-reviewer` agent.

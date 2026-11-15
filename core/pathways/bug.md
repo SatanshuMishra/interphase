@@ -8,7 +8,7 @@ Reproduce the bug before you ask about it.
 
 - Gather the report's facts: steps, expected, actual, environment, version, how often.
 - Run the steps. Reproduce as many times as needed. Record every run's command and observed output.
-- If it does not reproduce, ask for the missing facts from the question bank before going further. Never invent reproduction steps.
+- If it does not reproduce, ask for the missing facts from the question bank before going further. An unattended run instead sets the record's `status` to `stopped` with a `stop` whose `phase` is `ground` and whose `reason` says what was run and seen, reports it and stops. Never invent reproduction steps.
 - Find the last known good and first known bad version when history matters. Use `git bisect` only inside a probe worktree.
 - Write one to five ranked hypotheses about the cause. Make each one something a single run could disprove.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/practices.md` to find every other place with the same fault.
@@ -19,7 +19,7 @@ Reproduce the bug before you ask about it.
 ## Probes
 
 - A probe is a tiny, temporary code change that tests one hypothesis about the cause.
-- A probe ends when its hypothesis is confirmed or refuted. Never build, test or repair the fix inside a probe; whether a fix can keep some behaviour unchanged is an acceptance criterion, not a probe.
+- A probe ends when its hypothesis is confirmed or refuted. Never build, test or repair the fix inside a probe; whether a fix keeps some behaviour unchanged is shown by the existing tests, not by a probe.
 - Create a throwaway worktree with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/probe.py" create --repo .`. Add `--with-uncommitted` when the bug depends on the user's uncommitted edits. The script prints the worktree path on its last line.
 - Change the suspected cause, never the symptom. "If the page is blank, redirect" hides a symptom and proves nothing.
 - Rerun the reproduction inside the probe worktree and record the result.
@@ -50,19 +50,17 @@ Confirm the root cause, by probe when possible, before you write the fix boundar
 - Give the fault an acceptance line that reproduces it on the old code, and give every other place a sweep of the same class finds its own acceptance line.
 - Write a test that fails before the fix and passes after.
 - Give every place with the same fault its own test that fails before the fix.
-- Add checks that the unchanged behaviour still works.
+- Write no criterion for behaviour that already works: list each existing test that shows it in the record's `unaffected`, with why the fix cannot break it.
 - Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam. Make the draft failing test criterion 5.1.
 - Write the fix boundary in the spec's Decisions section as three EARS statements:
   - Current: "WHEN <condition> THEN the system <wrong behaviour>".
   - Expected: "WHEN <condition> THE SYSTEM SHALL <right behaviour>", citing the acceptance criterion that states it.
-  - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", citing the acceptance criterion that states it.
+  - Unchanged: "WHEN <other condition> THE SYSTEM SHALL CONTINUE TO <behaviour that already works>", naming the existing test that shows it when there is one.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
 ## Steps
 
 Design the Steps during the interview, following the section "Designing Steps" of `${CLAUDE_PLUGIN_ROOT}/core/items.md`.
 
-- Put the full text of the draft test and the path where it belongs in the fix Step's `task` in the record.
-- Include that test path in the fix Step's `files`.
-- Record that file and test in the record as a test of criterion 5.1, with the fix Step as its `step`.
+- Record the draft test in the record as a row of criterion 5.1: the path where it belongs as its `file`, the fix Step as its `step` and the draft's full text as its `draft`. Add that path to the record's `locked` list, never to the fix Step's `files`.
 - List criterion 5.1 in the fix Step's `criteria` in the record.

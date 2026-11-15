@@ -5,7 +5,7 @@ interphase turns a request into an approved, testable spec and the Steps that bu
 ## Language
 
 **Run**:
-One pass of interphase over one spec, from its guard snapshot to its hand-off; an amendment of a handed-off spec is a run of its own.
+One pass of interphase over one spec, from its guard snapshot to its hand-off; an amendment of a spec is a run of its own.
 _Avoid_: session, job
 
 **Round**:

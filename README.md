@@ -61,9 +61,9 @@ Each command takes the request as its argument. For example: `/interphase:bug Th
 
 interphase asks in numbered plain-text rounds: the intent round first, then every question whose earlier answers are settled. Each question carries a recommended answer, worded so that "yes" accepts it. Answer "yes" to a whole round, or answer by number. There is no cap on the number of questions. The only multiple-choice prompt is the last one: approve the read-back or change something.
 
-If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and each pathway tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress.
+If the conversation is compacted or cleared during a run, a hook puts the run's decisions and a summary of its record back into the conversation, and tells Claude to re-read the record, the decisions and the phases before going on. The hook says nothing when no run is in progress; to abandon a run, delete its files from `docs/specs/`.
 
-When you tell interphase to work autonomously, it holds no interview. It infers the intent from your request and your project's context, marks it as inferred, and resolves each ambiguity from that intent and the usual practice for that context. It records every choice as an assumption that names the intent line it relied on. It never trims what the context calls for: whatever your project lacks today, such as a library, a stored field or a deployment setting, becomes part of the spec instead of a reason to leave the requirement out. At hand-off it lists its own decisions as top risks, first any that override an earlier decision, a decision record or one of your project's written rules or conventions, then the rest.
+When you tell interphase to work autonomously, or `HARNESS_UNATTENDED` is `1` in its environment, it holds no interview. It infers the intent from your request and your project's context, marks it as inferred, and resolves each ambiguity from that intent and the usual practice for that context. It records every choice as an assumption that names the intent line it relied on. It never trims what the context calls for: whatever your project lacks today, such as a library, a stored field or a deployment setting, becomes part of the spec instead of a reason to leave the requirement out. At hand-off it lists its own decisions as top risks, first any that override an earlier decision, a decision record or one of your project's written rules or conventions, then the rest.
 
 ## What it never does
 
@@ -74,7 +74,7 @@ When you tell interphase to work autonomously, it holds no interview. It infers 
 - It never plans a copy of logic that already exists, and never bends existing code to fit a new use.
 - It tests bug causes only in throwaway git worktrees. Each worktree is deleted afterwards. The spec keeps the evidence, never the change.
 
-A guard records the state of your repository at the start of a run. At the end it checks that nothing changed, and it tells you exactly what did if something has. It ignores interphase's own output files, the glossary and the decision records, whether you track them in git or not. Before it checks, it removes the caches that running your code created during the run. If the directory is not a git repository, interphase skips the guard and tells you so.
+A guard records your working tree at the start of a run. At the end it checks that the run changed no file outside its own output files, the glossary and the decision records, whether you track them in git or not, and left no probe worktree behind, and it tells you exactly what differs. A commit, a branch change, a stash or another worktree made meanwhile is not a difference. Before it checks, it removes the caches that running your code created during the run. In an unattended run a difference is written to the record as a stop with its reason, and a later clean check clears it. If the directory is not a git repository, interphase skips the guard and tells you so; a spec with an acceptance test needs `git init` run first.
 
 ## What it produces
 
@@ -106,7 +106,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `complexity` | no | `simple` or `complex`. |
 | `file_notes` | no | An object mapping a path from `files` to what changes there. |
 | `msp` | no | A label that makes Steps ship together as one change. |
-| `spec_ref` | no, but interphase always sets it | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
+| `spec_ref` | yes | A list of the numbers of the acceptance criteria the Step's tests prove, such as `"5.3"`. It traces each criterion to a Step. |
 | `assumptions` | no | Readings chosen without your answer, each naming the intent line it relies on, such as `(relies on I1)`. Each shows in the pull request that builds the Step. |
 | `role` | no | Only the value `check-author`. When the record has a `locked` list of test files, the render script writes one such Step per msp, named `check-author-<msp>`, or one named `check-author` for the owners of locked rows that carry no msp. Each writes its msp's locked tests from the acceptance lines and test rows before anything in that msp is built. Every other Step of its msp names it in `after`, and no other Step lists one of its files. The one named `check-author` is unlabelled whatever its `msp` says: it has the `msp` `check-author` when only Steps that own no locked row carry an msp, and then every Step names it in `after`. A file it writes may be named by acceptance entries of one msp only. |
 
@@ -160,7 +160,7 @@ Check that every locked test can pass inside the Steps' files:
 python3 /path/to/interphase/scripts/lock_feasibility.py --record docs/specs/<slug>.record.json --repo .
 ```
 
-It checks against the committed HEAD that every file a locked test loads exists at HEAD, is locked or is written by its Step or a Step it comes after, that every file it needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record. When an amendment adds a Step, a row an earlier Step already built, whose test is in its locked file at HEAD, passes its absent check without being run again.
+It checks against the committed HEAD that every file a locked test loads exists at HEAD, is locked or is written by its Step or a Step it comes after, that every file it needs is written by its Step or a Step it comes after, that each behaviour is absent today, and that every existing test that refers to a changed file is owned by a Step or listed as unaffected, and stores the results in the record. When an amendment adds a Step, a row an earlier Step already built, whose test is in its locked file at HEAD, passes its absent check without being run again. An absent command runs with no time limit, so one that hangs is ended by whoever runs the script.
 
 Render the spec's Test seams section and the items file from a record:
 
@@ -170,9 +170,9 @@ python3 /path/to/interphase/scripts/render_record.py --record docs/specs/<slug>.
 
 It refuses a record that the checker rejects with `--complete`, and a Step assumption that cites no intent line of the spec, and then writes nothing.
 
-To amend a handed-off spec, ask interphase to add the missed case to it by name. It adds rows and a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.
+To amend a spec, ask interphase by name to add the missed case to it or to correct a row. It adds, changes or withdraws rows, gives the work to a new Step with `amendment` set, and renders that Step alone with `--amendment <n> --items docs/specs/<slug>.amend-<n>.items.json`. Check that file with `check_items.py --amendment`.
 
-Run every command in this section from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in; a marketplace install puts it under `~/.claude/plugins/cache/interphase/interphase/<version>/`. Each checker prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
+Run every command in this section from the root of the repository that holds `docs/specs/`. Replace `/path/to/interphase` with the folder the plugin is installed in. Each checker prints one `error:` or `warning:` line per finding. The exit code is `0` when there are no errors, `1` when there are errors, and `2` for a usage error or a file it cannot read.
 
 ## Requirements
 

@@ -82,7 +82,7 @@ A seam is the public interface a test observes behaviour at, without reaching in
 - The seams the project's tests already sit at show its habits and never choose the seam. A written rule of the project on where its tests go that disagrees with this section is not followed: say so when you propose the seams, and record it in the spec as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` records an overridden project rule. In a repository the request says belongs to someone else, its written rule governs, and without one the placement its existing tests use does.
 - Use as few seams as this allows: one for each part the request changes and one for each meeting point it crosses.
 - Propose each seam with one line on what it catches and one on what it misses, and whether the builder can run tests there.
-- Put the seams to the user as a frontier question. Write no acceptance test at a seam the user has not agreed.
+- Put the seams to the user as a frontier question, and write no acceptance test at a seam the user has not agreed. An unattended run agrees each seam from the intent and records it as an assumption.
 
 The same rule in the common shapes of product:
 
@@ -122,7 +122,7 @@ Once the user approves the read-back, ask nothing more and never stop for an ans
 
 ## Unattended runs
 
-When the user's instructions, in the conversation or in the project's written instructions, say to work autonomously, hold no interview: ask no question and seek no approval.
+A run that rule 14 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` makes unattended holds no interview: ask no question and seek no approval.
 
 - Write the `## Intent` section from the request and the project's context, ending each line `(inferred)`.
 - Settle every decision the way the section After the interview fills a gap, from the intent and the project's context.
@@ -132,8 +132,6 @@ When the user's instructions, in the conversation or in the project's written in
 - Treat what the project depends on, the data it holds and where it runs as the starting point, not a limit. When the context calls for something the project cannot do yet, require what it takes, such as a new dependency, a new stored field, an added service or a change to how it is deployed.
 - When only something outside the code can meet a requirement, such as the server in front of the app, still write its acceptance criterion, marked unproven with the reason when the builder cannot check it, and keep in the code every part the code can enforce and test.
 - When a written rule or a convention of the project forbids what the context calls for, meet the requirement within the rule only when that meets it as fully as the established practice at those stakes does. Otherwise keep the requirement at full strength and record the override as `${CLAUDE_PLUGIN_ROOT}/core/practices.md` says.
-
-When a surface probe of Phase 6 fails for a line at a seam the builder runs, the run cannot prove that criterion here, so it stops instead of guessing: write `Assumption: <surface> cannot be driven here because <detail>; the run stops (relies on I<n>)` to the decisions file, verify the guard as Phase 10 of `${CLAUDE_PLUGIN_ROOT}/core/phases.md` says, report the stop and the record's stop reason, and stop.
 
 Example: `Add file uploads` for a hobby photo blog calls for a size limit and a file-type check; for a hospital's imaging records it calls for virus scanning, encryption at rest, an access audit log and a retention rule. If the hospital project cannot encrypt files yet, the spec requires what lets it.
 
