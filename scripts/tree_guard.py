@@ -18,6 +18,7 @@ STASHES = "stashes"
 DIRTY_WORKTREES = "dirty_worktrees"
 UPSTREAM = "upstream"
 REMOTE_REFS = "refs/remotes/"
+UNHASHED = ""
 REFLOG_FORMAT = "--format=%H%x09%gd%x09%gs"
 STASH_FORMAT = "--format=%H%x09%gs"
 FAST_FORWARD_RE = re.compile(r"(merge [^:]+|pull( [^:]*)?): Fast-forward")
@@ -106,7 +107,11 @@ def repository_root(path):
 
 
 def read_head(repo):
-    result = run_git(repo, ["rev-parse", "--verify", "-q", "HEAD"])
+    return resolve(repo, "HEAD")
+
+
+def resolve(repo, name):
+    result = run_git(repo, ["rev-parse", "--verify", "-q", name])
     return decode(result.stdout).strip() if result.returncode == 0 else None
 
 
@@ -222,7 +227,36 @@ def read_dirty_worktrees(repo, worktrees):
         if PROBE_MARKER not in path and os.path.realpath(path) != own and os.path.isdir(path)
     )
     states = ((path, worktree_changes(path)) for path in others)
-    return [{"path": path, "head": read_head(path), "changes": changes} for path, changes in states if changes]
+    return [worktree_work(path, changes) for path, changes in states if changes]
+
+
+def worktree_work(path, changes):
+    return {
+        "path": path,
+        "head": read_head(path),
+        "branch": read_branch(path),
+        "changes": changes,
+        "blobs": {changed_file(change): content_hash(path, changed_file(change)) for change in changes},
+    }
+
+
+def read_branch(path):
+    result = run_git(path, ["symbolic-ref", "-q", "HEAD"])
+    return decode(result.stdout).strip() if result.returncode == 0 else None
+
+
+def changed_file(change):
+    return change.split("\0", 1)[0]
+
+
+def content_hash(path, name):
+    target = os.path.join(path, name)
+    if not os.path.lexists(target):
+        return None
+    if os.path.islink(target) or not os.path.isfile(target):
+        return UNHASHED
+    result = run_git(path, ["hash-object", "--", name])
+    return decode(result.stdout).strip() if result.returncode == 0 else UNHASHED
 
 
 def capture(repo, owned):
@@ -265,7 +299,10 @@ def is_dirty_worktree(value):
         isinstance(value, dict)
         and isinstance(value.get("path"), str)
         and (value.get("head") is None or isinstance(value.get("head"), str))
+        and (value.get("branch") is None or (isinstance(value.get("branch"), str) and value["branch"].startswith("refs/heads/")))
         and is_string_list(value.get("changes"))
+        and isinstance(value.get("blobs", {}), dict)
+        and all(isinstance(name, str) and (blob is None or isinstance(blob, str)) for name, blob in value.get("blobs", {}).items())
     )
 
 
@@ -372,23 +409,38 @@ def stash_findings(snapshot, current):
     ]
 
 
-def lost_work(entry, worktrees):
+def blob_at(repo, commit, name):
+    return resolve(repo, f"{commit}:{name}")
+
+
+def holds_change(repo, commit, entry, change):
+    name = changed_file(change)
+    return commit is not None and blob_at(repo, commit, name) == entry.get("blobs", {}).get(name, UNHASHED)
+
+
+def lost_work(repo, entry, worktrees):
     path = entry["path"]
     if path not in worktrees or not os.path.isdir(path):
+        tip = None if entry.get("branch") is None else resolve(repo, entry["branch"])
+        if all(holds_change(repo, tip, entry, change) for change in entry["changes"]):
+            return []
         return [f"worktree removed since the snapshot while it held uncommitted changes: {path}"]
-    if read_head(path) != entry["head"]:
-        return []
+    head = read_head(path)
     changes = worktree_changes(path)
-    if changes is None:
-        return [f"cannot read the status of a worktree that held uncommitted changes: {path}"]
-    gone = [" from ".join(change.split("\0")) for change in entry["changes"] if change not in changes]
+    if changes is None or (head is None and entry["head"] is not None):
+        return [f"cannot read the head or status of a worktree that held uncommitted changes: {path}"]
+    gone = [
+        " from ".join(change.split("\0"))
+        for change in entry["changes"]
+        if change not in changes and not holds_change(path, head, entry, change)
+    ]
     if not gone:
         return []
-    return [f"uncommitted changes gone since the snapshot from a worktree whose head did not move: {path}: {', '.join(gone)}"]
+    return [f"uncommitted changes gone since the snapshot from a worktree whose head does not hold them: {path}: {', '.join(gone)}"]
 
 
-def lost_work_findings(snapshot, worktrees):
-    return [finding for entry in snapshot.get(DIRTY_WORKTREES, []) for finding in lost_work(entry, worktrees)]
+def lost_work_findings(repo, snapshot, worktrees):
+    return [finding for entry in snapshot.get(DIRTY_WORKTREES, []) for finding in lost_work(repo, entry, worktrees)]
 
 
 def snapshot_position(lines, snapshot):
@@ -532,7 +584,7 @@ def command_verify(args):
         + head_findings(repo, snapshot, current["head"])
         + compare(snapshot, current)
         + stash_findings(snapshot, current)
-        + lost_work_findings(snapshot, current["worktrees"])
+        + lost_work_findings(repo, snapshot, current["worktrees"])
     )
     for finding in findings:
         print(f"error: {finding}")

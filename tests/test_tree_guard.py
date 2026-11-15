@@ -183,11 +183,17 @@ def head_errors(output):
     return [line for line in errors_of(output) if line.startswith("error: head") or "moved the head" in line]
 
 
-def dirty_worktree(repo, root, name):
+def dirty_worktree(repo, root, name, branch=None):
     path = pathlib.Path(root) / name
-    git(repo, "worktree", "add", "-q", "--detach", str(path), "HEAD")
+    placement = ("-b", branch) if branch else ("--detach",)
+    git(repo, "worktree", "add", "-q", *placement, str(path), "HEAD")
     write_file(path / "unsaved.txt", "work in progress\n")
+    write_file(path / "seed.txt", "seed\nedited in the lane\n")
     return path
+
+
+LOST = "error: uncommitted changes gone since the snapshot from a worktree whose head does not hold them: "
+LANE = "<lane>"
 
 
 UNREADABLE_LOG_GIT = (
@@ -770,7 +776,7 @@ class TreeGuardTest(unittest.TestCase):
             git(repo, "worktree", "add", "-q", "--detach", str(lane), "HEAD")
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: uncommitted changes gone since the snapshot from a worktree whose head did not move: ", output)
+        self.assertIn(LOST, output)
         self.assertIn("unsaved.txt", output)
 
     def test_tree_guard_reports_a_dirty_worktree_whose_changes_were_discarded(self):
@@ -782,21 +788,87 @@ class TreeGuardTest(unittest.TestCase):
             (lane / "unsaved.txt").unlink()
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: uncommitted changes gone since the snapshot from a worktree whose head did not move: ", output)
+        self.assertIn(LOST, output)
         self.assertIn("unsaved.txt", output)
+
+    def test_tree_guard_reports_a_dirty_worktree_whose_head_moved_without_its_work(self):
+        guard = load_script("tree_guard")
+        moves = {
+            "reset to an older commit": (("lane", "reset", "-q", "--hard", "HEAD~1"),),
+            "reset to a newer commit": (("lane", "reset", "-q", "--hard", "newer"),),
+            "added again at another commit": (
+                ("repo", "worktree", "remove", "--force", LANE),
+                ("repo", "worktree", "add", "-q", "--detach", LANE, "HEAD~1"),
+            ),
+        }
+        for move, steps in moves.items():
+            with self.subTest(move=move), tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+                repo = seed_repository(root)
+                committed(repo, "later.txt", "feat: later")
+                local_commit(repo, "newer", "feat: newer")
+                lane = dirty_worktree(repo, root, "lane-dirty")
+                snapshot = snapshotted(guard, root, repo)
+                for where, *arguments in steps:
+                    git(lane if where == "lane" else repo, *(str(lane) if part == LANE else part for part in arguments))
+                code, output = verified(guard, repo, snapshot)
+                self.assertEqual(code, 1, output)
+                self.assertIn(LOST, output)
+                self.assertIn("seed.txt", output)
+
+    def test_tree_guard_reports_a_dirty_worktree_folder_made_again_empty(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            lane = dirty_worktree(repo, root, "lane-dirty")
+            snapshot = snapshotted(guard, root, repo)
+            shutil.rmtree(lane)
+            lane.mkdir()
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: cannot read the head or status of a worktree that held uncommitted changes: ", output)
+
+    def test_tree_guard_reports_a_dirty_worktree_whose_head_cannot_be_read(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            lane = dirty_worktree(repo, root, "lane-dirty")
+            snapshot = snapshotted(guard, root, repo)
+            git(lane, "checkout", "-q", "--orphan", "fresh")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: cannot read the head or status of a worktree that held uncommitted changes: ", output)
+
+    def test_tree_guard_reports_one_of_two_files_deleted_from_an_untracked_folder(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            lane = dirty_worktree(repo, root, "lane-dirty")
+            write_file(lane / "notes" / "first.txt", "first\n")
+            write_file(lane / "notes" / "second.txt", "second\n")
+            snapshot = snapshotted(guard, root, repo)
+            (lane / "notes" / "second.txt").unlink()
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn(LOST, output)
+        self.assertIn("notes/second.txt", output)
 
     def test_tree_guard_passes_a_dirty_worktree_whose_work_was_committed_or_grew(self):
         guard = load_script("tree_guard")
-        for change in ("committed", "grew"):
+        for change in ("committed", "committed in part", "committed then removed", "grew", "left alone on an unborn branch"):
             with self.subTest(change=change), tempfile.TemporaryDirectory() as root, isolated_git_config(root):
                 repo = seed_repository(root)
-                lane = dirty_worktree(repo, root, "lane-dirty")
+                branch = "lane" if change == "committed then removed" else None
+                lane = dirty_worktree(repo, root, "lane-dirty", branch)
+                if change == "left alone on an unborn branch":
+                    git(lane, "checkout", "-q", "--orphan", "fresh")
                 snapshot = snapshotted(guard, root, repo)
-                if change == "committed":
-                    git(lane, "add", "unsaved.txt")
-                    commit(lane, "feat: the lane's work")
-                else:
+                if change == "grew":
                     write_file(lane / "more.txt", "more work\n")
+                if change.startswith("committed"):
+                    git(lane, "add", *(("unsaved.txt",) if change == "committed in part" else ("-A",)))
+                    commit(lane, "feat: the lane's work")
+                if change == "committed then removed":
+                    git(repo, "worktree", "remove", str(lane))
                 code, output = verified(guard, repo, snapshot)
                 self.assertEqual(code, 0, output)
                 self.assertNotIn("error:", output)
@@ -1088,12 +1160,16 @@ class TreeGuardTest(unittest.TestCase):
 
     def test_tree_guard_exits_2_on_a_local_upstream_or_a_malformed_worktree_in_the_snapshot(self):
         guard = load_script("tree_guard")
+        lane = {"path": "/a/lane", "head": None, "changes": ["unsaved.txt"], "blobs": {"unsaved.txt": None}}
         cases = {
-            "upstream": ("refs/heads/side", "upstream is not a ref under refs/remotes/"),
-            "dirty_worktrees": (["/a/lane"], "dirty_worktrees is not a list of worktrees"),
+            "a local upstream": ("upstream", "refs/heads/side", "upstream is not a ref under refs/remotes/"),
+            "a worktree path alone": ("dirty_worktrees", ["/a/lane"], "dirty_worktrees is not a list of worktrees"),
+            "a worktree branch outside refs/heads": (
+                "dirty_worktrees", [dict(lane, branch="--output=/tmp/x")], "dirty_worktrees is not a list of worktrees"
+            ),
         }
-        for key, (value, message) in cases.items():
-            with self.subTest(key=key), tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+        for case, (key, value, message) in cases.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as root, isolated_git_config(root):
                 repo = seed_repository(root)
                 snapshot = snapshotted(guard, root, repo)
                 snapshot.write_text(json.dumps(dict(read_json(snapshot), **{key: value})), encoding="utf-8")
