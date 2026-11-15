@@ -58,13 +58,24 @@ def configured_store(folder, config):
     return folder / choice
 
 
+def receipts_config(root):
+    folder = config_folder(root)
+    return folder, None if folder is None else read_config(folder)
+
+
 def find_store(root):
     chosen = os.environ.get(STORE_VARIABLE)
     if chosen:
         return pathlib.Path(chosen)
-    folder = config_folder(root)
-    config = None if folder is None else read_config(folder)
+    folder, config = receipts_config(root)
     return home_store() if config is None else configured_store(folder, config)
+
+
+def configured_name(root):
+    _, config = receipts_config(root)
+    agent = None if config is None else config.get("agent")
+    name = agent.get("repo_name") if isinstance(agent, dict) else None
+    return name if check_items.is_text(name) else None
 
 
 def remote_name(root):
@@ -88,7 +99,7 @@ def remote_name(root):
 
 
 def repository_names(root):
-    return frozenset(name.lower() for name in (remote_name(root), root.name) if name)
+    return frozenset(name.lower() for name in (remote_name(root), root.name, configured_name(root)) if name)
 
 
 def read_entries(store):
@@ -183,9 +194,8 @@ def main(argv):
     store = find_store(repository)
     stored = read_entries(store)
     if stored is None:
-        print("cannot read the trajectory store: " + os.path.abspath(str(store)), file=sys.stderr)
-        return 2
-    found = outcomes(repository, store, stored)
+        print("cannot read the trajectory store, so no history is used: " + os.path.abspath(str(store)), file=sys.stderr)
+    found = outcomes(repository, store, () if stored is None else stored)
     problems = surface_probe.write_record(record_path, {**record, "outcomes": found})
     if problems:
         print("\n".join(problems), file=sys.stderr)

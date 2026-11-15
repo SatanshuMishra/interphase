@@ -15,6 +15,7 @@ TIMEOUT = 60
 REPOSITORY = "demo-app"
 REMOTE = "https://github.com/example/demo-app.git"
 OTHER_REPOSITORY = "other-app"
+CONFIGURED_NAME = "receipts-name"
 TAGS = [
     "kind:gate",
     "run:hr-demo",
@@ -282,6 +283,47 @@ class OutcomeKindsTest(unittest.TestCase):
                 self.assertIn("outcomes", record, output)
                 self.assertTrue(same_file(record["outcomes"].get("store", ""), expected[0]), record["outcomes"])
                 self.assertEqual(record["outcomes"].get("repeated"), [{"kind": expected[1], "count": 2}])
+
+    def test_entries_tagged_with_the_configured_repo_name_count_as_this_repositorys(self):
+        entries = [
+            arguments_of(CONFIGURED_NAME, "unverified-reasoned", root_cause=REPEATED_KIND),
+            arguments_of(CONFIGURED_NAME, "reverted", root_cause=REPEATED_KIND),
+            arguments_of(OTHER_REPOSITORY, "reverted", root_cause="the other app crashes"),
+            arguments_of(OTHER_REPOSITORY, "speculative", root_cause="the other app crashes"),
+        ]
+        self.assert_entries_are_k6(entries)
+        with tempfile.TemporaryDirectory() as base:
+            home = make_home(base)
+            repository = make_repository(base, home)
+            (repository / "receipts.config.json").write_text(
+                json.dumps({"agent": {"repo_name": CONFIGURED_NAME}}), encoding="utf-8"
+            )
+            store = write_store(pathlib.Path(base) / "store" / "trajectories.jsonl", entries)
+            record_path = write_record(base, complete_record(None))
+            code, output = outcomes_run(repository, record_path, home, store)
+            record = read_record(record_path)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(record["outcomes"].get("repeated"), [{"kind": REPEATED_KIND, "count": 2}])
+        self.assertEqual(record["outcomes"].get("entries"), 2)
+
+    def test_an_unreadable_store_leaves_a_record_the_complete_check_accepts(self):
+        with tempfile.TemporaryDirectory() as base:
+            home = make_home(base)
+            repository = make_repository(base, home)
+            store = pathlib.Path(base) / "store-folder"
+            store.mkdir()
+            record_path = write_record(base, complete_record(None))
+            code, output = outcomes_run(repository, record_path, home, store)
+            record = read_record(record_path)
+            checked, checked_output = run(
+                [sys.executable, script_path("check_record.py"), "--complete", record_path], base, environment(home)
+            )
+        self.assertEqual(code, 0, output)
+        lines = output.splitlines()
+        self.assertEqual(len(lines), 1, output)
+        self.assertIn(os.path.abspath(str(store)), lines[0])
+        self.assertEqual(record.get("outcomes"), {"store": os.path.abspath(str(store)), "entries": 0, "repeated": []})
+        self.assertEqual(checked, 0, checked_output)
 
     def test_render_refuses_a_spec_that_leaves_a_repeated_kind_out_of_risks(self):
         outcomes = {"store": "/var/empty/trajectories.jsonl", "entries": 2, "repeated": [{"kind": REPEATED_KIND, "count": 2}]}

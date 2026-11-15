@@ -13,6 +13,8 @@
 - The check-author's task says a test the file already holds under a listed name is replaced, and that no builder Step may change a locked file.
 - Text follows the code: spec_ref is a required items field, the items check warns about an empty acceptance list, the feasibility digest covers each Step's amendment, lock_feasibility.py is run again when the complete check says the record changed, the guard removes the caches created since its snapshot, and an absent command has no time limit. The K2 description says which half of the locked rule the spec keeps and which the builder keeps.
 - Removed text that stated a rule twice or described nothing the code does: the re-read step of each pathway skill, the second statement of the probe stop, the builder instruction to write test rows, the held-out cases carried in a task, the fault for a write outside a Step's files, the scout's unverified mark, and the version folder in the README.
+- outcomes.py reads a trajectory store it cannot read as no history, as it already read a missing one: it names the store in one line, writes outcomes with no entries and exits 0, so the complete check accepts the record. It exited 2 and the run could not go on.
+- outcomes.py also counts the entries tagged with the agent.repo_name of receipts.config.json, the name receipts writes them under. interphase's own config names interphase, not the pipeline's temporary worktree.
 - The record format gains the optional row field draft. The guard snapshot of an earlier release is still read.
 
 ## 0.17.0
