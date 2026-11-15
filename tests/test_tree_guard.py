@@ -4,6 +4,7 @@ import io
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,10 +28,10 @@ def git(repo, *args):
     ).stdout.decode()
 
 
-def seed_repository(root):
+def seed_repository(root, *init_options):
     repo = pathlib.Path(root) / "repo"
     repo.mkdir()
-    git(repo, "init", "-q")
+    git(repo, "init", "-q", *init_options)
     (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
     git(repo, "add", "seed.txt")
     git(
@@ -132,12 +133,12 @@ def verified(guard, repo, snapshot):
     return run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
 
 
-def with_remote(root):
-    repo = seed_repository(root)
+def with_remote(root, *init_options):
+    repo = seed_repository(root, *init_options)
     remote = pathlib.Path(root) / "remote.git"
     git(root, "init", "-q", "--bare", str(remote))
     git(repo, "remote", "add", "origin", str(remote))
-    git_as(repo, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/trunk")
+    git_as(repo, "push", "-q", "-u", "--no-verify", "origin", "HEAD:refs/heads/trunk")
     return repo, remote
 
 
@@ -156,6 +157,17 @@ def fast_forwarded_from(root, repo, remote, name):
 
 def errors_of(output):
     return [line for line in output.splitlines() if line.startswith("error: ")]
+
+
+def head_errors(output):
+    return [line for line in errors_of(output) if line.startswith("error: head") or "moved the head" in line]
+
+
+def dirty_worktree(repo, root, name):
+    path = pathlib.Path(root) / name
+    git(repo, "worktree", "add", "-q", "--detach", str(path), "HEAD")
+    write_file(path / "unsaved.txt", "work in progress\n")
+    return path
 
 
 IN_PROGRESS = {"seams": [], "criteria": [], "steps": [], "status": "in-progress"}
@@ -202,10 +214,23 @@ class TreeGuardTest(unittest.TestCase):
             data = json.loads(snapshot.read_text(encoding="utf-8"))
             head = head_of(repo)
             self.assertEqual(
-                set(data), {"head", "reflog_top", "status", "diff_sha256", "worktrees", "owned", "caches"}
+                set(data),
+                {
+                    "head",
+                    "reflog_top",
+                    "status",
+                    "diff_sha256",
+                    "worktrees",
+                    "stashes",
+                    "dirty_worktrees",
+                    "owned",
+                    "caches",
+                },
             )
             self.assertEqual(data["head"], head)
             self.assertTrue(data["reflog_top"].startswith(head + "\t"), data["reflog_top"])
+            self.assertEqual(data["stashes"], [])
+            self.assertEqual(data["dirty_worktrees"], [])
             self.assertEqual(data["status"], [])
             self.assertEqual(len(data["diff_sha256"]), 64)
             self.assertEqual(data["owned"], [])
@@ -351,7 +376,7 @@ class TreeGuardTest(unittest.TestCase):
             made = committed(repo, "other.txt", "feat: another session's work")
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by commit to %s: feat: another session's work" % made, output)
+        self.assertIn("error: commit moved the head to %s, a commit by t: feat: another session's work" % made, output)
 
     def test_tree_guard_reports_a_commit_pushed_meanwhile(self):
         guard = load_script("tree_guard")
@@ -362,7 +387,7 @@ class TreeGuardTest(unittest.TestCase):
             git_as(repo, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/trunk")
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by commit to %s" % made, output)
+        self.assertIn("error: commit moved the head to %s, a commit by t: feat: pushed work" % made, output)
 
     def test_tree_guard_passes_a_fast_forward_merge_or_pull_from_a_remote(self):
         guard = load_script("tree_guard")
@@ -387,7 +412,44 @@ class TreeGuardTest(unittest.TestCase):
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
         self.assertIn("merged.txt", output)
-        self.assertEqual([line for line in errors_of(output) if line.startswith("error: head")], [], output)
+        self.assertEqual(head_errors(output), [], output)
+
+    def test_tree_guard_reports_a_fast_forward_to_a_local_commit_the_upstream_lacks(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo, _ = with_remote(root)
+            snapshot = snapshotted(guard, root, repo)
+            tree = git(repo, "write-tree").strip()
+            local = git_as(repo, "commit-tree", "-p", "HEAD", "-m", "feat: local only", tree).strip()
+            git(repo, "update-ref", "refs/heads/side", local)
+            git_as(repo, "merge", "-q", "--ff-only", "side")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: merge side moved the head to %s, a commit by t: feat: local only" % local, output)
+
+    def test_tree_guard_passes_a_sync_in_a_reftable_repository(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo, remote = with_remote(root, "--ref-format=reftable")
+            snapshot = snapshotted(guard, root, repo)
+            fast_forwarded_from(root, repo, remote, "merged")
+            code, output = verified(guard, repo, snapshot)
+            self.assertFalse((repo / ".git" / "logs" / "HEAD").exists())
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("error:", output)
+
+    def test_tree_guard_passes_a_reset_that_leaves_the_head_in_place(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            snapshot = snapshotted(guard, root, repo)
+            (repo / "seed.txt").write_text("staged then dropped\n", encoding="utf-8")
+            git(repo, "add", "seed.txt")
+            git(repo, "reset", "-q")
+            git(repo, "checkout", "-q", "--", "seed.txt")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("error:", output)
 
     def test_tree_guard_reports_a_reset_made_meanwhile(self):
         guard = load_script("tree_guard")
@@ -399,7 +461,7 @@ class TreeGuardTest(unittest.TestCase):
             code, output = verified(guard, repo, snapshot)
             now = head_of(repo)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by reset to %s: moving to HEAD~1" % now, output)
+        self.assertIn("error: reset moved the head to %s, a commit by t: chore: seed" % now, output)
 
     def test_tree_guard_reports_an_amend_made_meanwhile(self):
         guard = load_script("tree_guard")
@@ -410,7 +472,7 @@ class TreeGuardTest(unittest.TestCase):
             code, output = verified(guard, repo, snapshot)
             now = head_of(repo)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by commit (amend) to %s: chore: reworded seed" % now, output)
+        self.assertIn("error: commit (amend) moved the head to %s, a commit by t: chore: reworded seed" % now, output)
 
     def test_tree_guard_reports_a_commit_undone_before_the_verify(self):
         guard = load_script("tree_guard")
@@ -421,8 +483,8 @@ class TreeGuardTest(unittest.TestCase):
             git_as(repo, "reset", "-q", "--hard", "HEAD~1")
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by commit to %s" % made, output)
-        self.assertIn("error: head moved by reset to", output)
+        self.assertIn("error: commit moved the head to %s" % made, output)
+        self.assertIn("error: reset moved the head to", output)
 
     def test_tree_guard_reports_a_head_moved_with_no_reflog_entry(self):
         guard = load_script("tree_guard")
@@ -436,32 +498,47 @@ class TreeGuardTest(unittest.TestCase):
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(code, 1, output)
         self.assertIn(
-            "error: head moved from %s to %s with no reflog entry to explain it" % (later, first), output
+            "error: head moved from %s to %s with no HEAD log entry to explain it" % (later, first), output
         )
 
-    def test_tree_guard_reports_a_reflog_that_no_longer_reaches_the_snapshot(self):
+    def test_tree_guard_passes_an_emptied_log_while_the_head_stays(self):
         guard = load_script("tree_guard")
         with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
             repo = seed_repository(root)
             snapshot = snapshotted(guard, root, repo)
             git(repo, "reflog", "expire", "--expire=now", "--expire-unreachable=now", "--all")
             code, output = verified(guard, repo, snapshot)
-        self.assertEqual(code, 1, output)
-        self.assertIn("error: the HEAD reflog cannot be read back to the snapshot", output)
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("error:", output)
 
-    def test_a_snapshot_of_the_released_guard_is_still_read(self):
+    def test_tree_guard_names_the_log_setting_when_no_log_explains_a_move(self):
         guard = load_script("tree_guard")
         with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
             repo = seed_repository(root)
+            git(repo, "config", "core.logAllRefUpdates", "false")
+            shutil.rmtree(repo / ".git" / "logs")
+            first = head_of(repo)
             snapshot = snapshotted(guard, root, repo)
-            current = {key: value for key, value in read_json(snapshot).items() if key != "reflog_top"}
+            later = committed(repo, "other.txt", "feat: unlogged")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: head moved from %s to %s and this checkout keeps no HEAD log" % (first, later), output)
+        self.assertIn("core.logAllRefUpdates", output)
+
+    def test_a_snapshot_of_the_released_guard_is_still_read(self):
+        guard = load_script("tree_guard")
+        later_keys = ("reflog_top", "stashes", "dirty_worktrees")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            snapshot = snapshotted(guard, root, repo)
+            current = {key: value for key, value in read_json(snapshot).items() if key not in later_keys}
             snapshot.write_text(json.dumps({**current, "branch": "refs/heads/master", "stash": ""}), encoding="utf-8")
             clean_code, clean_output = verified(guard, repo, snapshot)
             made = committed(repo, "other.txt", "feat: another session's work")
             code, output = verified(guard, repo, snapshot)
         self.assertEqual(clean_code, 0, clean_output)
         self.assertEqual(code, 1, output)
-        self.assertIn("error: head moved by commit to %s" % made, output)
+        self.assertIn("error: commit moved the head to %s" % made, output)
 
     def test_tree_guard_ignores_a_branch_change_made_meanwhile(self):
         guard = load_script("tree_guard")
@@ -473,17 +550,44 @@ class TreeGuardTest(unittest.TestCase):
             code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
             self.assertEqual(code, 0, output)
 
-    def test_tree_guard_ignores_a_stash_dropped_meanwhile(self):
+    def test_tree_guard_reports_a_stash_dropped_meanwhile(self):
         guard = load_script("tree_guard")
         with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
             repo = seed_repository(root)
             (repo / "seed.txt").write_text("stashed\n", encoding="utf-8")
-            git(repo, "-c", "user.name=t", "-c", "user.email=t@example.com", "stash")
-            snapshot = pathlib.Path(root) / "guard.json"
-            run_main(guard, ["snapshot", "--repo", str(repo), "--out", str(snapshot)])
-            git(repo, "stash", "drop")
-            code, output = run_main(guard, ["verify", "--repo", str(repo), "--snapshot", str(snapshot)])
-            self.assertEqual(code, 0, output)
+            git_as(repo, "stash", "-q")
+            snapshot = snapshotted(guard, root, repo)
+            git(repo, "stash", "drop", "-q")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: stash entry dropped since the snapshot: ", output)
+
+    def test_tree_guard_reports_an_outside_edit_stashed_meanwhile(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            snapshot = snapshotted(guard, root, repo)
+            (repo / "seed.txt").write_text("edited outside\n", encoding="utf-8")
+            git_as(repo, "stash", "-q")
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(code, 1, output)
+        self.assertIn("error: stash entry added since the snapshot: ", output)
+        self.assertEqual(head_errors(output), [], output)
+
+    def test_tree_guard_reports_a_removed_worktree_that_held_uncommitted_work(self):
+        guard = load_script("tree_guard")
+        with tempfile.TemporaryDirectory() as root, isolated_git_config(root):
+            repo = seed_repository(root)
+            lane = dirty_worktree(repo, root, "lane-dirty")
+            snapshot = snapshotted(guard, root, repo)
+            listed = read_json(snapshot)["dirty_worktrees"]
+            git(repo, "worktree", "remove", "--force", str(lane))
+            code, output = verified(guard, repo, snapshot)
+        self.assertEqual(len(listed), 1, listed)
+        self.assertEqual(code, 1, output)
+        self.assertIn(
+            "error: worktree removed since the snapshot while it held uncommitted changes: %s" % listed[0], output
+        )
 
     def test_tree_guard_ignores_worktrees_that_are_not_probes(self):
         guard = load_script("tree_guard")
@@ -533,7 +637,7 @@ class TreeGuardTest(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertEqual(record, IN_PROGRESS)
 
-    def test_the_guard_leaves_a_stop_of_another_phase(self):
+    def test_the_guard_keeps_a_stop_of_another_phase_and_adds_its_difference(self):
         guard = load_script("tree_guard")
         stopped = {**IN_PROGRESS, "status": "stopped", "stop": PROBE_STOP}
         with tempfile.TemporaryDirectory() as root:
@@ -543,10 +647,17 @@ class TreeGuardTest(unittest.TestCase):
             write_file(repo / "notes.txt", "stray\n")
             code, output = verify_with_record(guard, repo, snapshot, record_path, "--unattended")
             after_difference = read_json(record_path)
+            verify_with_record(guard, repo, snapshot, record_path, "--unattended")
+            after_repeat = read_json(record_path)
         self.assertEqual(clean_code, 0, clean_output)
         self.assertEqual(after_clean, stopped)
         self.assertEqual(code, 1, output)
-        self.assertEqual(after_difference, stopped)
+        self.assertEqual(after_difference["status"], "stopped")
+        self.assertEqual(after_difference["stop"]["phase"], "probe")
+        reason = after_difference["stop"]["reason"]
+        self.assertTrue(reason.startswith(PROBE_STOP["reason"] + "; the checkout differs"), reason)
+        self.assertIn("notes.txt", reason)
+        self.assertEqual(after_repeat, after_difference)
 
     def test_a_record_the_gate_refuses_is_left_as_it_was(self):
         guard = load_script("tree_guard")

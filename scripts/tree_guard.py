@@ -14,9 +14,13 @@ PROBE_MARKER = "interphase-probe-"
 COMPARED = ("status", "diff_sha256", "worktrees")
 SNAPSHOT_FIELDS = ("head",) + COMPARED
 REFLOG_TOP = "reflog_top"
+STASHES = "stashes"
+DIRTY_WORKTREES = "dirty_worktrees"
 REFLOG_FORMAT = "--format=%H%x09%gd%x09%gs"
-FAST_FORWARD_RE = re.compile(r"(?:merge|pull)(?: .*)?: Fast-forward")
-UNREACHABLE_REFLOG = "the HEAD reflog cannot be read back to the snapshot"
+STASH_FORMAT = "--format=%H%x09%gs"
+FAST_FORWARD_RE = re.compile(r"(merge [^:]+|pull( [^:]*)?): Fast-forward")
+UNREADABLE_LOG = "cannot read the HEAD log"
+NO_LOG = "and this checkout keeps no HEAD log to explain it: core.logAllRefUpdates is off or the log was removed"
 STOPPED = "stopped"
 IN_PROGRESS = "in-progress"
 STOP_PHASE = "hand-off"
@@ -196,6 +200,30 @@ def read_reflog(repo, head):
     return lines if result.returncode == 0 and all(line.count("\t") >= 2 for line in lines) else None
 
 
+def read_stashes(repo):
+    result = run_git(repo, ["stash", "list", "--no-show-signature", STASH_FORMAT])
+    if result.returncode != 0:
+        raise UsageError(f"git stash list failed: {decode(result.stderr).strip()}")
+    return [line for line in decode(result.stdout).split("\n") if line]
+
+
+def holds_changes(path):
+    result = run_git(path, ["status", "--porcelain=v1", "-z", "--untracked-files=normal"])
+    return result.returncode == 0 and bool(result.stdout)
+
+
+def read_dirty_worktrees(repo, worktrees):
+    own = os.path.realpath(repo)
+    return sorted(
+        path
+        for path in worktrees
+        if PROBE_MARKER not in path
+        and os.path.realpath(path) != own
+        and os.path.isdir(path)
+        and holds_changes(path)
+    )
+
+
 def capture(repo, owned):
     head = read_head(repo)
     return {
@@ -203,6 +231,7 @@ def capture(repo, owned):
         "status": read_status(repo, owned),
         "diff_sha256": read_diff_digest(repo, head, owned),
         "worktrees": read_worktrees(repo),
+        STASHES: read_stashes(repo),
     }
 
 
@@ -214,10 +243,9 @@ def load_snapshot(path):
         raise UsageError(f"unreadable snapshot: {path}: {error}")
     if not isinstance(data, dict) or any(field not in data for field in SNAPSHOT_FIELDS):
         raise UsageError(f"unreadable snapshot: {path}: missing fields")
-    if not is_string_list(data.get("owned", [])):
-        raise UsageError(f"unreadable snapshot: {path}: owned is not a list of strings")
-    if not is_string_list(data.get("caches", [])):
-        raise UsageError(f"unreadable snapshot: {path}: caches is not a list of strings")
+    malformed = [key for key in ("owned", "caches", STASHES, DIRTY_WORKTREES) if not is_string_list(data.get(key, []))]
+    if malformed:
+        raise UsageError(f"unreadable snapshot: {path}: {malformed[0]} is not a list of strings")
     return data
 
 
@@ -315,15 +343,35 @@ def compare(snapshot, current):
     return [line for field in COMPARED for line in field_findings(field, snapshot[field], current[field])]
 
 
+def stash_text(line):
+    return " ".join(line.split("\t", 1))
+
+
+def stash_findings(snapshot, current):
+    if STASHES not in snapshot:
+        return []
+    before, after = snapshot[STASHES], current[STASHES]
+    return [f"stash entry dropped since the snapshot: {stash_text(line)}" for line in before if line not in after] + [
+        f"stash entry added since the snapshot: {stash_text(line)}" for line in after if line not in before
+    ]
+
+
+def removed_worktree_findings(snapshot, worktrees):
+    return [
+        f"worktree removed since the snapshot while it held uncommitted changes: {path}"
+        for path in snapshot.get(DIRTY_WORKTREES, [])
+        if path not in worktrees or not os.path.isdir(path)
+    ]
+
+
 def snapshot_position(lines, snapshot):
-    if lines is None:
-        return None
-    released = REFLOG_TOP not in snapshot
-    mark = snapshot["head"] if released else snapshot[REFLOG_TOP]
-    keys = tuple(line.split("\t", 1)[0] for line in lines) if released else lines
-    if mark is None:
+    top = snapshot.get(REFLOG_TOP)
+    if top is not None and top in lines:
+        return lines.index(top)
+    if snapshot["head"] is None or (REFLOG_TOP in snapshot and top is None):
         return len(lines)
-    return keys.index(mark) if mark in keys else None
+    shas = tuple(line.split("\t", 1)[0] for line in lines)
+    return shas.index(snapshot["head"]) if snapshot["head"] in shas else 0
 
 
 def entry_parts(line):
@@ -336,26 +384,48 @@ def head_moves(entries, start):
     return tuple((sha, subject) for before, (sha, subject) in zip(befores, entries) if sha != before)
 
 
-def move_finding(sha, subject):
-    operation, _, detail = subject.partition(": ")
-    return f"head moved by {operation} to {sha}" + (f": {detail}" if detail else "")
+def read_upstream(repo):
+    result = run_git(repo, ["rev-parse", "--verify", "-q", "@{upstream}"])
+    return decode(result.stdout).strip() if result.returncode == 0 else None
+
+
+def is_sync(repo, sha, subject, upstream):
+    return (
+        FAST_FORWARD_RE.fullmatch(subject) is not None
+        and upstream is not None
+        and run_git(repo, ["merge-base", "--is-ancestor", sha, upstream]).returncode == 0
+    )
+
+
+def commit_of(repo, sha):
+    result = run_git(repo, ["log", "-1", "--no-show-signature", "--format=%an%x09%s", sha, "--"])
+    author, _, title = decode(result.stdout).strip().partition("\t")
+    return (author, title) if result.returncode == 0 and author else ("an unknown author", "an unreadable commit")
+
+
+def move_finding(repo, sha, subject):
+    author, title = commit_of(repo, sha)
+    return f"{subject.partition(': ')[0]} moved the head to {sha}, a commit by {author}: {title}"
 
 
 def head_findings(repo, snapshot, head):
+    start = snapshot["head"]
     lines = read_reflog(repo, head)
-    position = snapshot_position(lines, snapshot)
-    if position is None:
-        return [UNREACHABLE_REFLOG]
-    entries = tuple(entry_parts(line) for line in reversed(lines[:position]))
-    reached = entries[-1][0] if entries else snapshot["head"]
+    if lines is None:
+        return [UNREADABLE_LOG]
+    if not lines:
+        return [] if head == start else [f"head moved from {start} to {head} {NO_LOG}"]
+    entries = tuple(entry_parts(line) for line in reversed(lines[: snapshot_position(lines, snapshot)]))
+    upstream = read_upstream(repo)
     moves = [
-        move_finding(sha, subject)
-        for sha, subject in head_moves(entries, snapshot["head"])
-        if not FAST_FORWARD_RE.fullmatch(subject)
+        move_finding(repo, sha, subject)
+        for sha, subject in head_moves(entries, start)
+        if not is_sync(repo, sha, subject, upstream)
     ]
+    reached = entries[-1][0] if entries else start
     if reached == head:
         return moves
-    return moves + [f"head moved from {snapshot['head']} to {head} with no reflog entry to explain it"]
+    return moves + [f"head moved from {start} to {head} with no HEAD log entry to explain it"]
 
 
 def command_snapshot(args):
@@ -363,7 +433,8 @@ def command_snapshot(args):
     owned = tuple(args.owned)
     current = capture(repo, owned)
     lines = read_reflog(repo, current["head"]) or ()
-    state = dict(current, owned=list(owned), caches=read_caches(repo), **{REFLOG_TOP: lines[0] if lines else None})
+    marks = {REFLOG_TOP: lines[0] if lines else None, DIRTY_WORKTREES: read_dirty_worktrees(repo, current["worktrees"])}
+    state = dict(current, owned=list(owned), caches=read_caches(repo), **marks)
     try:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         atomic_file.replace(args.out, (json.dumps(state, indent=2, sort_keys=True) + "\n").encode("utf-8"))
@@ -387,14 +458,24 @@ def stopped_here(record):
     return record.get("status") == STOPPED and isinstance(stop, dict) and stop.get("phase") == STOP_PHASE
 
 
+def with_difference(record, difference):
+    stop = record.get("stop")
+    if not isinstance(stop, dict) or difference in str(stop.get("reason", "")):
+        return record
+    return {**record, "stop": {**stop, "reason": f"{stop.get('reason')}; {difference}"}}
+
+
 def judged(record, findings, unattended):
     if not findings:
         if not stopped_here(record):
             return record
         return {**{key: value for key, value in record.items() if key != "stop"}, "status": IN_PROGRESS}
-    if not unattended or (record.get("status") == STOPPED and not stopped_here(record)):
+    if not unattended:
         return record
-    return {**record, "status": STOPPED, "stop": {"phase": STOP_PHASE, "reason": DIFFERENCE + "; ".join(findings)}}
+    difference = DIFFERENCE + "; ".join(findings)
+    if record.get("status") == STOPPED and not stopped_here(record):
+        return with_difference(record, difference)
+    return {**record, "status": STOPPED, "stop": {"phase": STOP_PHASE, "reason": difference}}
 
 
 def store_record(path, before, after):
@@ -414,7 +495,13 @@ def command_verify(args):
     for path in removed:
         print(f"removed cache: {path}")
     current = capture(repo, tuple(snapshot.get("owned", [])))
-    findings = list(failures) + head_findings(repo, snapshot, current["head"]) + compare(snapshot, current)
+    findings = (
+        list(failures)
+        + head_findings(repo, snapshot, current["head"])
+        + compare(snapshot, current)
+        + stash_findings(snapshot, current)
+        + removed_worktree_findings(snapshot, current["worktrees"])
+    )
     for finding in findings:
         print(f"error: {finding}")
     refusals = () if record is None else store_record(args.record, record, judged(record, findings, args.unattended))
