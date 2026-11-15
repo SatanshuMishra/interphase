@@ -15,14 +15,17 @@ CARRIED = ("after", "contract_group", "type", "complexity", "file_notes", "msp")
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 SEAMS_HEAD = "Seams:"
 LINES_HEAD = "Acceptance lines:"
+DRAFT_HEAD = "Its draft, to adapt to that file and name:"
+FENCE_RE = re.compile(r"`+")
 RISKS = "### Risks"
 CHECK_AUTHOR = "check-author"
 CHECK_AUTHOR_OPENING = (
     "Write the acceptance tests below before anything is built, and never write the code they test. "
-    "Write each test in the file and under the name it lists, from the given and the expected result it lists, "
+    "Write each test in the file and under the name it lists, replacing a test the file already holds under that "
+    "name, from the given and the expected result it lists, "
     "so that it runs its acceptance line: it fails on today's code because the behaviour is absent, "
     "and passes once the behaviour exists. Load the code under test inside each test, never at import time. "
-    "Once committed, these files are locked: no later Step may change them. "
+    "Once committed, these files are locked: no builder Step may change them. "
     "Load each module from the path its row lists after Loads, never a path you infer. "
     "Before handing back, prove each test can pass inside the planned files: write a probe implementation only "
     "inside the files its row lists after Its probe may write, and never commit it; run the test against it until "
@@ -308,6 +311,19 @@ def listed_paths(head, paths):
     return (" %s: %s." % (head, ", ".join(paths)),) if paths else ()
 
 
+def fence(text):
+    longest = max((len(run) for run in FENCE_RE.findall(text)), default=0)
+    return "`" * max(3, longest + 1)
+
+
+def draft_block(test):
+    if check_record.DRAFT not in test:
+        return ""
+    draft = test[check_record.DRAFT].rstrip("\n")
+    mark = fence(draft)
+    return "\n  %s\n%s\n%s\n%s" % (DRAFT_HEAD, mark, draft, mark)
+
+
 def row_line(test, steps):
     base = "- `%s` `%s` (%s): given %s; expects %s." % (
         test["file"],
@@ -321,7 +337,7 @@ def row_line(test, steps):
         + listed_paths("Needs", tuple(test.get(check_record.NEEDS, ())))
         + listed_paths("Its probe may write", probe_paths(test, steps))
     )
-    return base + "".join(parts)
+    return base + "".join(parts) + draft_block(test)
 
 
 def authored_block(rows, block, steps):

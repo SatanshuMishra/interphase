@@ -5,7 +5,7 @@ import re
 
 DIGESTS = {
     "k1-acceptance": "fe1207087cd15a1f386421182419634bd9bb141c90a4de21e287ef0338a7d357",
-    "k2-locked": "4a9d4ddc1af766f694399f6ecba699ce93344fa323e108e9197c4a68c40b0e26",
+    "k2-locked": "efb9fff9ed4259d84326b2c6dbdfc256f0359e0c84a80bc69905ee6bf5cc4d09",
     "k6-outcome": "dec9f762cc12389c487d41f6a64a847e330403c623a88337222f539f0cf9175b",
 }
 ANNOTATIONS = frozenset(("$schema", "$id", "title", "description"))

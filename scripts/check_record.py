@@ -36,6 +36,7 @@ ROW_FEASIBILITY_KEYS = ROW_PATH_KEYS + (ABSENT,)
 ABSENT_KEYS = ("command", "shows")
 COVERS = "covers"
 CHECK = "check"
+DRAFT = "draft"
 VARIES = ("input", "output", "measured")
 POPULATION_KEYS = ("cases", "runs", "pass_rate")
 STEP_KEYS = (
@@ -427,6 +428,12 @@ def check_absent(tag, test):
     return (error("%s has absent that is not an object with exactly non-empty string command and shows" % tag),)
 
 
+def check_draft(tag, test):
+    if DRAFT not in test or check_items.is_text(test[DRAFT]):
+        return ()
+    return (error("%s has draft that is not a non-empty string" % tag),)
+
+
 def check_test(who, position, test, criterion, by_name, locked, complete):
     tag = entry_label(who, position, test)
     if not well_formed(test):
@@ -438,7 +445,7 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
         + ROW_FEASIBILITY_KEYS
         + ((COVERS,) if tabled else ())
         + (POPULATION_KEYS if varying else ())
-        + ((CHECK,) if has_lines(criterion) else ())
+        + ((CHECK, DRAFT) if has_lines(criterion) else ())
     )
     population = check_population(who, position, test) if varying else ()
     return (
@@ -447,6 +454,7 @@ def check_test(who, position, test, criterion, by_name, locked, complete):
         + check_check(tag, test, criterion, complete)
         + check_row_paths(tag, test, criterion, complete)
         + check_absent(tag, test)
+        + check_draft(tag, test)
         + population
         + check_test_step(tag, test, criterion, by_name, locked)
     )

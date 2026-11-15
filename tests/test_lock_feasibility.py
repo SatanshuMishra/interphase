@@ -525,6 +525,19 @@ class AmendmentTest(FeasibilityCase):
         self.assertTrue(failure_lines(output, ADDED_NAME, "no absent"), output)
         self.assertEqual(failure_lines(output, ROW_NAME), [], output)
 
+    def test_a_built_row_the_amendment_changes_is_judged_again(self):
+        path = self.built_new_file_record()
+        self.amend(path, [amendment_step()])
+        stored = self.stored(path)
+        first = stored["criteria"][0]
+        changed = [{**first["tests"][0], "step": AMENDMENT_STEP, "expect": "the corrected total"}] + first["tests"][1:]
+        criteria = [{**first, "tests": changed}] + stored["criteria"][1:]
+        path.write_text(json.dumps({**stored, "criteria": criteria}, indent=2), encoding="utf-8")
+        code, output = self.feasibility(path)
+        self.assertEqual(code, 1, output)
+        self.assertTrue(failure_lines(output, ROW_NAME, "no absent"), output)
+        self.assertFalse(lines_with(output, "pass", ROW_NAME, BUILT_BEFORE), output)
+
     def test_a_row_no_build_delivered_is_still_judged_at_an_amendment(self):
         entry = record(existing_row(total_absent("total 3", "echo total 4")), [step(STEP, [TOTAL]), amendment_step()])
         code, output, _ = self.checked(entry)

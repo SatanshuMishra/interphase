@@ -29,6 +29,9 @@ FAILURE_SENTENCE = (
 )
 ROW_B_ENDING = "Loads: src/a.py, src/b.py. Needs: src/b.py. Its probe may write: src/a.py, src/b.py."
 PROBE_HEAD = "Its probe may write: "
+DRAFT = "def test_a_total_is_returned_unchanged():\n    assert total_of(3) == 3\n"
+FENCED_DRAFT = "```python\nassert total_of(3) == 3\n```\n"
+DRAFT_HEAD = "\n  Its draft, to adapt to that file and name:\n"
 RESERVED_ERROR = "error: step name 'check-author-alpha' is reserved for the rendered check-author Step"
 
 
@@ -273,6 +276,45 @@ class ProbeInstructionTest(RenderCase):
         task = self.author_task()
         self.assertIn(PROBE_SENTENCE, task)
         self.assertIn(FAILURE_SENTENCE, task)
+
+
+class DraftRowTest(RenderCase):
+    def drafted(self, draft):
+        record = ordered_record()
+        first = record["criteria"][0]
+        rows = [{**first["tests"][0], "draft": draft}] + first["tests"][1:]
+        return feasible({**record, "criteria": [{**first, "tests": rows}] + record["criteria"][1:]})
+
+    def test_the_check_author_receives_a_rows_draft_in_full(self):
+        items = self.items(self.drafted(DRAFT))
+        task = authors(items)[0]["task"]
+        line_a = row_line(task, "tests/test_a.py", ROW_A_NAME)
+        self.assertTrue(line_a, task)
+        self.assertIn(line_a + DRAFT_HEAD + "```\n" + DRAFT.rstrip("\n") + "\n```", task)
+        for entry in items:
+            if entry.get("role") != ROLE:
+                self.assertNotIn("assert total_of(3) == 3", entry["task"], entry["name"])
+
+    def test_a_draft_that_holds_a_fence_gets_a_longer_one(self):
+        task = authors(self.items(self.drafted(FENCED_DRAFT)))[0]["task"]
+        self.assertIn(DRAFT_HEAD + "````\n" + FENCED_DRAFT.rstrip("\n") + "\n````", task)
+
+
+class AmendedRowTest(RenderCase):
+    def test_a_changed_row_goes_to_the_amendments_check_author(self):
+        source = amended_record()
+        first = source["criteria"][0]
+        changed = [{**first["tests"][0], "step": "build-c", "expect": "the report shows the corrected total"}]
+        steps = [
+            {**step, "criteria": ["5.1", "5.3"], "after": ["build-a"]} if step["name"] == "build-c" else step
+            for step in source["steps"]
+        ]
+        record = feasible({**source, "criteria": [{**first, "tests": changed}] + source["criteria"][1:], "steps": steps})
+        items = self.items(record, amendment=1)
+        found = authors(items)
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("tests/test_a.py", found[0]["files"])
+        self.assertIn("the report shows the corrected total", row_line(found[0]["task"], "tests/test_a.py", ROW_A_NAME))
 
 
 class PerMspRenderTest(RenderCase):

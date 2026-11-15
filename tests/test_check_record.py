@@ -54,6 +54,7 @@ APP_LINE = {
 }
 APP_PROBE = {"check": "C1.1", "probe": "command", "target": "python3", "status": "pass", "detail": "/usr/bin/python3"}
 OUTCOMES = {"store": "/var/empty/trajectories.jsonl", "entries": 0, "repeated": []}
+DRAFT = "def test_total():\n    assert total_of(3) == 3\n"
 PHONE_CRITERION = {
     "number": "5.2",
     "title": "The total shows on the phone",
@@ -726,6 +727,27 @@ class AcceptanceRecordTest(RecordFixture, unittest.TestCase):
     def test_check_without_acceptance_lines_is_an_unknown_key(self):
         record = change(self.unlined(), "criteria", 0, tests=[TEST_ENTRY])
         self.assertIn("criterion 5.1 test 'test_total' has unknown key 'check'", self.errors(record, False))
+
+    def test_a_row_of_a_criterion_with_lines_may_carry_its_draft(self):
+        record = with_criterion(tests=[{**TEST_ENTRY, "draft": DRAFT}])
+        root = pathlib.Path(__file__).resolve().parents[1]
+        spec = importlib.util.spec_from_file_location("handoff_gate", str(root / "scripts" / "handoff_gate.py"))
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        self.assertEqual(gate.record_gate("record.json", record_text(record), True), ())
+
+    def test_a_draft_that_is_not_a_non_empty_string_is_an_error(self):
+        for value in ("", 3, ["assert True"]):
+            with self.subTest(value=value):
+                record = with_criterion(tests=[{**TEST_ENTRY, "draft": value}])
+                self.assertEqual(
+                    self.errors(record, False),
+                    ("criterion 5.1 test 'test_total' has draft that is not a non-empty string",),
+                )
+
+    def test_a_draft_without_acceptance_lines_is_an_unknown_key(self):
+        record = change(self.unlined(), "criteria", 0, tests=[{**UNCHECKED_ENTRY, "draft": DRAFT}])
+        self.assertIn("criterion 5.1 test 'test_total' has unknown key 'draft'", self.errors(record, False))
 
     def test_check_naming_an_unknown_line_is_an_error(self):
         record = with_criterion(tests=[TEST_ENTRY, {**PRESENT_ENTRY, "check": "C1.2"}])
