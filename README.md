@@ -99,7 +99,7 @@ The items file is a JSON array of Step objects. Each Step has these fields:
 | `task` | yes | Complete instructions for the Step. Whoever builds it gets nothing else about it and never needs the spec. |
 | `files` | yes | A non-empty list of repository-relative paths the Step may create or change. It includes the Step's own test files, except locked paths, which the check-author Step writes. |
 | `source` | yes | `{"path": "<absolute path of the spec>", "sha256": "<64 lowercase hex digits>"}`. It is the same on every Step. |
-| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`, or in the `files` of a check-author Step it comes after. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven, and must be empty on the check-author Step. |
+| `acceptance` | yes | A list of `{"file": "<test file>", "test": "<test name>"}`. Each file is also in `files`, or in the `files` of a check-author Step it comes after. Each test fails before the Step and passes after it. The list may be empty only when every criterion the Step claims is marked unproven or is a text criterion, and must be empty on the check-author Step. |
 | `after` | no | Names of Steps that must be finished first. |
 | `contract_group` | no | A shared label for Steps that are two halves of one interface. |
 | `type` | no | Only the value `contract`. It marks the one Step in a `contract_group` that defines the shared interface. Every other Step in that group reaches it through `after`. |
@@ -148,7 +148,7 @@ Check an interview record:
 python3 /path/to/interphase/scripts/check_record.py [--complete] docs/specs/<slug>.record.json
 ```
 
-This checker confirms that every name in the record resolves, that every criterion sits at an agreed seam, and that every acceptance criterion has a test at a seam the builder runs, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
+This checker confirms that every name in the record resolves, that every criterion sits at an agreed seam, and that every acceptance criterion has a test at a seam the builder runs, is a text criterion decided by its acceptance lines' lint commands, or is marked unproven. Without `--complete`, anything still missing is a warning; with it, an error.
 
 A criterion marked `varies` (input, output or measured) must give each of its tests `cases`, `runs` (at least 2) and `pass_rate`. The render script writes them into the row's Runs cell.
 
