@@ -27,6 +27,17 @@ def limit_file_size():
     resource.setrlimit(resource.RLIMIT_FSIZE, (FILE_SIZE_LIMIT, FILE_SIZE_LIMIT))
 
 
+def warm_git_under(environment):
+    subprocess.run(
+        ["git", "--version"],
+        env=environment,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        timeout=TIMEOUT,
+        check=True,
+    )
+
+
 def run(arguments, base, limited):
     home = pathlib.Path(base) / "home"
     home.mkdir(exist_ok=True)
@@ -36,6 +47,8 @@ def run(arguments, base, limited):
         RECEIPTS_TRAJECTORY_STORE=str(pathlib.Path(base) / "absent.jsonl"),
         PYTHONDONTWRITEBYTECODE="1",
     )
+    if limited:
+        warm_git_under(environment)
     result = subprocess.run(
         [sys.executable] + [str(argument) for argument in arguments],
         cwd=base,
