@@ -45,6 +45,10 @@ _Avoid_: acceptance test, check line
 The record's list of the test files that implement acceptance lines; the check author writes them before the build and no other Step may change them.
 _Avoid_: frozen tests, protected files
 
+**Text criterion**:
+A criterion about the repository's own authored text, such as a README, a changelog, a version file or the wording of a skill, prompt or brief, that no change to shipped code alone can make fail; it sits at the reserved seam `authored-text` and a lint check its acceptance lines name decides it, with no test row.
+_Avoid_: doc test, wording test
+
 **Check author**:
 A Step, rendered before every other Step in the items file with role check-author, that writes the acceptance lines' tests of one MSP before anything is built and never writes the code under test; a record whose Steps carry no msp has one for the whole run.
 _Avoid_: test writer, referee Step

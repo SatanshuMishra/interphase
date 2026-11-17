@@ -74,6 +74,7 @@ DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 DIGEST_PARTS = ("seams", "criteria", "locked", "unaffected")
 DIGEST_STEP_KEYS = ("name", "files", "after", "msp", "amendment")
 NO_FEASIBILITY = "record has a locked list but no feasibility results; run lock_feasibility.py"
+NO_TEXT_FEASIBILITY = "record holds a text criterion but no feasibility results; run lock_feasibility.py"
 STALE_FEASIBILITY = "the record changed since lock_feasibility.py ran; run it again"
 
 
@@ -229,7 +230,7 @@ def check_seams(seams, criteria, complete):
         for name in unique(seam_names(seams))
         if name not in used
     )
-    return per_seam + repeated + idle
+    return per_seam + repeated + idle + check_text_seam(seams)
 
 
 def step_criteria(step):
@@ -522,8 +523,27 @@ def check_acceptance(who, criterion):
     )
 
 
+def check_text_rows(who, criterion):
+    if not record_seams.is_text_criterion(criterion):
+        return ()
+    return tuple(
+        error("%s is a text criterion and carries test row '%s'; a lint command decides it, never a test" % (who, test["name"]))
+        for test in criterion_tests(criterion)
+    )
+
+
+def check_text_seam(seams):
+    return tuple(
+        error("seam '%s' is reserved for text criteria and must have builder_runs true" % record_seams.TEXT_SEAM)
+        for seam in seams
+        if isinstance(seam, dict)
+        and seam.get("name") == record_seams.TEXT_SEAM
+        and seam.get("builder_runs") is not True
+    )
+
+
 def check_implemented(who, criterion, complete):
-    if "unproven" in criterion:
+    if "unproven" in criterion or record_seams.is_text_criterion(criterion):
         return ()
     named = frozenset(check_names(criterion))
     return tuple(
@@ -678,6 +698,7 @@ def check_criterion(index, criterion, known, builders, by_name, locked, complete
         + check_domains(who, criterion)
         + check_acceptance(who, criterion)
         + check_tests(who, criterion, by_name, locked, complete)
+        + check_text_rows(who, criterion)
         + check_implemented(who, criterion, complete)
         + check_proof(who, criterion, builders, complete)
         + check_coverage(who, criterion, complete)
@@ -840,7 +861,7 @@ def check_locked(record, criteria, steps, complete):
             error("record locked does not match K2: %s" % message)
             for message in owned_formats.part_errors(K2, K2_LOCKED, record["locked"])
         )
-    elif any(has_lines(criterion) for criterion in criteria):
+    elif any(has_lines(criterion) and not record_seams.is_text_criterion(criterion) for criterion in criteria):
         shape = (missing("record has no locked list, but criteria have acceptance lines", complete),)
     else:
         shape = ()
@@ -1095,11 +1116,16 @@ def check_feasibility_shape(record):
     )
 
 
+def holds_text_criterion(record):
+    return any(record_seams.is_text_criterion(criterion) for criterion in part(record, "criteria"))
+
+
 def check_feasibility(record, complete):
-    if not complete or not isinstance(record.get("locked"), list):
+    has_locked = isinstance(record.get("locked"), list)
+    if not complete or not (has_locked or holds_text_criterion(record)):
         return ()
     if "feasibility" not in record:
-        return (error(NO_FEASIBILITY),)
+        return (error(NO_FEASIBILITY if has_locked else NO_TEXT_FEASIBILITY),)
     feasibility = record["feasibility"]
     if not is_feasibility(feasibility):
         return ()

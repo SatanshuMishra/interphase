@@ -2,6 +2,7 @@ import importlib.util
 import pathlib
 
 FAILED = "fail"
+TEXT_SEAM = "authored-text"
 
 
 def load_sibling(name):
@@ -17,6 +18,10 @@ check_items = load_sibling("check_items")
 def criterion_seam(criterion):
     seam = criterion.get("seam") if isinstance(criterion, dict) else None
     return seam if check_items.is_text(seam) else None
+
+
+def is_text_criterion(criterion):
+    return criterion_seam(criterion) == TEXT_SEAM
 
 
 def builder_seams(seams):
