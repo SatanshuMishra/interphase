@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0
+
+- A criterion about the repository's own authored text, a document, a README, a changelog, a version file, or the wording of a skill, a prompt or a brief, is a text criterion. It sits at the seam `authored-text`, which interphase reserves, and its acceptance lines' lint commands decide it with no test row; in a repository with no lint stage it keeps a test row at an ordinary seam. check_record.py accepts a text criterion with no test row, under --complete too, refuses one that carries a test row, refuses the reserved seam when its builder_runs is not true, asks for a locked list only for criteria that are not text criteria, and under --complete still needs fresh, passing feasibility results for a record that holds a text criterion and no locked list.
+- The items guide, the phases and the four playbooks say what a text criterion is, the question that tells it from a behaviour criterion, and what its acceptance lines and its Step hold. Grounding finds the repository's lint stage, the seam rules and the spec reviewer admit `authored-text`, and a Step whose every criterion is a text criterion may have an empty acceptance list.
+- The record format is unchanged.
+
 ## 0.18.0
 
 - A stop has a way back. surface_probe.py returns a record stopped at a failed probe to in-progress when a later run's probes pass. A bug that does not reproduce in an unattended run verifies the guard and stops with a status and a reason in the record.

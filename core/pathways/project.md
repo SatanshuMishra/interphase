@@ -41,6 +41,12 @@ Propose two or three stacks with their trade-offs as one frontier question, the 
 - Make every criterion pass or fail with no judgement call.
 - Number each criterion under the Test seams section, such as `5.1`, and place it at an agreed seam.
 - Write criteria for the foundations themselves, such as the build producing a release artifact and CI running the tests.
+- A text criterion is a criterion about the repository's own authored text: a document, a README, a changelog, a version file, or the wording of a skill, a prompt or a brief.
+- To tell a text criterion from a behaviour criterion, ask whether a change to shipped code alone can make it fail; when it cannot, it is a text criterion.
+- Place a text criterion at the seam `authored-text`, which interphase reserves for text criteria and declares with `builder_runs` true, and give it acceptance lines and no test row: each line's command is a lint check the repository's lint stage runs, an existing one or one a Step adds beside the repository's other lint checks, and it exits 0 when the text is right and 1 when it is not.
+- The Step that claims a text criterion lists the file of every lint check it adds and, when the lint stage names its checks one by one, the file that names them, so the check is registered there; it has an empty acceptance list when it claims only text criteria, and adds no locked path.
+- When the repository has no lint stage, place a criterion about authored text at an ordinary seam and give it a test row like any other criterion, never at the seam `authored-text`.
+- Start the command of a lint check a Step adds with a program already installed, such as `python3 scripts/check_changelog.py` or `sh scripts/check_changelog.sh`, because the surface probe runs before the Step adds the file.
 - Follow `${CLAUDE_PLUGIN_ROOT}/core/variation.md` for every behaviour that varies from run to run.
 
 ## Steps
